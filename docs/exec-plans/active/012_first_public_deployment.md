@@ -20,10 +20,10 @@ then perform and record the live signed-out accessibility review.
 - [x] Confirm the first production workflow ran for that exact commit.
 - [x] Confirm locked-source artifact validation passed in GitHub Actions.
 - [x] Identify the deployment blocker from public job annotations.
-- [ ] Enable Pages with GitHub Actions as its source through an authorized
+- [x] Enable Pages with GitHub Actions as its source through an authorized
       administrator session.
-- [ ] Rerun the protected workflow and verify its exact commit/artifact.
-- [ ] Verify the public project URL signed out.
+- [x] Rerun the protected workflow and verify its exact commit/artifact.
+- [x] Verify the public project URL signed out.
 - [ ] Perform browser accessibility, responsive, zoom, print, search, equation,
       navigation, and 404 checks.
 - [ ] Update the release report, run final checks, and complete this plan.
@@ -39,3 +39,17 @@ then perform and record the live signed-out accessibility review.
   rerun.
 - Browser runtime discovery still reports no available browser instance; live
   review remains pending until a browser connection is provided.
+- The owner enabled Pages with `build_type: workflow`, public access, and HTTPS,
+  then reauthenticated GitHub CLI through the system keyring.
+- Because the token could not directly rerun Actions, the reviewed scope and
+  authorization record was committed as `42d168b` and pushed to `main`, which
+  triggered production run `30753651888` through the normal protected path.
+- Run `30753651888` passed locked-source validation, Pages configuration,
+  validated artifact upload, and deployment. Official Pages actions emitted
+  Node 20 deprecation warnings while GitHub forced Node 24; no step failed.
+- Signed-out HTTP checks returned 200 for home, the science entry page, an
+  imported equations page, the search index, and the repository stylesheet.
+  A deliberately absent route returned 404 as expected.
+- R10-001 is resolved. Browser discovery was retried after deployment and still
+  reported no available browser; R10-004 remains open pending interactive
+  evidence.
