@@ -86,10 +86,11 @@ GitHub Pages serves static content. It does not run pyEUVICS, Python, or Jupyter
 
 ## Current status
 
-Tasks 0–8 established the repository, information architecture, source
+Tasks 0–9 established the repository, information architecture, source
 publication contracts, local MkDocs scaffold, deterministic assembly, and the
 Proposal/CDR and static pyEUVICS notebook/campaign publication pipelines, plus
-non-deploying pull-request validation. The
+non-deploying pull-request validation, and the protected GitHub Pages
+deployment workflow. The
 current locked EUVICS manifest approves no PDFs, while pyEUVICS notebook sets
 remain approval-pending and campaign sets remain blocked. Those production
 pages therefore remain placeholders. Before further scientific content is
@@ -98,12 +99,15 @@ published, the project will:
 1. Approve complete Proposal/CDR release metadata and artifacts in EUVICS.
 2. Approve exact notebook and campaign sets with complete execution and
    validation metadata in pyEUVICS.
-3. Add the separately authorized deployment workflow.
+3. Complete the administrator controls and explicitly authorize the first
+   deployment.
 4. Perform a signed-out public-release review.
 
 See [Codex website tasks](docs/codex_tasks.md) for the sequenced implementation prompts.
 See [pull-request site validation](docs/ci-validation.md) for the local/CI
 equivalent check and credential policy.
+See [GitHub Pages deployment](docs/pages-deployment.md) for the production
+workflow, administrator checklist, and rollback procedure.
 
 ## Intended repository structure
 

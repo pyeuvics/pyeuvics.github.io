@@ -1,0 +1,110 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Validate and package public artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pages: read
+
+    steps:
+      - name: Check out website source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements-docs.txt
+            requirements-notebooks.txt
+            sources.lock.yml
+
+      - name: Install pinned validation environment
+        run: python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
+
+      - name: Resolve exact source locks
+        id: locks
+        run: python -m tools.ci_source_locks resolve >> "$GITHUB_OUTPUT"
+
+      - name: Check out locked EUVICS source
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.locks.outputs.euvics_repository }}
+          ref: ${{ steps.locks.outputs.euvics_commit }}
+          path: .sources/euvics
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out locked pyEUVICS source
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.locks.outputs.pyeuvics_repository }}
+          ref: ${{ steps.locks.outputs.pyeuvics_commit }}
+          path: .sources/pyeuvics
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Inspect approved document requirements
+        id: publication
+        run: >-
+          python -m tools.ci_source_locks inspect-euvics
+          --source .sources/euvics >> "$GITHUB_OUTPUT"
+
+      - name: Install EUVICS document toolchain
+        if: steps.publication.outputs.approved_pdf == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends latexmk texlive-latex-base texlive-latex-extra
+
+      - name: Build and validate exact public artifact
+        run: >-
+          python -m tools.validate_ci
+          --euvics-source .sources/euvics
+          --pyeuvics-source .sources/pyeuvics
+          --output .staging/pages
+
+      - name: Configure GitHub Pages metadata
+        uses: actions/configure-pages@v5
+        with:
+          enablement: false
+
+      - name: Upload validated GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: .staging/pages/site
+          retention-days: 1
+
+  deploy:
+    name: Deploy validated public artifact
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
