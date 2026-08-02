@@ -12,18 +12,11 @@ theme:
   name: material
   custom_dir: overrides
   language: en
-  features: [navigation.sections, navigation.top, navigation.footer, search.highlight, search.suggest, content.action.edit]
+  features: [navigation.sections, navigation.path, navigation.top, navigation.footer, search.highlight, search.suggest, content.action.edit, content.code.copy]
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: blue grey
-      accent: indigo
-      toggle: {icon: material/brightness-7, name: Use dark color scheme}
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: blue grey
-      accent: light blue
-      toggle: {icon: material/brightness-4, name: Use light color scheme}
+    scheme: default
+    primary: blue
+    accent: blue
 nav:
   - Home: index.md
   - Project:
@@ -54,8 +47,10 @@ markdown_extensions:
   - pymdownx.arithmatex: {generic: true}
   - pymdownx.details
   - pymdownx.superfences
-extra_css: [stylesheets/extra.css]
+extra_css:
+  - stylesheets/readthedocs.css
 extra_javascript:
   - javascripts/mathjax.js
+  - javascripts/navigation.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 copyright: Website structure is MIT-licensed; imported material retains its source license and attribution.
