@@ -63,6 +63,7 @@ tmp
 /.staging/
 /.rendered/
 /site/
+/.venv-docs/
 
 # Local secrets and environment files
 .env

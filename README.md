@@ -86,16 +86,15 @@ GitHub Pages serves static content. It does not run pyEUVICS, Python, or Jupyter
 
 ## Current status
 
-The repository is in the foundation phase. Before scientific content is published, the project will:
+Tasks 0–4 established the repository, information architecture, source
+publication contracts, and local MkDocs scaffold. The scaffold contains
+placeholders only. Before scientific content is published, the project will:
 
-1. Add repository instructions and local build documentation.
-2. Correct the license filename from `LINCESNE` to `LICENSE` after review.
-3. Replace the previous plan that targets the wrong GitHub owner/repository.
-4. Add public-content manifests to both source repositories.
-5. Scaffold the local MkDocs site.
-6. Implement deterministic cross-repository staging.
-7. Add validation and deployment workflows.
-8. Perform a signed-out public-release review.
+1. Review and lock exact source commits.
+2. Implement deterministic cross-repository staging.
+3. Integrate approved document artifacts and static notebooks.
+4. Add validation and deployment workflows.
+5. Perform a signed-out public-release review.
 
 See [Codex website tasks](docs/codex_tasks.md) for the sequenced implementation prompts.
 
@@ -123,21 +122,20 @@ Temporary source checkouts, staging files, rendered notebook intermediates, and 
 
 ## Local development
 
-The exact commands will be enabled during the site-foundation tasks. The intended workflow is:
+Create an isolated documentation environment and run the local checks:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python -m venv .venv-docs
+source .venv-docs/bin/activate
 python -m pip install -r requirements-docs.txt
-
-python tools/assemble_site.py \
-  --euvics-source /path/to/euvics \
-  --pyeuvics-source /path/to/pyEUVICS
 
 mkdocs serve
 mkdocs build --strict
 python -m pytest
 ```
+
+The generated site is written to ignored `site/`. Source assembly commands are
+deferred until the source locks and publication contracts are integrated.
 
 Do not hard-code personal source paths into configuration, tests, generated pages, or committed scripts.
 
@@ -182,4 +180,3 @@ The repository currently contains MIT license text. Before the first release, re
 - [Creating a GitHub Pages site](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)
 - [Configuring a publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
 - [Using custom workflows with GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
-

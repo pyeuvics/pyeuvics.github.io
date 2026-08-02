@@ -1,0 +1,15 @@
+schema_version: 1
+sources:
+  euvics:
+    repository: https://github.com/chongshikpark/euvics
+    commit: null
+    lock_status: unresolved
+    publication_manifest: publication/public-content-v1.json
+  pyeuvics:
+    repository: https://github.com/chongshikpark/pyEUVICS
+    commit: null
+    lock_status: unresolved
+    publication_manifest: publication/public-content-v1.json
+
+# Task 4 deliberately leaves commits unresolved. Source assembly must fail
+# until reviewed 40-character commits replace both null values.
