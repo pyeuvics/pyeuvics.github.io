@@ -22,7 +22,13 @@ class PublishedFile:
 
     source_name: str
     path: str
+    kind: str
+    title: str
+    version: str
     publication_status: str
+    document_date: str | None
+    license: str
+    attribution: str
     known_limitations: tuple[str, ...]
 
 

@@ -16,6 +16,7 @@ from urllib.parse import quote, unquote
 import yaml
 
 from .contracts import ContractError, load_contract, load_locks
+from .documents import DocumentError, build_approved_documents
 from .models import AssemblyResult as AssemblyResult
 from .models import InventoryEntry, PublishedFile, SourceContract
 
@@ -28,7 +29,7 @@ CREDENTIAL_PATTERNS = (
     re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b"),
 )
 TEXT_SUFFIXES = {"", ".md", ".svg", ".css", ".js", ".json", ".csv", ".yaml", ".yml", ".txt", ".cff", ".html", ".xml"}
-ARTIFACT_SUFFIXES = TEXT_SUFFIXES | {".png", ".jpg", ".jpeg", ".gif", ".gz", ".map", ".ico"}
+ARTIFACT_SUFFIXES = TEXT_SUFFIXES | {".png", ".jpg", ".jpeg", ".gif", ".gz", ".map", ".ico", ".pdf"}
 
 
 class AssemblyError(ValueError):
@@ -143,11 +144,14 @@ def _copy_contract(
     contract: SourceContract,
     imported_root: Path,
     timestamp: str,
+    destination_overrides: dict[str, Path] | None = None,
 ) -> tuple[InventoryEntry, ...]:
     source_root = imported_root / contract.lock.name
-    destinations = {item.path: source_root / item.path for item in contract.files}
+    ordinary_files = tuple(item for item in contract.files if item.kind != "pdf")
+    destinations = {item.path: source_root / item.path for item in ordinary_files}
+    destinations.update(destination_overrides or {})
     inventory: list[InventoryEntry] = []
-    for published in contract.files:
+    for published in ordinary_files:
         source = contract.root / published.path
         source_sha256 = _sha256(source)
         destination = destinations[published.path]
@@ -290,15 +294,36 @@ def assemble_site(
     output_root.mkdir(parents=True)
     staged_content = output_root / "content"
     shutil.copytree(website_root / "content", staged_content)
+    euvics_contract = next(contract for contract in contracts if contract.lock.name == "euvics")
+    try:
+        document_entries, document_destinations = build_approved_documents(
+            euvics_contract,
+            output_root,
+            staged_content,
+            timestamp,
+        )
+    except DocumentError as exc:
+        raise AssemblyError(str(exc)) from exc
     imported_root = staged_content / "imported"
     imported_root.mkdir()
-    entries = tuple(
+    ordinary_entries = tuple(
         sorted(
             (
                 item
                 for contract in contracts
-                for item in _copy_contract(contract, imported_root, timestamp)
+                for item in _copy_contract(
+                    contract,
+                    imported_root,
+                    timestamp,
+                    document_destinations if contract.lock.name == "euvics" else None,
+                )
             ),
+            key=lambda item: (item.source, item.source_path),
+        )
+    )
+    entries = tuple(
+        sorted(
+            (*ordinary_entries, *document_entries),
             key=lambda item: (item.source, item.source_path),
         )
     )

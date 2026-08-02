@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from reportlab.pdfgen import canvas
 
 from tools.site_assembly import AssemblyError, assemble_site
 from tools.site_assembly.contracts import load_locks
@@ -135,6 +136,88 @@ def create_sources(tmp_path: Path, euvics: dict | None = None, pyeuvics: dict | 
         },
     )
     return euvics_root, pyeuvics_root, {"euvics": euvics_commit, "pyeuvics": pyeuvics_commit}
+
+
+def generic_pdf(label: str) -> bytes:
+    from io import BytesIO
+
+    stream = BytesIO()
+    document = canvas.Canvas(stream, invariant=1, pageCompression=0)
+    document.setTitle(label)
+    document.drawString(72, 760, label)
+    document.drawString(72, 740, "Synthetic publication test fixture - no scientific content.")
+    document.showPage()
+    document.save()
+    return stream.getvalue()
+
+
+def add_proposal_release(
+    root: Path,
+    *,
+    rebuilt_matches: bool = True,
+    make_fails: bool = False,
+    log_marker: str | None = None,
+    publication_status: str = "released",
+    limitations: list[str] | None = None,
+    document_path: str = "build/proposal/main.pdf",
+    omit_build_output: bool = False,
+) -> str:
+    approved = generic_pdf("Approved generic proposal")
+    rebuilt = approved if rebuilt_matches else generic_pdf("Different generic proposal")
+    write_files(
+        root,
+        {
+            document_path: approved,
+            "document_sources/proposal.pdf": rebuilt,
+        },
+    )
+    manifest_path = root / "publication/public-content-v1.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["allowlist"].append(
+        {
+            "path": document_path,
+            "kind": "pdf",
+            "title": "Generic Proposal",
+            "version": "fixture-r1",
+            "document_date": "2026-08-02",
+            "publication_status": publication_status,
+            "approval": {
+                "status": "approved",
+                "approved_by": "fixture-owner",
+                "approved_on": "2026-08-02",
+            },
+            "license": "MIT",
+            "attribution": "Synthetic fixture",
+            "known_limitations": (
+                ["Synthetic document for pipeline testing only."]
+                if limitations is None
+                else limitations
+            ),
+        }
+    )
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    verify_recipe = "\t@false\n" if make_fails else "\t@test -f document_sources/proposal.pdf\n"
+    build_recipe = "\t@true\n" if omit_build_output else (
+        "\t@mkdir -p build/proposal\n"
+        "\t@cp document_sources/proposal.pdf build/proposal/main.pdf\n"
+    )
+    marker_recipe = ""
+    if log_marker is not None:
+        marker_recipe = (
+            "\t@mkdir -p build/proposal\n"
+            f"\t@printf '%s\\n' '{log_marker}' > build/proposal/main.log\n"
+        )
+    (root / "Makefile").write_text(
+        ".PHONY: verify-archive check\n"
+        "verify-archive:\n"
+        f"{verify_recipe}"
+        "check: verify-archive\n"
+        f"{build_recipe}{marker_recipe}",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "-f", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Add synthetic approved document"], cwd=root, check=True)
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
 
 
 def write_locks(path: Path, commits: dict[str, str]) -> Path:
@@ -356,3 +439,58 @@ def test_command_line_assembly(tmp_path: Path) -> None:
     )
     assert "assembled 4 approved files" in result.stdout
     assert (output / "site/index.html").is_file()
+
+
+def test_approved_proposal_is_rebuilt_staged_and_described(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    commits["euvics"] = add_proposal_release(euvics)
+    before = snapshot(euvics)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    result = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "document-output")
+    assert snapshot(euvics) == before
+    staged_pdf = result.staged_content / "documents/proposal.pdf"
+    assert staged_pdf.read_bytes() == (euvics / "build/proposal/main.pdf").read_bytes()
+    overview = (result.staged_content / "documents/proposal.md").read_text(encoding="utf-8")
+    checksum = hashlib.sha256(staged_pdf.read_bytes()).hexdigest()
+    assert "# Generic Proposal" in overview
+    assert "fixture-r1" in overview
+    assert "2026-08-02" in overview
+    assert checksum in overview
+    assert commits["euvics"] in overview
+    assert (result.site / "documents/proposal.pdf").is_file()
+    assert (result.site / "documents/proposal/index.html").is_file()
+    pdf_entry = next(
+        item for item in result.inventory if item.source_path == "build/proposal/main.pdf"
+    )
+    assert pdf_entry.source_sha256 == checksum
+    assert pdf_entry.staged_sha256 == checksum
+
+
+@pytest.mark.parametrize(
+    ("options", "message"),
+    [
+        ({"rebuilt_matches": False}, "checksum does not match"),
+        ({"make_fails": True}, "make verify-archive failed"),
+        ({"log_marker": "There were undefined references"}, "unresolved citation"),
+        ({"publication_status": "public-draft"}, "explicitly released PDF"),
+        ({"limitations": []}, "known limitations"),
+        ({"document_path": "archive/proposal.pdf"}, "unrecognized approved document path"),
+        ({"omit_build_output": True}, "build output is missing"),
+    ],
+)
+def test_document_publication_failure_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    options: dict,
+    message: str,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    commits["euvics"] = add_proposal_release(euvics, **options)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    with pytest.raises(AssemblyError, match=message):
+        assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "document-output")

@@ -16,7 +16,7 @@ COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 GLOB_CHARS = set("*?[]{}")
 SUPPORTED_SUFFIXES = {
     "", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".css", ".js",
-    ".json", ".csv", ".yaml", ".yml", ".txt", ".cff",
+    ".json", ".csv", ".yaml", ".yml", ".txt", ".cff", ".pdf",
 }
 KIND_SUFFIXES = {
     "markdown": {".md"},
@@ -207,7 +207,13 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                 PublishedFile(
                     lock.name,
                     relative,
+                    kind,
+                    str(entry["title"]),
+                    str(entry["version"]),
                     str(entry["publication_status"]),
+                    str(entry["document_date"]) if "document_date" in entry else None,
+                    str(entry["license"]),
+                    str(entry["attribution"]),
                     tuple(limitations),
                 )
             )
@@ -242,7 +248,13 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                 PublishedFile(
                     lock.name,
                     relative,
+                    "markdown" if relative.endswith(".md") else "asset",
+                    relative,
+                    str(package["version"]),
                     str(package["documentation_status"]),
+                    None,
+                    str(package["license"]),
+                    "See source citation and license metadata.",
                     tuple(str(item) for item in limitations),
                 )
             )
