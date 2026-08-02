@@ -54,8 +54,11 @@ internal PDFs.
   EUVICS manifest approves none.
 - Both real source worktrees remained clean after assembly.
 - Synthetic deterministic PDFs were parsed with pypdf, checked for pages, and
-  exercised through text extraction. Poppler (`pdftoppm`) is not installed, and there
-  is no approved production PDF to render visually in this task.
+  exercised through text extraction. Poppler 26.07.0 is available at
+  `/usr/local/bin/pdftoppm`; there is no approved production PDF to render
+  visually in this task.
+- The verified pyEUVICS checkout is
+  `/Users/cspark/Work/simulation_codes-working/pyEUVICS`.
 
 ## Remaining publication decision
 
