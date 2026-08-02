@@ -86,11 +86,12 @@ GitHub Pages serves static content. It does not run pyEUVICS, Python, or Jupyter
 
 ## Current status
 
-Tasks 0–9 established the repository, information architecture, source
+Tasks 0–11 established the repository, information architecture, source
 publication contracts, local MkDocs scaffold, deterministic assembly, and the
 Proposal/CDR and static pyEUVICS notebook/campaign publication pipelines, plus
 non-deploying pull-request validation, and the protected GitHub Pages
-deployment workflow. The
+deployment workflow, scoped first public deployment, and proposal-only source
+lock update automation. The
 current locked EUVICS manifest approves no PDFs, while pyEUVICS notebook sets
 remain approval-pending and campaign sets remain blocked. Those production
 pages therefore remain placeholders. Before further scientific content is
@@ -99,15 +100,17 @@ published, the project will:
 1. Approve complete Proposal/CDR release metadata and artifacts in EUVICS.
 2. Approve exact notebook and campaign sets with complete execution and
    validation metadata in pyEUVICS.
-3. Complete the administrator controls and explicitly authorize the first
-   deployment.
-4. Perform a signed-out public-release review.
+3. Complete the browser-based signed-out accessibility review when a browser
+   connection is available.
 
 See [Codex website tasks](docs/codex_tasks.md) for the sequenced implementation prompts.
 See [pull-request site validation](docs/ci-validation.md) for the local/CI
 equivalent check and credential policy.
 See [GitHub Pages deployment](docs/pages-deployment.md) for the production
 workflow, administrator checklist, and rollback procedure.
+See [automated source-lock pull requests](docs/source-update-automation.md) for
+candidate validation, credential boundaries, artifact comparison, review, and
+rollback policy.
 
 ## Intended repository structure
 
@@ -172,7 +175,7 @@ Python 3.13 environment and command.
 
 ## Deployment
 
-The production workflow will use GitHub Pages artifacts:
+The production workflow uses GitHub Pages artifacts:
 
 - Pull requests build and validate without deployment.
 - Approved default-branch changes may deploy.
@@ -181,13 +184,15 @@ The production workflow will use GitHub Pages artifacts:
 - The final artifact is checked for excluded content, secrets, and local paths.
 - Deployment uses the protected `github-pages` environment.
 
-The repository administrator must configure:
+The repository is configured with:
 
 ```text
 Settings → Pages → Build and deployment → Source → GitHub Actions
 ```
 
-Do not enable Pages until the first full artifact has passed publication review.
+The first scoped artifact was deployed only after publication review and owner
+authorization. Future deployments remain gated by exact source locks,
+publication manifests, validation, and the protected `github-pages` environment.
 
 ## Publication safety
 
@@ -203,7 +208,9 @@ Codex may scaffold, transform, test, and document the site. Scientific conclusio
 
 ## License
 
-The repository currently contains MIT license text. Before the first release, rename the existing `LINCESNE` file to `LICENSE` and confirm that the license applies to the website source. Imported documents, figures, data, and third-party material may have separate licenses and attribution requirements.
+The website source is MIT-licensed in `LICENSE`. Imported documents, figures,
+data, and third-party material may have separate licenses and attribution
+requirements.
 
 ## References
 

@@ -1,0 +1,248 @@
+name: Propose source lock update
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: source-lock-update
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Compare exact source candidates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      has_updates: ${{ steps.candidates.outputs.has_updates }}
+
+    steps:
+      - name: Check out website source without credentials
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Refuse a duplicate automated proposal
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("automation/source-lock-update-"))] | length')
+          if [ "$count" = "0" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "An automated source-lock pull request is already open."
+          fi
+
+      - name: Set up Python 3.13
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements-docs.txt
+            requirements-notebooks.txt
+            sources.lock.yml
+
+      - name: Install pinned validation environment
+        if: steps.gate.outputs.proceed == 'true'
+        run: python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
+
+      - name: Resolve current exact locks
+        if: steps.gate.outputs.proceed == 'true'
+        id: current
+        run: python -m tools.ci_source_locks resolve >> "$GITHUB_OUTPUT"
+
+      - name: Discover exact default-branch candidates
+        if: steps.gate.outputs.proceed == 'true'
+        id: candidates
+        run: python -m tools.source_update discover >> "$GITHUB_OUTPUT"
+
+      - name: Check out currently locked EUVICS
+        if: steps.candidates.outputs.has_updates == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.current.outputs.euvics_repository }}
+          ref: ${{ steps.current.outputs.euvics_commit }}
+          path: .sources/current-euvics
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out currently locked pyEUVICS
+        if: steps.candidates.outputs.has_updates == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.current.outputs.pyeuvics_repository }}
+          ref: ${{ steps.current.outputs.pyeuvics_commit }}
+          path: .sources/current-pyeuvics
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Check out candidate EUVICS history
+        if: steps.candidates.outputs.has_updates == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.current.outputs.euvics_repository }}
+          ref: ${{ steps.candidates.outputs.euvics }}
+          path: .sources/candidate-euvics
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out candidate pyEUVICS history
+        if: steps.candidates.outputs.has_updates == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.current.outputs.pyeuvics_repository }}
+          ref: ${{ steps.candidates.outputs.pyeuvics }}
+          path: .sources/candidate-pyeuvics
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Create and verify commit-only candidate lock
+        if: steps.candidates.outputs.has_updates == 'true'
+        run: |
+          mkdir -p .staging/source-update
+          cp sources.lock.yml .staging/source-update/current.lock.yml
+          python -m tools.source_update apply \
+            --lock sources.lock.yml \
+            --output .staging/source-update/candidate.lock.yml \
+            --euvics-commit "${{ steps.candidates.outputs.euvics }}" \
+            --pyeuvics-commit "${{ steps.candidates.outputs.pyeuvics }}"
+          python -m tools.source_update verify-ancestry \
+            --current .staging/source-update/current.lock.yml \
+            --candidate .staging/source-update/candidate.lock.yml \
+            --euvics-source .sources/candidate-euvics \
+            --pyeuvics-source .sources/candidate-pyeuvics
+
+      - name: Inspect current document requirements
+        if: steps.candidates.outputs.has_updates == 'true'
+        id: current_publication
+        run: >-
+          python -m tools.ci_source_locks
+          --lock .staging/source-update/current.lock.yml
+          inspect-euvics --source .sources/current-euvics >> "$GITHUB_OUTPUT"
+
+      - name: Inspect candidate document requirements
+        if: steps.candidates.outputs.has_updates == 'true'
+        id: candidate_publication
+        run: >-
+          python -m tools.ci_source_locks
+          --lock .staging/source-update/candidate.lock.yml
+          inspect-euvics --source .sources/candidate-euvics >> "$GITHUB_OUTPUT"
+
+      - name: Install EUVICS document toolchain when required
+        if: >-
+          steps.candidates.outputs.has_updates == 'true' &&
+          (steps.current_publication.outputs.approved_pdf == 'true' ||
+           steps.candidate_publication.outputs.approved_pdf == 'true')
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends latexmk texlive-latex-base texlive-latex-extra
+
+      - name: Validate current locked artifact
+        if: steps.candidates.outputs.has_updates == 'true'
+        run: >-
+          python -m tools.validate_ci
+          --lock .staging/source-update/current.lock.yml
+          --euvics-source .sources/current-euvics
+          --pyeuvics-source .sources/current-pyeuvics
+          --output .staging/source-update/baseline
+
+      - name: Validate candidate locked artifact
+        if: steps.candidates.outputs.has_updates == 'true'
+        run: >-
+          python -m tools.validate_ci
+          --lock .staging/source-update/candidate.lock.yml
+          --euvics-source .sources/candidate-euvics
+          --pyeuvics-source .sources/candidate-pyeuvics
+          --output .staging/source-update/candidate
+
+      - name: Write bounded comparison and proposal package
+        if: steps.candidates.outputs.has_updates == 'true'
+        run: |
+          mkdir -p .staging/source-update/proposal
+          cp .staging/source-update/candidate.lock.yml .staging/source-update/proposal/sources.lock.yml
+          python -m tools.source_update compare \
+            --current .staging/source-update/current.lock.yml \
+            --candidate .staging/source-update/candidate.lock.yml \
+            --baseline-manifest .staging/source-update/baseline/review-artifact-manifest.json \
+            --candidate-manifest .staging/source-update/candidate/review-artifact-manifest.json \
+            --output .staging/source-update/proposal/pull-request.md
+
+      - name: Upload validated proposal evidence
+        if: steps.candidates.outputs.has_updates == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: source-lock-proposal
+          path: |
+            .staging/source-update/proposal
+            .staging/source-update/baseline/review-artifact-manifest.json
+            .staging/source-update/candidate/review-artifact-manifest.json
+          if-no-files-found: error
+          retention-days: 7
+
+  propose:
+    name: Open review-only lock update
+    needs: validate
+    if: needs.validate.outputs.has_updates == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check out website source for proposed lock commit
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install trusted website validation dependencies
+        run: python -m pip install -r requirements-docs.txt
+
+      - name: Download validated proposal evidence
+        uses: actions/download-artifact@v8
+        with:
+          name: source-lock-proposal
+          path: .staging/source-update
+
+      - name: Reverify and commit only the candidate lock
+        env:
+          UPDATE_BRANCH: automation/source-lock-update-${{ github.run_id }}
+        run: |
+          python -m tools.source_update verify \
+            --current sources.lock.yml \
+            --candidate .staging/source-update/proposal/sources.lock.yml
+          cp .staging/source-update/proposal/sources.lock.yml sources.lock.yml
+          git diff --exit-code -- . ':!sources.lock.yml'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$UPDATE_BRANCH"
+          git add sources.lock.yml
+          git commit -m "Propose validated source lock update"
+          git push --set-upstream origin "$UPDATE_BRANCH"
+
+      - name: Open pull request without merge or deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPDATE_BRANCH: automation/source-lock-update-${{ github.run_id }}
+        run: >-
+          gh pr create
+          --base main
+          --head "$UPDATE_BRANCH"
+          --title "Propose validated source lock update"
+          --body-file .staging/source-update/proposal/pull-request.md

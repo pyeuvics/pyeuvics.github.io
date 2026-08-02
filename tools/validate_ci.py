@@ -130,7 +130,17 @@ def validate(
     )
     _run([sys.executable, "-m", "pytest"], website_root)
     _run(
-        [sys.executable, "-m", "mypy", "--strict", "tools/site_assembly", "tools/assemble_site.py", "tools/ci_source_locks.py", "tools/validate_ci.py"],
+        [
+            sys.executable,
+            "-m",
+            "mypy",
+            "--strict",
+            "tools/site_assembly",
+            "tools/assemble_site.py",
+            "tools/ci_source_locks.py",
+            "tools/source_update.py",
+            "tools/validate_ci.py",
+        ],
         website_root,
     )
     _run(
