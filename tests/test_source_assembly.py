@@ -410,8 +410,25 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
     assert "guide.md" in package_text
     assert f"/blob/{commits['pyeuvics']}/notes/note.md" in package_text
     assert "## Provenance" in package_text
+    staged_home = (first.staged_content / "index.md").read_text(encoding="utf-8")
+    assert "2 manifest-approved pyEUVICS files" in staged_home
+    assert commits["pyeuvics"] in staged_home
+    installation = (first.staged_content / "software/installation.md").read_text(
+        encoding="utf-8"
+    )
+    assert "../imported/pyeuvics/docs/index.md" in installation
+    assert "0.0-fixture" in installation
     assert (first.site / "imported/euvics/docs/overview/index.html").is_file()
     assert (first.site / "imported/staged-content-inventory.json").is_file()
+    imported_html = (first.site / "imported/pyeuvics/docs/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert "edit/main/content/imported/" not in imported_html
+    assert f"pyEUVICS/edit/{commits['pyeuvics']}/docs/index.md" in imported_html
+    website_html = (first.site / "software/installation/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert "edit/main/content/software/installation.md" in website_html
 
 
 def test_production_locks_are_resolved() -> None:
