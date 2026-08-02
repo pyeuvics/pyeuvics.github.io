@@ -137,6 +137,19 @@ python -m pytest
 The generated site is written to ignored `site/`. Source assembly commands are
 deferred until the source locks and publication contracts are integrated.
 
+With both reviewed source-contract commits recorded in `sources.lock.yml`,
+assemble a clean local review artifact with:
+
+```bash
+SOURCE_DATE_EPOCH=1785628800 python tools/assemble_site.py \
+  --euvics-source /path/to/clean/euvics \
+  --pyeuvics-source /path/to/clean/pyEUVICS \
+  --output .staging/review-build
+```
+
+Assembly refuses unresolved locks, dirty or mismatched source checkouts, and an
+existing output path. It does not build PDFs or render notebooks yet.
+
 Do not hard-code personal source paths into configuration, tests, generated pages, or committed scripts.
 
 ## Deployment

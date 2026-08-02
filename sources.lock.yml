@@ -2,14 +2,13 @@ schema_version: 1
 sources:
   euvics:
     repository: https://github.com/chongshikpark/euvics
-    commit: null
-    lock_status: unresolved
+    commit: dcae0fba5b6cbb9073e0e552ca74c0a14484e2b0
+    lock_status: locked
     publication_manifest: publication/public-content-v1.json
   pyeuvics:
     repository: https://github.com/chongshikpark/pyEUVICS
-    commit: null
-    lock_status: unresolved
+    commit: 6193ab3e2be39fc74d40cd7ed1f9cece993b9ecd
+    lock_status: locked
     publication_manifest: publication/public-content-v1.json
 
-# Task 4 deliberately leaves commits unresolved. Source assembly must fail
-# until reviewed 40-character commits replace both null values.
+# Task 5 locks the reviewed source publication-contract commits exactly.

@@ -60,12 +60,12 @@ def test_all_content_has_one_level_one_heading_and_no_local_paths() -> None:
             assert len(re.findall(r"^# ", text, flags=re.MULTILINE)) == 1, path
 
 
-def test_source_locks_are_explicitly_unresolved() -> None:
+def test_source_locks_are_exact_and_resolved() -> None:
     lock = yaml.safe_load((ROOT / "sources.lock.yml").read_text(encoding="utf-8"))
     assert set(lock["sources"]) == {"euvics", "pyeuvics"}
     for source in lock["sources"].values():
-        assert source["commit"] is None
-        assert source["lock_status"] == "unresolved"
+        assert re.fullmatch(r"[0-9a-f]{40}", source["commit"])
+        assert source["lock_status"] == "locked"
 
 
 def test_generated_site_is_ignored() -> None:

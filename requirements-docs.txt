@@ -1,4 +1,6 @@
 # Direct documentation and test dependencies, reviewed 2026-08-02.
 mkdocs==1.6.1
 mkdocs-material==9.7.7
+mypy==2.3.0
 pytest==9.1.1
+types-PyYAML==6.0.12.20260518
