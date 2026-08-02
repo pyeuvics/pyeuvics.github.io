@@ -37,6 +37,7 @@ nav:
       - Science and conventions: software/science.md
       - API reference: software/api.md
       - Tutorials: software/tutorials.md
+      - Static notebooks: software/notebooks/index.md
       - Workflows: software/workflows.md
       - Validation: software/validation.md
   - Reference campaigns:

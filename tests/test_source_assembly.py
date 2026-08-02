@@ -220,6 +220,134 @@ def add_proposal_release(
     return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
 
 
+def notebook_bytes(code: str, *, with_output: bool = False) -> bytes:
+    output = (
+        [{"name": "stdout", "output_type": "stream", "text": "precomputed\n"}]
+        if with_output
+        else []
+    )
+    notebook = {
+        "cells": [
+            {
+                "cell_type": "markdown",
+                "id": "fixture-introduction",
+                "metadata": {},
+                "source": ["# Synthetic deterministic notebook\n"],
+            },
+            {
+                "cell_type": "code",
+                "execution_count": 1 if with_output else None,
+                "id": "fixture-code",
+                "metadata": {},
+                "outputs": output,
+                "source": [code],
+            },
+        ],
+        "metadata": {
+            "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+            "language_info": {"name": "python", "version": "3"},
+        },
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+    return (json.dumps(notebook, sort_keys=True) + "\n").encode()
+
+
+def add_approved_notebook_set(
+    root: Path,
+    code: str,
+    *,
+    with_output: bool = False,
+    max_source_bytes: int = 500_000,
+    max_rendered_bytes: int = 500_000,
+    add_unapproved_data: bool = False,
+) -> str:
+    notebook_path = "notebooks/00_environment_check.ipynb"
+    files: dict[str, str | bytes] = {
+        notebook_path: notebook_bytes(code, with_output=with_output),
+        "configs/fixture.yaml": "fixture: true\n",
+    }
+    if add_unapproved_data:
+        files["secret.csv"] = "excluded,value\n"
+    write_files(root, files)
+    manifest_path = root / "publication/public-content-v1.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["candidate_sets"] = [
+        {
+            "name": "approved-static-notebook-fixture",
+            "status": "approved",
+            "owner": "fixture-owner",
+            "reason": "Synthetic pipeline verification.",
+            "approval": {
+                "status": "approved",
+                "approved_by": "fixture-owner",
+                "approved_on": "2026-08-02",
+            },
+            "publication_status": "released",
+            "validation_status": "synthetic-workflow-check-only",
+            "known_limitations": ["Synthetic notebook; no scientific result."],
+            "local_requirements": ["Python and the pinned pyEUVICS environment."],
+            "execution_policy": "execute-during-build",
+            "random_seed": "17",
+            "configurations": ["configs/fixture.yaml"],
+            "max_bytes_per_notebook": max_source_bytes,
+            "max_rendered_bytes": max_rendered_bytes,
+            "output_policy": "source-notebooks-must-have-no-outputs",
+            "files": [notebook_path],
+            "dependencies": ["configs/fixture.yaml"],
+        }
+    ]
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Approve synthetic notebook"], cwd=root, check=True)
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+
+
+def add_approved_campaign_set(root: Path) -> str:
+    write_files(
+        root,
+        {
+            "campaigns/reference_6p7nm/README.md": "# Synthetic 6.7 nm campaign\n\n![Spectrum](figures/spectrum.svg)\n",
+            "campaigns/reference_6p7nm/figures/spectrum.svg": (
+                '<svg xmlns="http://www.w3.org/2000/svg" role="img" '
+                'aria-label="Synthetic spectrum"></svg>\n'
+            ),
+            "campaigns/reference_6p7nm/reports/scientific_report.md": "# Synthetic scientific report\n",
+            "campaigns/reference_6p7nm/reports/validation.md": "# Synthetic validation report\n",
+        },
+    )
+    manifest_path = root / "publication/public-content-v1.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["candidate_sets"] = [
+        {
+            "name": "approved-campaign-fixture",
+            "status": "approved",
+            "owner": "fixture-owner",
+            "reason": "Synthetic pipeline verification.",
+            "approval": {
+                "status": "approved",
+                "approved_by": "fixture-owner",
+                "approved_on": "2026-08-02",
+            },
+            "publication_status": "released",
+            "validation_status": "synthetic-workflow-check-only",
+            "known_limitations": ["Synthetic campaign; no scientific result."],
+            "local_requirements": ["No local execution; static approved source material."],
+            "files": [
+                "campaigns/reference_6p7nm/README.md",
+                "campaigns/reference_6p7nm/figures/spectrum.svg",
+                "campaigns/reference_6p7nm/reports/scientific_report.md",
+                "campaigns/reference_6p7nm/reports/validation.md",
+            ],
+            "dependencies": [],
+        }
+    ]
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Approve synthetic campaign"], cwd=root, check=True)
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+
+
 def write_locks(path: Path, commits: dict[str, str]) -> Path:
     data = {
         "schema_version": 1,
@@ -494,3 +622,88 @@ def test_document_publication_failure_paths(
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
     with pytest.raises(AssemblyError, match=message):
         assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "document-output")
+
+
+def test_approved_notebook_is_executed_deterministically_and_source_is_immutable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    code = (
+        "from pathlib import Path\n"
+        "from IPython.display import Image, display\n"
+        "import base64\n"
+        "print('seed=17', Path('configs/fixture.yaml').read_text().strip())\n"
+        "display(Image(data=base64.b64decode("
+        "'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='"
+        "), format='png'))\n"
+    )
+    commits["pyeuvics"] = add_approved_notebook_set(pyeuvics, code)
+    before = snapshot(pyeuvics)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    first = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "notebook-a")
+    second = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "notebook-b")
+    assert snapshot(pyeuvics) == before
+    page = first.staged_content / "software/notebooks/00_environment_check.md"
+    text = page.read_text(encoding="utf-8")
+    assert "Static notebook rendering" in text
+    assert "Executed during this website build" in text
+    assert "synthetic-workflow-check-only" in text
+    assert commits["pyeuvics"] in text
+    assert "seed=17 fixture: true" in text
+    assets = list(
+        (first.staged_content / "software/notebooks/00_environment_check_files").glob("*.png")
+    )
+    assert len(assets) == 1
+    assert (first.site / "software/notebooks/00_environment_check/index.html").is_file()
+    assert (first.output_root / "staged-content-inventory.json").read_bytes() == (
+        second.output_root / "staged-content-inventory.json"
+    ).read_bytes()
+
+
+@pytest.mark.parametrize(
+    ("code", "options", "message"),
+    [
+        ("print('precomputed')\n", {"with_output": True}, "contains outputs"),
+        ("raise RuntimeError('fixture failure')\n", {}, "execution failed"),
+        ("import random\nprint(random.random())\n", {}, "nondeterministic"),
+        (
+            "from pathlib import Path\nprint(Path('secret.csv').read_text())\n",
+            {"add_unapproved_data": True},
+            "unapproved data dependency",
+        ),
+        ("print('oversized source')\n", {"max_source_bytes": 10}, "source size limit"),
+        ("print('oversized render')\n", {"max_rendered_bytes": 10}, "rendered notebook exceeds"),
+    ],
+)
+def test_notebook_publication_failure_paths(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    code: str,
+    options: dict,
+    message: str,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    commits["pyeuvics"] = add_approved_notebook_set(pyeuvics, code, **options)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    with pytest.raises(AssemblyError, match=message):
+        assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "notebook-output")
+
+
+def test_approved_campaign_material_replaces_placeholder_and_preserves_links(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    commits["pyeuvics"] = add_approved_campaign_set(pyeuvics)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    result = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "campaign-output")
+    overview = (result.staged_content / "campaigns/6-7-nm.md").read_text(encoding="utf-8")
+    assert "synthetic-workflow-check-only" in overview
+    assert "../imported/pyeuvics/campaigns/reference_6p7nm/README.md" in overview
+    campaign = result.staged_content / "imported/pyeuvics/campaigns/reference_6p7nm/README.md"
+    assert "figures/spectrum.svg" in campaign.read_text(encoding="utf-8")
+    assert (result.site / "campaigns/6-7-nm/index.html").is_file()

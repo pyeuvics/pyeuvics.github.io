@@ -10,13 +10,13 @@ from typing import Any
 
 import yaml
 
-from .models import PublishedFile, SourceContract, SourceLock
+from .models import NotebookSpec, PublishedFile, SourceContract, SourceLock
 
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 GLOB_CHARS = set("*?[]{}")
 SUPPORTED_SUFFIXES = {
     "", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".css", ".js",
-    ".json", ".csv", ".yaml", ".yml", ".txt", ".cff", ".pdf",
+    ".json", ".csv", ".yaml", ".yml", ".txt", ".cff", ".pdf", ".ipynb",
 }
 KIND_SUFFIXES = {
     "markdown": {".md"},
@@ -39,6 +39,39 @@ PYEUVICS_ROOT_FIELDS = {
 EUVICS_ENTRY_FIELDS = {
     "path", "kind", "title", "version", "publication_status", "approval",
     "license", "attribution", "known_limitations", "document_date",
+}
+PYEUVICS_SET_BASE_FIELDS = {
+    "name", "status", "owner", "reason", "files", "dependencies",
+    "max_bytes_per_notebook", "output_policy",
+}
+PYEUVICS_SET_APPROVAL_FIELDS = PYEUVICS_SET_BASE_FIELDS | {
+    "approval", "publication_status", "validation_status", "known_limitations",
+    "local_requirements", "execution_policy", "random_seed", "configurations",
+    "max_rendered_bytes",
+}
+PYEUVICS_SET_APPROVAL_REQUIRED = {
+    "name", "status", "owner", "reason", "files", "dependencies", "approval",
+    "publication_status", "validation_status", "known_limitations", "local_requirements",
+}
+INITIAL_NOTEBOOK_PATHS = {
+    "notebooks/00_environment_check.ipynb",
+    "notebooks/01_linear_ics_kinematics.ipynb",
+    "notebooks/02_nonlinear_ics_and_harmonics.ipynb",
+    "notebooks/03_parameter_scans.ipynb",
+    "notebooks/04_end_to_end_digital_twin.ipynb",
+    "notebooks/05_validation_and_cain_comparison.ipynb",
+    "notebooks/12_reference_campaign_6p7nm.ipynb",
+    "notebooks/13_reference_campaign_13p5nm.ipynb",
+}
+INITIAL_CAMPAIGN_PATHS = {
+    f"campaigns/reference_{wavelength}/{relative}"
+    for wavelength in ("6p7nm", "13p5nm")
+    for relative in (
+        "README.md",
+        "figures/spectrum.svg",
+        "reports/scientific_report.md",
+        "reports/validation.md",
+    )
 }
 
 
@@ -154,6 +187,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
     manifest = _load_json(root / lock.manifest_path)
     contract_id = manifest.get("contract_id")
     files: list[PublishedFile] = []
+    notebooks: list[NotebookSpec] = []
     rewrite_unpublished = False
     if lock.name == "euvics":
         _strict_object(manifest, "EUVICS manifest", EUVICS_ROOT_FIELDS)
@@ -258,10 +292,149 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                     tuple(str(item) for item in limitations),
                 )
             )
+        candidate_sets = manifest["candidate_sets"]
+        if not isinstance(candidate_sets, list):
+            raise ContractError("pyEUVICS candidate_sets must be an array")
+        candidate_paths: set[str] = set()
+        for set_index, raw_set in enumerate(candidate_sets):
+            if not isinstance(raw_set, dict):
+                raise ContractError(f"pyEUVICS candidate_sets[{set_index}] must be an object")
+            status = raw_set.get("status")
+            fields = PYEUVICS_SET_APPROVAL_FIELDS if status == "approved" else PYEUVICS_SET_BASE_FIELDS
+            required = (
+                PYEUVICS_SET_APPROVAL_REQUIRED
+                if status == "approved"
+                else {"name", "status", "owner", "reason", "files", "dependencies"}
+            )
+            publication_set = _strict_object(
+                raw_set,
+                f"pyEUVICS candidate_sets[{set_index}]",
+                fields,
+                required,
+            )
+            if status not in {"approval-pending", "blocked-source-approval", "approved"}:
+                raise ContractError(f"invalid pyEUVICS publication-set status: {status}")
+            set_files = publication_set["files"]
+            dependencies = publication_set["dependencies"]
+            if not isinstance(set_files, list) or not isinstance(dependencies, list):
+                raise ContractError("pyEUVICS publication-set files/dependencies must be arrays")
+            safe_files = tuple(
+                _safe_path(value, f"pyEUVICS candidate_sets[{set_index}].files[{file_index}]")
+                for file_index, value in enumerate(set_files)
+            )
+            if len(set(safe_files)) != len(safe_files) or candidate_paths.intersection(safe_files):
+                raise ContractError("duplicate pyEUVICS candidate path")
+            candidate_paths.update(safe_files)
+            if status != "approved":
+                continue
+            safe_dependencies = tuple(
+                _safe_path(value, f"pyEUVICS candidate_sets[{set_index}].dependencies[{dep_index}]")
+                for dep_index, value in enumerate(dependencies)
+            )
+            for relative in (*safe_files, *safe_dependencies):
+                _validate_file(root, relative)
+                if any(relative.startswith(prefix) for prefix in excluded_prefixes):
+                    raise ContractError(f"approved pyEUVICS set leaks from excluded prefix: {relative}")
+            approval = _strict_object(
+                publication_set["approval"],
+                f"pyEUVICS candidate_sets[{set_index}].approval",
+                {"status", "approved_by", "approved_on"},
+            )
+            if approval["status"] != "approved":
+                raise ContractError("approved pyEUVICS set lacks explicit approval")
+            set_limitations = publication_set["known_limitations"]
+            local_requirements = publication_set["local_requirements"]
+            for label, values in (
+                ("known_limitations", set_limitations),
+                ("local_requirements", local_requirements),
+            ):
+                if not isinstance(values, list) or any(not isinstance(item, str) or not item for item in values):
+                    raise ContractError(f"approved pyEUVICS set has invalid {label}")
+            notebook_paths = tuple(path for path in safe_files if path.endswith(".ipynb"))
+            campaign_paths = tuple(path for path in safe_files if not path.endswith(".ipynb"))
+            if notebook_paths and campaign_paths:
+                raise ContractError("approved pyEUVICS set must not mix notebooks and campaign files")
+            if notebook_paths:
+                if not set(notebook_paths).issubset(INITIAL_NOTEBOOK_PATHS):
+                    raise ContractError("approved notebook is outside the initial reviewed subset")
+                configurations = publication_set.get("configurations")
+                if not isinstance(configurations, list) or any(
+                    not isinstance(item, str) or not item for item in configurations
+                ):
+                    raise ContractError("approved notebook configurations are invalid")
+                configuration_paths = tuple(
+                    _safe_path(value, f"pyEUVICS candidate_sets[{set_index}].configurations")
+                    for value in configurations
+                )
+                if not set(configuration_paths).issubset(safe_dependencies):
+                    raise ContractError("notebook configurations must be explicitly approved dependencies")
+                if publication_set["execution_policy"] != "execute-during-build":
+                    raise ContractError("approved notebooks must execute during the build")
+                if publication_set.get("output_policy") != "source-notebooks-must-have-no-outputs":
+                    raise ContractError("approved notebooks must have no source outputs")
+                maximum = publication_set.get("max_bytes_per_notebook")
+                rendered_maximum = publication_set["max_rendered_bytes"]
+                if not isinstance(maximum, int) or maximum < 1 or not isinstance(rendered_maximum, int) or rendered_maximum < 1:
+                    raise ContractError("approved notebook size limits are invalid")
+                for relative in notebook_paths:
+                    notebooks.append(
+                        NotebookSpec(
+                            relative,
+                            Path(relative).stem.replace("_", " ").title(),
+                            str(package["version"]),
+                            str(publication_set["publication_status"]),
+                            str(package["license"]),
+                            "See source citation and license metadata.",
+                            "execute-during-build",
+                            str(publication_set.get("random_seed", "not applicable")),
+                            configuration_paths,
+                            safe_dependencies,
+                            str(publication_set["validation_status"]),
+                            tuple(local_requirements),
+                            tuple(str(item) for item in limitations) + tuple(set_limitations),
+                            maximum,
+                            rendered_maximum,
+                        )
+                    )
+            else:
+                if not set(campaign_paths).issubset(INITIAL_CAMPAIGN_PATHS):
+                    raise ContractError("approved campaign file is outside the initial reviewed subset")
+                for wavelength in ("6p7nm", "13p5nm"):
+                    expected_campaign = {
+                        path for path in INITIAL_CAMPAIGN_PATHS
+                        if path.startswith(f"campaigns/reference_{wavelength}/")
+                    }
+                    present_campaign = set(campaign_paths).intersection(expected_campaign)
+                    if present_campaign and present_campaign != expected_campaign:
+                        raise ContractError(f"approved {wavelength} campaign set is incomplete")
+                for relative in campaign_paths:
+                    if Path(relative).suffix.lower() not in {".md", ".svg", ".png", ".jpg", ".jpeg"}:
+                        raise ContractError(f"unsupported approved campaign file: {relative}")
+                    files.append(
+                        PublishedFile(
+                            lock.name,
+                            relative,
+                            "markdown" if relative.endswith(".md") else "asset",
+                            Path(relative).stem.replace("_", " ").title(),
+                            str(package["version"]),
+                            str(publication_set["publication_status"]),
+                            None,
+                            str(package["license"]),
+                            "See source citation and license metadata.",
+                            tuple(str(item) for item in limitations) + tuple(set_limitations),
+                            str(publication_set["validation_status"]),
+                        )
+                    )
     else:
         raise ContractError(f"unsupported source name: {lock.name}")
     if len({item.path for item in files}) != len(files):
         raise ContractError(f"duplicate allowlist paths in {lock.name}")
     for item in files:
         _validate_file(root, item.path)
-    return SourceContract(lock, root, tuple(sorted(files, key=lambda item: item.path)), rewrite_unpublished)
+    return SourceContract(
+        lock,
+        root,
+        tuple(sorted(files, key=lambda item: item.path)),
+        rewrite_unpublished,
+        tuple(sorted(notebooks, key=lambda item: item.path)),
+    )

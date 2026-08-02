@@ -17,6 +17,11 @@ import yaml
 
 from .contracts import ContractError, load_contract, load_locks
 from .documents import DocumentError, build_approved_documents
+from .notebooks import (
+    NotebookError,
+    render_approved_notebooks,
+    stage_campaign_overviews,
+)
 from .models import AssemblyResult as AssemblyResult
 from .models import InventoryEntry, PublishedFile, SourceContract
 
@@ -129,7 +134,9 @@ def _rewrite_markdown(
 - **Source:** [{published.path} at `{contract.lock.commit}`]({_source_url(contract, published.path)})
 - **Edit in source repository:** [Propose a source change]({_source_url(contract, published.path, edit=True)})
 - **Repository:** [{contract.lock.repository}]({contract.lock.repository})
+- **Version:** {published.version}
 - **Publication status:** {published.publication_status}
+{f"- **Scientific validation status:** {published.validation_status}" if published.validation_status else ""}
 - **Source SHA-256:** `{source_sha256}`
 - **Website build timestamp:** {timestamp}
 
@@ -321,9 +328,22 @@ def assemble_site(
             key=lambda item: (item.source, item.source_path),
         )
     )
+    pyeuvics_contract = next(
+        contract for contract in contracts if contract.lock.name == "pyeuvics"
+    )
+    try:
+        notebook_entries = render_approved_notebooks(
+            pyeuvics_contract,
+            output_root,
+            staged_content,
+            timestamp,
+        )
+        stage_campaign_overviews(pyeuvics_contract, staged_content, timestamp)
+    except NotebookError as exc:
+        raise AssemblyError(str(exc)) from exc
     entries = tuple(
         sorted(
-            (*ordinary_entries, *document_entries),
+            (*ordinary_entries, *document_entries, *notebook_entries),
             key=lambda item: (item.source, item.source_path),
         )
     )

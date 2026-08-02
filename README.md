@@ -86,15 +86,17 @@ GitHub Pages serves static content. It does not run pyEUVICS, Python, or Jupyter
 
 ## Current status
 
-Tasks 0–6 established the repository, information architecture, source
+Tasks 0–7 established the repository, information architecture, source
 publication contracts, local MkDocs scaffold, deterministic assembly, and the
-Proposal/CDR publication pipeline. The current locked EUVICS manifest approves
-no PDFs, so document pages remain placeholders and no document download is
-present in the production assembly. Before further scientific content is
+Proposal/CDR and static pyEUVICS notebook/campaign publication pipelines. The
+current locked EUVICS manifest approves no PDFs, while pyEUVICS notebook sets
+remain approval-pending and campaign sets remain blocked. Those production
+pages therefore remain placeholders. Before further scientific content is
 published, the project will:
 
 1. Approve complete Proposal/CDR release metadata and artifacts in EUVICS.
-2. Integrate approved static notebooks.
+2. Approve exact notebook and campaign sets with complete execution and
+   validation metadata in pyEUVICS.
 3. Add validation and deployment workflows.
 4. Perform a signed-out public-release review.
 
@@ -151,7 +153,9 @@ SOURCE_DATE_EPOCH=1785628800 python tools/assemble_site.py \
 
 Assembly refuses unresolved locks, dirty or mismatched source checkouts, and an
 existing output path. Approved Proposal/CDR PDFs are rebuilt and checksum-
-verified in disposable source exports; notebooks are not rendered yet.
+verified in disposable source exports. Approved notebooks execute twice in a
+disposable source export and are published only when their static renders match
+exactly; approved campaign files are staged without recalculation.
 
 Do not hard-code personal source paths into configuration, tests, generated pages, or committed scripts.
 

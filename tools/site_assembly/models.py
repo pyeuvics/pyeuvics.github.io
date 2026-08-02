@@ -30,6 +30,28 @@ class PublishedFile:
     license: str
     attribution: str
     known_limitations: tuple[str, ...]
+    validation_status: str | None = None
+
+
+@dataclass(frozen=True)
+class NotebookSpec:
+    """One explicitly approved notebook and its bounded render policy."""
+
+    path: str
+    title: str
+    package_version: str
+    publication_status: str
+    license: str
+    attribution: str
+    execution_policy: str
+    random_seed: str
+    configurations: tuple[str, ...]
+    dependencies: tuple[str, ...]
+    validation_status: str
+    local_requirements: tuple[str, ...]
+    known_limitations: tuple[str, ...]
+    max_source_bytes: int
+    max_rendered_bytes: int
 
 
 @dataclass(frozen=True)
@@ -40,6 +62,7 @@ class SourceContract:
     root: Path
     files: tuple[PublishedFile, ...]
     rewrite_unpublished_links: bool
+    notebooks: tuple[NotebookSpec, ...] = ()
 
 
 @dataclass(frozen=True)

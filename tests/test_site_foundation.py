@@ -34,7 +34,7 @@ def test_project_site_configuration_and_generator() -> None:
 
 def test_explicit_navigation_targets_exist() -> None:
     paths = nav_paths(load_config()["nav"])
-    assert len(paths) == len(set(paths)) == 15
+    assert len(paths) == len(set(paths)) == 16
     assert all((CONTENT / path).is_file() for path in paths)
 
 
