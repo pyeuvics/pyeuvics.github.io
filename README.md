@@ -86,9 +86,10 @@ GitHub Pages serves static content. It does not run pyEUVICS, Python, or Jupyter
 
 ## Current status
 
-Tasks 0–7 established the repository, information architecture, source
+Tasks 0–8 established the repository, information architecture, source
 publication contracts, local MkDocs scaffold, deterministic assembly, and the
-Proposal/CDR and static pyEUVICS notebook/campaign publication pipelines. The
+Proposal/CDR and static pyEUVICS notebook/campaign publication pipelines, plus
+non-deploying pull-request validation. The
 current locked EUVICS manifest approves no PDFs, while pyEUVICS notebook sets
 remain approval-pending and campaign sets remain blocked. Those production
 pages therefore remain placeholders. Before further scientific content is
@@ -97,10 +98,12 @@ published, the project will:
 1. Approve complete Proposal/CDR release metadata and artifacts in EUVICS.
 2. Approve exact notebook and campaign sets with complete execution and
    validation metadata in pyEUVICS.
-3. Add validation and deployment workflows.
+3. Add the separately authorized deployment workflow.
 4. Perform a signed-out public-release review.
 
 See [Codex website tasks](docs/codex_tasks.md) for the sequenced implementation prompts.
+See [pull-request site validation](docs/ci-validation.md) for the local/CI
+equivalent check and credential policy.
 
 ## Intended repository structure
 
@@ -158,6 +161,10 @@ disposable source export and are published only when their static renders match
 exactly; approved campaign files are staged without recalculation.
 
 Do not hard-code personal source paths into configuration, tests, generated pages, or committed scripts.
+
+The pull-request workflow uses the same complete validation entry point as a
+local review. See [Pull-request site validation](docs/ci-validation.md) for the
+Python 3.13 environment and command.
 
 ## Deployment
 

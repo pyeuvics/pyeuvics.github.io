@@ -73,4 +73,5 @@ tmp
 *.key
 
 codex_tasks.md
+CODEX_TASK_READTHEDOCS_STYLE.md
 archive/

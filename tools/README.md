@@ -34,3 +34,10 @@ The command refuses unresolved/mismatched locks, dirty checkouts, an existing
 output path, and incomplete or non-reproducible document releases. Production
 locks identify the reviewed source-contract commits exactly. Pending or blocked
 notebook/campaign candidate sets remain excluded.
+
+`validate_ci.py` is the shared local/GitHub Actions entry point. It validates
+both source contracts, runs pytest and strict mypy, performs a standalone strict
+MkDocs build, runs the complete deterministic assembly/scan, and writes a
+checksum manifest for the non-deploying review artifact. `ci_source_locks.py`
+emits only reviewed repository names, commits, and document-toolchain status for
+workflow outputs.
