@@ -23,8 +23,7 @@ campaign_outputs/
 .Python
 build/
 develop-eggs/
-dist/
-downloads/
+/downloads/
 eggs/
 .eggs/
 parts/
@@ -32,7 +31,6 @@ sdist/
 var/
 wheels/
 share/python-wheels/
-*.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
@@ -53,7 +51,6 @@ MANIFEST
 *.run.xml
 *.synctex.gz
 *.xdv
-build/
 
 ##########################################
 # Temporary files
@@ -61,7 +58,18 @@ build/
 .*.swp
 tmp
 
+# Website assembly and generated output
+/.sources/
+/.staging/
+/.rendered/
+/site/
 
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
 
-github_pages_plan_20260731
 codex_tasks.md
+archive/
