@@ -413,6 +413,13 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
     staged_home = (first.staged_content / "index.md").read_text(encoding="utf-8")
     assert "2 manifest-approved pyEUVICS files" in staged_home
     assert commits["pyeuvics"] in staged_home
+    project_overview = (first.staged_content / "project/overview.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Assembled build provenance" in project_overview
+    assert commits["euvics"] in project_overview
+    assert commits["pyeuvics"] in project_overview
+    assert "../imported/euvics/docs/overview.md" in project_overview
     installation = (first.staged_content / "software/installation.md").read_text(
         encoding="utf-8"
     )

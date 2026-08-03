@@ -17,13 +17,13 @@ import yaml
 
 from .contracts import ContractError, load_contract, load_locks
 from .documents import DocumentError, build_approved_documents
+from .models import AssemblyResult as AssemblyResult  # noqa: PLC0414
+from .models import InventoryEntry, PublishedFile, SourceContract
 from .notebooks import (
     NotebookError,
     render_approved_notebooks,
     stage_campaign_overviews,
 )
-from .models import AssemblyResult as AssemblyResult
-from .models import InventoryEntry, PublishedFile, SourceContract
 
 LOCAL_PATH_RE = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\\\)")
 LINK_RE = re.compile(r"(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>[^)]*\))")
@@ -33,7 +33,23 @@ CREDENTIAL_PATTERNS = (
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
     re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b"),
 )
-TEXT_SUFFIXES = {"", ".md", ".svg", ".css", ".js", ".json", ".csv", ".yaml", ".yml", ".txt", ".cff", ".html", ".xml"}
+TEXT_SUFFIXES = {
+    "",
+    ".md",
+    ".svg",
+    ".css",
+    ".js",
+    ".json",
+    ".csv",
+    ".yaml",
+    ".yml",
+    ".txt",
+    ".cff",
+    ".html",
+    ".xml",
+    ".tex",
+    ".bib",
+}
 ARTIFACT_SUFFIXES = TEXT_SUFFIXES | {".png", ".jpg", ".jpeg", ".gif", ".gz", ".map", ".ico", ".pdf"}
 
 
@@ -275,6 +291,38 @@ def _stage_source_entry_pages(
         f"- **EUVICS documents:** {len(euvics.files)} manifest-approved files from commit "
         f"`{euvics.lock.commit}`.\n"
         f"- **Build timestamp:** {timestamp}\n",
+        encoding="utf-8",
+    )
+
+    project_overview = staged_content / "project/overview.md"
+    euvics_source_lines = []
+    for item in sorted(euvics.files, key=lambda entry: entry.path):
+        if item.kind == "pdf":
+            continue
+        target = os.path.relpath(
+            imported_root / euvics.lock.name / item.path,
+            project_overview.parent,
+        ).replace(os.sep, "/")
+        euvics_source_lines.append(
+            f"- [{item.title}]({target}) — version {item.version}; "
+            f"status {item.publication_status}"
+        )
+    euvics_sources = "\n".join(euvics_source_lines) or (
+        "- No project-overview sources are approved by the locked EUVICS manifest."
+    )
+    overview_text = project_overview.read_text(encoding="utf-8").rstrip()
+    project_overview.write_text(
+        f"{overview_text}\n\n---\n\n"
+        "## Assembled build provenance\n\n"
+        "This section is generated from the validated source locks; it is not "
+        "maintained as scientific prose.\n\n"
+        f"- **EUVICS source:** [{euvics.lock.commit}]"
+        f"({euvics.lock.repository}/tree/{euvics.lock.commit})\n"
+        f"- **pyEUVICS source:** [{pyeuvics.lock.commit}]"
+        f"({pyeuvics.lock.repository}/tree/{pyeuvics.lock.commit})\n"
+        f"- **Build timestamp:** {timestamp}\n\n"
+        "### Approved EUVICS source inputs\n\n"
+        f"{euvics_sources}\n",
         encoding="utf-8",
     )
 

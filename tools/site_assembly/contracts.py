@@ -17,6 +17,7 @@ GLOB_CHARS = set("*?[]{}")
 SUPPORTED_SUFFIXES = {
     "", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".css", ".js",
     ".json", ".csv", ".yaml", ".yml", ".txt", ".cff", ".pdf", ".ipynb",
+    ".tex", ".bib",
 }
 KIND_SUFFIXES = {
     "markdown": {".md"},
