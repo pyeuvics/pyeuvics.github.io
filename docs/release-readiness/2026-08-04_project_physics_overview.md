@@ -2,7 +2,8 @@
 
 Review date: 2026-08-04 (Asia/Seoul)
 
-Approval state: **Pending explicit project-owner decision**
+Approval state: **Approved for protected deployment by the project owner on
+2026-08-04 (Asia/Seoul)**
 
 ## Candidate identity
 
@@ -103,10 +104,22 @@ browser instance.
 
 ## Approval decision
 
-Decision: **Pending**
+Decision: **Approved for deployment**
 
-The project owner must explicitly approve or reject this exact candidate after
-reviewing the page, schematic, provenance, caveats, source locks, and test/build
-evidence above. Approval authorizes recording the decision and using the normal
-protected `main` Pages workflow; it does not approve excluded PDFs or change any
-scientific evidence label.
+- **Approver:** Project owner
+- **Approval date:** 2026-08-04 (Asia/Seoul)
+- **Approved website candidate:** `541cb05` plus this release/approval record;
+  no scientific page or source-lock change is authorized without renewed
+  review.
+- **Approved source locks:** EUVICS
+  `f142bd188892f9518a956989ebaf7a42b6930f33`; pyEUVICS
+  `6193ab3e2be39fc74d40cd7ed1f9cece993b9ecd`.
+- **Authorization scope:** Commit this approval evidence, push the reviewed
+  `main` history, deploy through the protected GitHub Pages workflow, and
+  verify the exact deployed commit. Excluded PDFs and existing scientific
+  evidence labels remain unchanged.
+
+The project owner explicitly approved the exact candidate after reviewing the
+page, schematic, provenance, caveats, source locks, and test/build evidence.
+This approval authorizes the normal protected `main` Pages workflow; it does not
+approve excluded PDFs or change any scientific evidence label.
