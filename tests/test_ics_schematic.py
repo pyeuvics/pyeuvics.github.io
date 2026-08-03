@@ -69,6 +69,12 @@ def test_overview_integrates_schematic_with_alt_text_and_caption() -> None:
     assert text.index("ics-geometry-source-chain.svg") < text.index(
         "This physical picture is broader"
     )
+    resolved = (OVERVIEW.parent / "../assets/images/ics-geometry-source-chain.svg").resolve()
+    assert resolved == SVG.resolve(), "overview must use the website-owned schematic"
+    assert ROOT / "content/assets" in resolved.parents
+    assert not {"archive", "imported", "downloads"}.intersection(resolved.parts), (
+        "overview schematic must not come from an archive, imported source, or download copy"
+    )
 
 
 def test_schematic_has_bounded_mobile_and_print_presentation() -> None:

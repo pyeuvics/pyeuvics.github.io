@@ -420,6 +420,32 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
     assert commits["euvics"] in project_overview
     assert commits["pyeuvics"] in project_overview
     assert "../imported/euvics/docs/overview.md" in project_overview
+    assert (
+        f"https://github.com/chongshikpark/euvics/tree/{commits['euvics']}"
+        in project_overview
+    ), "overview provenance must link to the exact EUVICS commit"
+    assert (
+        f"https://github.com/chongshikpark/pyEUVICS/tree/{commits['pyeuvics']}"
+        in project_overview
+    ), "overview provenance must link to the exact pyEUVICS commit"
+    assert "/tree/main" not in project_overview and "/tree/master" not in project_overview
+    expected_paths = {
+        "euvics": {"docs/overview.md", "assets/diagram.svg"},
+        "pyeuvics": {"docs/index.md", "docs/guide.md"},
+    }
+    for source_name, paths in expected_paths.items():
+        inventory_paths = {
+            item.source_path for item in first.inventory if item.source == source_name
+        }
+        assert inventory_paths == paths, (
+            f"assembled {source_name} inventory must exactly match its fixture allowlist"
+        )
+    assert not (first.staged_content / "imported/pyeuvics/notes/note.md").exists(), (
+        "unlisted pyEUVICS paths must not enter staged content"
+    )
+    assert not (first.site / "imported/pyeuvics/notes/note/index.html").exists(), (
+        "unlisted pyEUVICS paths must not enter the generated site"
+    )
     installation = (first.staged_content / "software/installation.md").read_text(
         encoding="utf-8"
     )
@@ -436,6 +462,20 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
         encoding="utf-8"
     )
     assert "edit/main/content/software/installation.md" in website_html
+    overview_html = (first.site / "project/overview/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        'href="https://chongshikpark.github.io/euvics.github.io/project/overview/"'
+        in overview_html
+    ), "overview canonical URL must include the GitHub project-site base path"
+    assert 'src="../../assets/images/ics-geometry-source-chain.svg"' in overview_html
+    assert 'aria-describedby="ics-schematic-caption"' in overview_html
+    assert 'alt="Schematic of an electron bunch traveling left to right' in overview_html
+    assert (
+        f'href="https://github.com/chongshikpark/euvics/tree/{commits["euvics"]}"'
+        in overview_html
+    )
 
 
 def test_production_locks_are_resolved() -> None:
@@ -446,11 +486,16 @@ def test_production_locks_are_resolved() -> None:
 
 def test_commit_mismatch_is_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     euvics, pyeuvics, commits = create_sources(tmp_path)
+    actual = commits["euvics"]
     commits["euvics"] = "0" * 40
     lock = write_locks(tmp_path / "sources.lock.yml", commits)
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
-    with pytest.raises(AssemblyError, match="commit mismatch"):
+    with pytest.raises(AssemblyError) as caught:
         assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+    message = str(caught.value)
+    assert "commit mismatch for euvics" in message
+    assert f"expected {'0' * 40}" in message
+    assert f"got {actual}" in message
 
 
 def test_dirty_source_is_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -537,6 +582,21 @@ def test_unexpected_allowlisted_type_is_rejected(
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
     with pytest.raises(AssemblyError, match="kind and file extension disagree"):
         assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+
+
+def test_missing_allowlisted_path_reports_source_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest = euvics_manifest("docs/missing-overview.md")
+    euvics, pyeuvics, commits = create_sources(tmp_path, euvics=manifest)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    with pytest.raises(AssemblyError) as caught:
+        assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+    message = str(caught.value)
+    assert "allowlisted source file is missing" in message
+    assert "docs/missing-overview.md" in message
 
 
 def test_pyeuvics_exclusion_leakage_is_rejected(
