@@ -10,7 +10,7 @@ Approval state: **Approved for protected deployment by the project owner on
 | Component | Exact candidate |
 | --- | --- |
 | Website content through Task 5 | `541cb05` |
-| Current published/default remote commit | `4a0822f09f30fad7f98a056cddb353b5c89cfa06` |
+| Deployed website commit | `e12667fbf46a4fc641577b51bd806106ba41f949` |
 | EUVICS source | `f142bd188892f9518a956989ebaf7a42b6930f33` |
 | EUVICS manifest | `publication/public-content-v1.json`; 3 approved public-draft inputs |
 | pyEUVICS source | `6193ab3e2be39fc74d40cd7ed1f9cece993b9ecd` |
@@ -79,7 +79,7 @@ browser instance.
 | Intended overview artifact | Pass | Generated overview contains the complete reviewed page, MathJax markup, accessible local SVG, exact provenance, and no placeholder. |
 | Link scope | Pass with access note | Local overview/science/Proposal/CDR/navigation/source links resolve in the built artifact. Exact GitHub source commits returned HTTP 200. DOI resolvers returned registered APS destinations; APS challenged the automated follow-up request. |
 | Protected workflow | Pass configuration review | Default-branch push runs validation and exact locked-source assembly, uploads that validated artifact, and deploys through the protected `github-pages` environment with least-privilege job permissions. |
-| Remote readiness | Blocked before deployment | `origin/main` is three reviewed Task commits behind local `main`; GitHub CLI authentication is invalid. No push or workflow dispatch has occurred. |
+| Remote readiness | Pass | Authenticated Git transport pushed the approved history. Public Actions API inspection verified the exact run and jobs despite the separate GitHub CLI token remaining invalid. |
 
 ## Caveats and unresolved items shown for approval
 
@@ -99,8 +99,29 @@ browser instance.
   collection cones do not assert numerical divergence or acceptance.
 - Browser-based interactive preview and post-deployment signed-out responsive
   review remain unavailable until a browser is connected.
-- GitHub authentication must be restored before the reviewed changes can be
-  pushed and the protected deployment observed.
+- GitHub CLI authentication remains invalid, but it was not used for this
+  release: authenticated Git transport performed the authorized push and the
+  public Actions API supplied exact workflow evidence.
+
+## Deployment result
+
+- **Deployment commit:** `e12667fbf46a4fc641577b51bd806106ba41f949`
+- **Workflow:** `Deploy GitHub Pages`, run `30862675387`, attempt 1
+- **Trigger:** approved push to `main`
+- **Validation/package job:** success; completed 2026-08-03T23:35:11Z
+- **Protected deployment job:** success; completed 2026-08-03T23:35:25Z
+- **Locked EUVICS source:** `f142bd188892f9518a956989ebaf7a42b6930f33`
+- **Locked pyEUVICS source:** `6193ab3e2be39fc74d40cd7ed1f9cece993b9ecd`
+- **Live canonical overview:** HTTP 200 signed out
+- **Live original SVG:** HTTP 200 and byte-for-byte equal to the approved asset
+- **Related live pages:** science, Proposal destination, and CDR destination
+  each returned HTTP 200 signed out
+- **Live content evidence:** exact source commits, accessible schematic markup,
+  CAIN known disagreement, provisional 13.5 nm status, synthetic-calibration
+  limitation, and excluded Proposal/CDR PDF notice are present
+- **Remaining post-deployment issue:** no connected browser was available for
+  interactive desktop/mobile, theme, keyboard, equation, navigation, citation,
+  zoom, or print inspection. Static and signed-out HTTP evidence passed.
 
 ## Approval decision
 

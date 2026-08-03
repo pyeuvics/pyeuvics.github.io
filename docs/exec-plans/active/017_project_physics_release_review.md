@@ -26,9 +26,9 @@ approval.
       report.
 - [x] Obtain the project owner's explicit approve/reject decision for the exact
       candidate presented in the release report.
-- [ ] Restore GitHub CLI authentication needed for the reviewed push and run
-      inspection.
-- [ ] After approval, record it, commit the release evidence, follow the normal
+- [x] Establish authenticated Git transport for the reviewed push and use the
+      public Actions API for exact run inspection.
+- [x] After approval, record it, commit the release evidence, follow the normal
       protected `main` workflow, and confirm the exact deployed commit/run.
 - [ ] Complete signed-out canonical URL and browser desktop/mobile review, or
       retain an explicit unresolved post-deployment finding if the owner directs
@@ -45,6 +45,13 @@ approval.
   pyEUVICS `6193ab3e2be39fc74d40cd7ed1f9cece993b9ecd`.
 - The project owner explicitly approved the presented candidate for deployment
   on 2026-08-04 (Asia/Seoul).
-- GitHub CLI reports that the active `chongshikpark` credential is invalid.
+- Approved commit `e12667fbf46a4fc641577b51bd806106ba41f949` was pushed to
+  `main`. Protected Pages run `30862675387` completed both validation/package
+  and deployment jobs successfully at 2026-08-03T23:35:25Z.
+- Signed-out HTTP checks returned 200 for the overview, original SVG, science
+  page, Proposal destination, and CDR destination. The live overview contains
+  the exact locks and required CAIN, 13.5 nm, calibration, and PDF caveats.
+- GitHub CLI's separate token remains invalid, but authenticated Git transport
+  and the public Actions API completed the authorized push and exact run review.
 - Browser discovery reports no available browser, so the interactive preview
   and signed-out responsive checks cannot currently be executed.
