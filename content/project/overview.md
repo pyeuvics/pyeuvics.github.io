@@ -24,6 +24,24 @@ near the electron's forward direction, although the actual angular distribution
 and collected fraction depend on the electron phase space, polarization,
 collision geometry, observation aperture, and selected model.
 
+<figure class="ics-schematic" markdown="1">
+
+![Schematic of an electron bunch traveling left to right through an interaction point, an incident laser approaching from the lower right, and a narrow cone of forward-scattered EUV. Alpha is measured between the electron and laser propagation vectors; theta is measured from the electron forward direction to an observed EUV ray. Dashed collection-acceptance boundaries lead to an EUV optic, while the electron path continues to a dump. A source-chain strip connects the electron source, accelerator and transport, interaction point, EUV optics, and diagnostics.](../assets/images/ics-geometry-source-chain.svg){ aria-describedby="ics-schematic-caption" loading="lazy" }
+
+<figcaption id="ics-schematic-caption">
+  <strong>Inverse Compton scattering geometry and source chain.</strong>
+  The collision angle \(\alpha\) is the angle between the electron and laser
+  propagation vectors: \(0^\circ\) is co-propagating and \(180^\circ\) is
+  head-on. The observation angle \(\theta\) is measured from the electron
+  propagation direction. Solid teal boundaries illustrate forward physical
+  emission; separate dash-dot boundaries show an instrument collection
+  acceptance and do not assert that the two angular extents are equal.
+  Schematic—not to scale. Original EUVICS website artwork; physics conventions
+  follow the locked pyEUVICS documentation.
+</figcaption>
+
+</figure>
+
 This physical picture is broader than the familiar weak-field scaling. Linear
 Thomson scattering neglects recoil and finite laser-strength effects. Exact
 linear Compton kinematics retains single-photon recoil. Nonlinear ICS accounts
