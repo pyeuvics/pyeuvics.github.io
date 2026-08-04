@@ -24,6 +24,7 @@ from .notebooks import (
     render_approved_notebooks,
     stage_campaign_overviews,
 )
+from .overview_figures import OverviewFigureError, stage_overview_figure
 
 LOCAL_PATH_RE = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\\\)")
 LINK_RE = re.compile(r"(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>[^)]*\))")
@@ -475,7 +476,8 @@ def assemble_site(
             timestamp,
         )
         stage_campaign_overviews(pyeuvics_contract, staged_content, timestamp)
-    except NotebookError as exc:
+        stage_overview_figure(pyeuvics_contract, staged_content)
+    except (NotebookError, OverviewFigureError) as exc:
         raise AssemblyError(str(exc)) from exc
     _stage_source_entry_pages(contracts, staged_content, imported_root, timestamp)
     entries = tuple(

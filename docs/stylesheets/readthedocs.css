@@ -429,11 +429,13 @@ body {
   }
 }
 
-.ics-schematic {
+.ics-schematic,
+.pyeuvics-overview-figure {
   margin-inline: 0;
 }
 
-.ics-schematic img {
+.ics-schematic img,
+.pyeuvics-overview-figure img {
   background: #fff;
   border: 0.05rem solid var(--euvics-border);
   display: block;
@@ -441,7 +443,8 @@ body {
   width: 100%;
 }
 
-.ics-schematic figcaption {
+.ics-schematic figcaption,
+.pyeuvics-overview-figure figcaption {
   color: var(--euvics-text);
   font-size: 0.85rem;
   margin-block-start: 0.6rem;
@@ -494,7 +497,8 @@ body {
     overflow-wrap: anywhere;
   }
 
-  .ics-schematic img {
+  .ics-schematic img,
+  .pyeuvics-overview-figure img {
     max-width: 100%;
     width: 100%;
   }

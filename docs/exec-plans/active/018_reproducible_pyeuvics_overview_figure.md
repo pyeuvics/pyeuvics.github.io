@@ -26,8 +26,8 @@ content and publication contract entry.
 - [x] Add and verify the pyEUVICS generator and focused regression test.
 - [x] Generate deterministic SVG, CSV, and JSON from an immutable pyEUVICS commit.
 - [x] Add an approval-pending pyEUVICS publication candidate.
-- [ ] Obtain explicit scientific and publication approval.
-- [ ] Update the website source lock, assemble the approved artifact, add accessible
+- [x] Obtain explicit scientific and publication approval.
+- [x] Update the website source lock, assemble the approved artifact, add accessible
       overview content, and run full verification.
 - [ ] Inspect desktop/mobile and light/dark rendering before publication.
 
@@ -40,10 +40,19 @@ content and publication contract entry.
   and Ruff and strict mypy passed for affected files.
 - Rendered SVG inspection found legible axes, units, title, tick labels, and an
   unclipped monotonic curve.
-- The website overview and assembled artifact remain unchanged.
+- The project owner explicitly approved the exact candidate for publication on
+  2026-08-04.
+- pyEUVICS commit `38853bc773bf8594b31fe4c211f444cda5b91320`
+  records the approval and was pushed to `main`.
+- The locked website assembly succeeded with 59 approved files; the staged SVG,
+  CSV, and JSON are byte-for-byte identical to the approved source files.
+- The full pyEUVICS suite passed (340 tests), the full website suite passed
+  (72 tests), strict MkDocs passed, and affected Ruff/strict-mypy checks passed.
+- Browser discovery found no connected browser. Interactive desktop/mobile and
+  light/dark inspection remains unresolved and is not represented as passing.
 
 ## Publication gate
 
-The generated candidate must remain absent from assembled website content until
-the pyEUVICS publication manifest records explicit owner approval and the website
-locks the corresponding immutable source commit.
+The publication gate is satisfied for the exact approved artifacts and source
+lock. Any regenerated artifact or scientific-setting change requires renewed
+approval.

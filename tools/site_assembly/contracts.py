@@ -17,7 +17,7 @@ GLOB_CHARS = set("*?[]{}")
 SUPPORTED_SUFFIXES = {
     "", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".css", ".js",
     ".json", ".csv", ".yaml", ".yml", ".txt", ".cff", ".pdf", ".ipynb",
-    ".tex", ".bib",
+    ".tex", ".bib", ".py",
 }
 KIND_SUFFIXES = {
     "markdown": {".md"},
@@ -73,6 +73,11 @@ INITIAL_CAMPAIGN_PATHS = {
         "reports/scientific_report.md",
         "reports/validation.md",
     )
+}
+INITIAL_OVERVIEW_FIGURE_PATHS = {
+    "docs/generated/overview-figures/kinetic-energy-scan.svg",
+    "docs/generated/overview-figures/kinetic-energy-scan.csv",
+    "docs/generated/overview-figures/kinetic-energy-scan.json",
 }
 
 
@@ -398,8 +403,9 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                         )
                     )
             else:
-                if not set(campaign_paths).issubset(INITIAL_CAMPAIGN_PATHS):
-                    raise ContractError("approved campaign file is outside the initial reviewed subset")
+                approved_static_paths = INITIAL_CAMPAIGN_PATHS | INITIAL_OVERVIEW_FIGURE_PATHS
+                if not set(campaign_paths).issubset(approved_static_paths):
+                    raise ContractError("approved static file is outside the reviewed subsets")
                 for wavelength in ("6p7nm", "13p5nm"):
                     expected_campaign = {
                         path for path in INITIAL_CAMPAIGN_PATHS
@@ -409,13 +415,19 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                     if present_campaign and present_campaign != expected_campaign:
                         raise ContractError(f"approved {wavelength} campaign set is incomplete")
                 for relative in campaign_paths:
-                    if Path(relative).suffix.lower() not in {".md", ".svg", ".png", ".jpg", ".jpeg"}:
-                        raise ContractError(f"unsupported approved campaign file: {relative}")
+                    if Path(relative).suffix.lower() not in {
+                        ".md", ".svg", ".png", ".jpg", ".jpeg", ".csv", ".json"
+                    }:
+                        raise ContractError(f"unsupported approved static file: {relative}")
                     files.append(
                         PublishedFile(
                             lock.name,
                             relative,
-                            "markdown" if relative.endswith(".md") else "asset",
+                            (
+                                "markdown" if relative.endswith(".md")
+                                else "asset" if Path(relative).suffix.lower() in {".svg", ".png", ".jpg", ".jpeg"}
+                                else "data"
+                            ),
                             Path(relative).stem.replace("_", " ").title(),
                             str(package["version"]),
                             str(publication_set["publication_status"]),

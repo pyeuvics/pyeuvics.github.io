@@ -7,7 +7,7 @@ sources:
     publication_manifest: publication/public-content-v1.json
   pyeuvics:
     repository: https://github.com/chongshikpark/pyEUVICS
-    commit: 6193ab3e2be39fc74d40cd7ed1f9cece993b9ecd
+    commit: 38853bc773bf8594b31fe4c211f444cda5b91320
     lock_status: locked
     publication_manifest: publication/public-content-v1.json
 

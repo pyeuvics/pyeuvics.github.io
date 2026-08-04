@@ -2,7 +2,7 @@
 
 Date: 2026-08-04 (Asia/Seoul)
 
-Decision state: **Scientific and publication approval pending**
+Decision state: **Approved for publication by the project owner on 2026-08-04**
 
 ## Candidate
 
@@ -50,10 +50,24 @@ decreases monotonically across the scan.
 - Rendered SVG inspection: axes, units, title, tick labels, and curve were legible
   and unclipped.
 
-## Publication gate
+## Approval and integration result
 
-The pyEUVICS manifest records `overview-linear-kinematics-figure` as
-`approval-pending`; the three files are not public allowlist entries. The website
-source lock remains unchanged and the figure is absent from assembled content.
-Integration, responsive/theme review, push, and deployment require explicit
-scientific and publication approval of this exact candidate.
+The project owner explicitly approved this exact candidate for publication on
+2026-08-04. The pyEUVICS manifest records the
+`overview-linear-kinematics-figure` set as approved at commit
+`38853bc773bf8594b31fe4c211f444cda5b91320`, and the website locks that exact
+commit.
+
+The website assembly validates the complete three-file set, approved model
+settings, validation status, limitations, 61-point monotonic data trend, and SVG
+accessibility semantics. It injects the accessible figure, caption, data/settings
+downloads, exact generator link, and locked publication commit without performing
+an independent physics calculation.
+
+- Locked production-style assembly: 59 approved files; passed.
+- Staged SVG, CSV, and JSON: byte-for-byte identical to pyEUVICS; passed.
+- Full pyEUVICS suite after approval: 340 passed.
+- Full website suite: 72 passed.
+- Strict MkDocs and affected Ruff/strict-mypy checks: passed.
+- Interactive desktop/mobile and light/dark browser review: unresolved because
+  browser discovery found no connected browser. No substitute browser was used.

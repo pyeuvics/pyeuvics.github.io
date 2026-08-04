@@ -93,8 +93,10 @@ non-deploying pull-request validation, and the protected GitHub Pages
 deployment workflow, scoped first public deployment, and proposal-only source
 lock update automation. The
 current locked EUVICS manifest approves no PDFs, while pyEUVICS notebook sets
-remain approval-pending and campaign sets remain blocked. Those production
-pages therefore remain placeholders. Before further scientific content is
+remain approval-pending and campaign sets remain blocked. The approved
+pyEUVICS exact-linear kinetic-energy overview figure is assembled with its data,
+settings, limitations, and immutable provenance. The document and campaign
+production pages remain placeholders. Before further scientific content is
 published, the project will:
 
 1. Approve complete Proposal/CDR release metadata and artifacts in EUVICS.
