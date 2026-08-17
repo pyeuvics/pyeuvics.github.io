@@ -1,4 +1,4 @@
-# Project-physics overview release review — active
+# Project-physics overview release review — completed
 
 ## Scope
 
@@ -30,11 +30,9 @@ approval.
       public Actions API for exact run inspection.
 - [x] After approval, record it, commit the release evidence, follow the normal
       protected `main` workflow, and confirm the exact deployed commit/run.
-- [ ] Complete signed-out canonical URL and browser desktop/mobile review, or
-      retain an explicit unresolved post-deployment finding if the owner directs
-      completion without browser evidence.
-- [ ] Complete this plan only after deployment and required evidence are
-      recorded.
+- [x] Retain the signed-out browser desktop/mobile review as an explicit
+      unresolved post-deployment finding at the owner's direction.
+- [x] Complete this plan after deployment and available evidence are recorded.
 
 ## Current evidence and blockers
 
@@ -55,3 +53,7 @@ approval.
   and the public Actions API completed the authorized push and exact run review.
 - Browser discovery reports no available browser, so the interactive preview
   and signed-out responsive checks cannot currently be executed.
+- Browser discovery was retried on 2026-08-17 through the supported browser
+  integration and again returned no available browser. The owner directed
+  remediation of the stale active-plan state, so this plan is closed without
+  representing the interactive review as passed.

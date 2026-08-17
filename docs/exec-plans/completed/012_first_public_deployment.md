@@ -1,4 +1,4 @@
-# First public deployment and live review — active
+# First public deployment and live review — completed
 
 ## Scope
 
@@ -24,9 +24,10 @@ then perform and record the live signed-out accessibility review.
       administrator session.
 - [x] Rerun the protected workflow and verify its exact commit/artifact.
 - [x] Verify the public project URL signed out.
-- [ ] Perform browser accessibility, responsive, zoom, print, search, equation,
-      navigation, and 404 checks.
-- [ ] Update the release report, run final checks, and complete this plan.
+- [x] Attempt browser accessibility, responsive, zoom, print, search, equation,
+      navigation, and 404 checks; retain unavailable interactive checks as an
+      explicit post-deployment limitation rather than passed evidence.
+- [x] Update the release record, run final checks, and complete this plan.
 
 ## Evidence
 
@@ -53,3 +54,7 @@ then perform and record the live signed-out accessibility review.
 - R10-001 is resolved. Browser discovery was retried after deployment and still
   reported no available browser; R10-004 remains open pending interactive
   evidence.
+- On 2026-08-17 the owner directed remediation of the stale active-plan state.
+  Browser discovery was retried through the supported browser integration and
+  returned no available browser. This plan is closed with R10-004 explicitly
+  unresolved; no interactive check is represented as passing.

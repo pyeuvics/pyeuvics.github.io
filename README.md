@@ -138,11 +138,12 @@ Temporary source checkouts, staging files, rendered notebook intermediates, and 
 
 ## Local development
 
-Create an isolated documentation environment and run the local checks:
+Create an isolated Python 3.13 documentation environment, matching CI, and run
+the local checks:
 
 ```bash
-python -m venv .venv-docs
-source .venv-docs/bin/activate
+python3.13 -m venv .venv-docs-313
+source .venv-docs-313/bin/activate
 python -m pip install -r requirements-docs.txt
 
 mkdocs serve

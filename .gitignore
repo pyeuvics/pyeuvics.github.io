@@ -64,6 +64,7 @@ tmp
 /.rendered/
 /site/
 /.venv-docs/
+/.venv-docs-313/
 
 # Local secrets and environment files
 .env
@@ -72,7 +73,6 @@ tmp
 *.pem
 *.key
 
-codex_tasks.md
 CODEX_TASK_READTHEDOCS_STYLE.md
 archive/
 euvics_project_physics_tasks_20260803

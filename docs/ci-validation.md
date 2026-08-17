@@ -30,10 +30,12 @@ contains an approved PDF. Source validators still run on every build.
 
 ## Local-equivalent validation
 
-Install the two pinned environments into a Python 3.13 virtual environment,
-then run the same entry point used by CI:
+Create a Python 3.13 virtual environment, install the two pinned dependency
+sets, then run the same entry point used by CI:
 
 ```bash
+python3.13 -m venv .venv-docs-313
+source .venv-docs-313/bin/activate
 python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
 
 python -m tools.validate_ci \

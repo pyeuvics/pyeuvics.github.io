@@ -1,4 +1,4 @@
-# Reproducible pyEUVICS overview figure
+# Reproducible pyEUVICS overview figure — completed
 
 ## Scope
 
@@ -29,7 +29,8 @@ content and publication contract entry.
 - [x] Obtain explicit scientific and publication approval.
 - [x] Update the website source lock, assemble the approved artifact, add accessible
       overview content, and run full verification.
-- [ ] Inspect desktop/mobile and light/dark rendering before publication.
+- [x] Attempt desktop/mobile and light/dark inspection; retain unavailable
+      interactive rendering checks as an explicit limitation.
 
 ## Verification evidence
 
@@ -50,6 +51,10 @@ content and publication contract entry.
   (72 tests), strict MkDocs passed, and affected Ruff/strict-mypy checks passed.
 - Browser discovery found no connected browser. Interactive desktop/mobile and
   light/dark inspection remains unresolved and is not represented as passing.
+- Browser discovery was retried on 2026-08-17 through the supported browser
+  integration and again returned no available browser. At the owner's direction
+  this stale plan is closed with the interactive rendering check explicitly
+  unresolved rather than passed.
 
 ## Publication gate
 
