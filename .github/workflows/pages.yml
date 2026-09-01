@@ -46,6 +46,7 @@ jobs:
       - name: Check out locked EUVICS source
         uses: actions/checkout@v6
         with:
+          ssh-key: ${{ secrets.EUVICS_SOURCE_DEPLOY_KEY }}
           repository: ${{ steps.locks.outputs.euvics_repository }}
           ref: ${{ steps.locks.outputs.euvics_commit }}
           path: .sources/euvics
@@ -55,6 +56,7 @@ jobs:
       - name: Check out locked pyEUVICS source
         uses: actions/checkout@v6
         with:
+          ssh-key: ${{ secrets.PYEUVICS_SOURCE_DEPLOY_KEY }}
           repository: ${{ steps.locks.outputs.pyeuvics_repository }}
           ref: ${{ steps.locks.outputs.pyeuvics_commit }}
           path: .sources/pyeuvics

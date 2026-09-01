@@ -69,15 +69,39 @@ jobs:
         id: current
         run: python -m tools.ci_source_locks resolve >> "$GITHUB_OUTPUT"
 
+      - name: Check out candidate EUVICS history
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/checkout@v6
+        with:
+          ssh-key: ${{ secrets.EUVICS_SOURCE_DEPLOY_KEY }}
+          repository: ${{ steps.current.outputs.euvics_repository }}
+          path: .sources/candidate-euvics
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out candidate pyEUVICS history
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/checkout@v6
+        with:
+          ssh-key: ${{ secrets.PYEUVICS_SOURCE_DEPLOY_KEY }}
+          repository: ${{ steps.current.outputs.pyeuvics_repository }}
+          path: .sources/candidate-pyeuvics
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Discover exact default-branch candidates
         if: steps.gate.outputs.proceed == 'true'
         id: candidates
-        run: python -m tools.source_update discover >> "$GITHUB_OUTPUT"
+        run: >-
+          python -m tools.source_update discover
+          --euvics-source .sources/candidate-euvics
+          --pyeuvics-source .sources/candidate-pyeuvics >> "$GITHUB_OUTPUT"
 
       - name: Check out currently locked EUVICS
         if: steps.candidates.outputs.has_updates == 'true'
         uses: actions/checkout@v6
         with:
+          ssh-key: ${{ secrets.EUVICS_SOURCE_DEPLOY_KEY }}
           repository: ${{ steps.current.outputs.euvics_repository }}
           ref: ${{ steps.current.outputs.euvics_commit }}
           path: .sources/current-euvics
@@ -88,30 +112,11 @@ jobs:
         if: steps.candidates.outputs.has_updates == 'true'
         uses: actions/checkout@v6
         with:
+          ssh-key: ${{ secrets.PYEUVICS_SOURCE_DEPLOY_KEY }}
           repository: ${{ steps.current.outputs.pyeuvics_repository }}
           ref: ${{ steps.current.outputs.pyeuvics_commit }}
           path: .sources/current-pyeuvics
           fetch-depth: 1
-          persist-credentials: false
-
-      - name: Check out candidate EUVICS history
-        if: steps.candidates.outputs.has_updates == 'true'
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ steps.current.outputs.euvics_repository }}
-          ref: ${{ steps.candidates.outputs.euvics }}
-          path: .sources/candidate-euvics
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Check out candidate pyEUVICS history
-        if: steps.candidates.outputs.has_updates == 'true'
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ steps.current.outputs.pyeuvics_repository }}
-          ref: ${{ steps.candidates.outputs.pyeuvics }}
-          path: .sources/candidate-pyeuvics
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Create and verify commit-only candidate lock

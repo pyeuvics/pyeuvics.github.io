@@ -46,7 +46,8 @@ def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     assert "steps.locks.outputs.euvics_commit" in text
     assert "steps.locks.outputs.pyeuvics_commit" in text
     assert text.count("persist-credentials: false") == 3
-    assert "secrets." not in text
+    assert text.count("secrets.EUVICS_SOURCE_DEPLOY_KEY") == 1
+    assert text.count("secrets.PYEUVICS_SOURCE_DEPLOY_KEY") == 1
     assert "gh-pages" not in text
 
 
