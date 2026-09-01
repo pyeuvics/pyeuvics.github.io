@@ -9,14 +9,18 @@ identity-token, environment, or deployment permission.
 
 The workflow reads repository names and full 40-character commits from
 `sources.lock.yml`, then checks out EUVICS and pyEUVICS at those exact commits
-with `persist-credentials: false`. Both repositories are currently public, so
-no source-access secret is configured or required.
+with `persist-credentials: false`. Both repositories are private. Each has one
+read-only deploy key, stored as a separate encrypted Actions secret because
+GitHub does not permit one deploy key to be shared across repositories:
+`EUVICS_SOURCE_DEPLOY_KEY` and `PYEUVICS_SOURCE_DEPLOY_KEY`. Each key grants
+read access only to its named source repository and no access to other account
+resources. Never expose either key through generated pages, logs, checkout
+URLs, caches, or artifacts.
 
-If either source becomes private, stop and obtain explicit authorization before
-changing the workflow. At most one narrowly scoped read-only credential may be
-introduced, limited to contents access for `chongshikpark/euvics` and
-`chongshikpark/pyEUVICS`. Never use a personal broad-scope token or expose a
-credential through generated pages, logs, checkout URLs, caches, or artifacts.
+Pull requests from forks do not receive these secrets and therefore cannot run
+the complete source-backed validation. A maintainer must review such changes
+and run them from a trusted branch; the workflow must not be changed to
+`pull_request_target` to make credentials available to untrusted code.
 
 ## Reproducible environment
 

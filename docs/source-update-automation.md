@@ -18,19 +18,18 @@ The workflow separates candidate evaluation from repository mutation:
    that only exact commits changed, commits only `sources.lock.yml`, and opens a
    pull request with `contents: write` and `pull-requests: write`.
 
-The built-in `GITHUB_TOKEN` is sufficient and is scoped per job. No personal
-access token, source credential, Pages permission, OIDC permission, secret, or
-deployment environment is used. If source repositories become private, stop;
-credential design requires separate explicit authorization and threat review.
+The built-in `GITHUB_TOKEN` remains scoped per job for website repository
+operations. Private source reads use one encrypted, read-only deploy key per
+source repository. The keys have no write permission and are unavailable to the
+proposal job, Pages deployment job, artifacts, caches, and fork pull requests.
 
 ## Candidate discovery and provenance
 
-Discovery resolves each public repository's default `HEAD` with
-`git ls-remote`. The returned value must be a full lowercase 40-character
-commit. The workflow checks out that exact commit with complete history and
-requires the current locked commit to be its ancestor. Rewinds, rewritten or
-unrelated histories, invalid hashes, unavailable repositories, and ambiguous
-responses fail closed.
+Discovery resolves each private repository's default `HEAD` from an
+authenticated full-history checkout. The returned value must be a full
+lowercase 40-character commit. The workflow requires the current locked commit
+to be its ancestor. Rewinds, rewritten or unrelated histories, invalid hashes,
+unavailable repositories, and ambiguous responses fail closed.
 
 The candidate lock is produced from the current strict schema by changing only
 the two commit fields. Repository URLs, manifest paths, lock status, source

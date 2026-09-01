@@ -39,11 +39,29 @@ def _remote_head(repository: str) -> str:
     return fields[0]
 
 
-def discover(lock_path: Path) -> dict[str, str]:
-    """Resolve each public source default-branch HEAD to an exact candidate."""
+def _checkout_head(source: Path, name: str) -> str:
+    try:
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=source, text=True, stderr=subprocess.STDOUT
+        ).strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        detail = exc.output.strip() if isinstance(exc, subprocess.CalledProcessError) else str(exc)
+        raise SourceUpdateError(f"cannot resolve authenticated {name} checkout HEAD: {detail}") from exc
+    if COMMIT_RE.fullmatch(commit) is None:
+        raise SourceUpdateError(f"authenticated {name} checkout HEAD is invalid")
+    return commit
+
+
+def discover(lock_path: Path, checkouts: dict[str, Path] | None = None) -> dict[str, str]:
+    """Resolve each source default-branch HEAD to an exact candidate."""
 
     locks = load_locks(lock_path)
-    result = {name: _remote_head(locks[name].repository) for name in ("euvics", "pyeuvics")}
+    if checkouts is None:
+        result = {name: _remote_head(locks[name].repository) for name in ("euvics", "pyeuvics")}
+    else:
+        if set(checkouts) != {"euvics", "pyeuvics"}:
+            raise SourceUpdateError("authenticated discovery requires both source checkouts")
+        result = {name: _checkout_head(checkouts[name], name) for name in ("euvics", "pyeuvics")}
     result["has_updates"] = str(
         any(result[name] != locks[name].commit for name in ("euvics", "pyeuvics"))
     ).lower()
@@ -208,6 +226,8 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     discover_parser = subparsers.add_parser("discover")
     discover_parser.add_argument("--lock", type=Path, default=Path("sources.lock.yml"))
+    discover_parser.add_argument("--euvics-source", type=Path)
+    discover_parser.add_argument("--pyeuvics-source", type=Path)
     apply_parser = subparsers.add_parser("apply")
     apply_parser.add_argument("--lock", type=Path, required=True)
     apply_parser.add_argument("--output", type=Path, required=True)
@@ -230,7 +250,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "discover":
-            print("\n".join(f"{key}={value}" for key, value in discover(args.lock).items()))
+            supplied = (args.euvics_source, args.pyeuvics_source)
+            if any(supplied) and not all(supplied):
+                raise SourceUpdateError("authenticated discovery requires both source checkouts")
+            checkouts: dict[str, Path] | None = None
+            if args.euvics_source is not None and args.pyeuvics_source is not None:
+                checkouts = {"euvics": args.euvics_source, "pyeuvics": args.pyeuvics_source}
+            print("\n".join(f"{key}={value}" for key, value in discover(args.lock, checkouts).items()))
         elif args.command == "apply":
             apply_candidates(
                 args.lock,
