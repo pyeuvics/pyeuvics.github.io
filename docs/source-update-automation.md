@@ -68,11 +68,13 @@ not scientific or publication approval.
 
 ## Duplicate and failure behavior
 
-Only one source-update workflow runs at a time. An existing automation pull
-request or remote proposal branch prevents another proposal. If pull-request
-creation fails after the branch is pushed, a failure-only cleanup step deletes
-that new branch while leaving production locks unchanged. A cleanup failure is
-visible in the failed run and must be resolved before another proposal.
+Only one source-update workflow runs at a time. An open automation pull request
+or a remote proposal branch with no associated pull request prevents another
+proposal. Branches retained after a closed or merged pull request do not block
+future proposals. If pull-request creation fails after the branch is pushed, a
+failure-only cleanup step deletes that new orphan branch while leaving
+production locks unchanged. A cleanup failure is visible in the failed run and
+must be resolved before another proposal.
 Expected failure modes include:
 
 - public source/default branch unavailable;

@@ -29,7 +29,7 @@ Resolve the repository review findings for automated source-lock PR `#1`:
 - [x] Run targeted and full local checks.
 - [x] Review source commit ranges, manifests, campaign status, checksums,
       limitations, permissions, and representative artifact changes.
-- [ ] Publish the workflow fix for review without merging or deploying.
+- [x] Publish the workflow fix for review without merging or deploying.
 - [ ] Record evidence and complete this plan.
 
 ## Verification evidence
@@ -59,3 +59,9 @@ Resolve the repository review findings for automated source-lock PR `#1`:
   approved pyEUVICS README constraint guidance; no campaign is admitted.
 - Verification passes: 21 targeted tests, 73 full Python 3.13 tests, strict
   mypy for 12 files, `mkdocs build --strict`, and `git diff --check`.
+- Review follow-up found repository setting `delete_branch_on_merge` is false.
+  Duplicate gating was narrowed so only open automation PRs and branches with
+  no PR association block new proposals; retained branches from merged or
+  closed PRs no longer deadlock the schedule.
+- Workflow lifecycle fix published as PR `#2`; its first complete site
+  validation passed before the follow-up gate refinement.

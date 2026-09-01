@@ -164,7 +164,9 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert "tools.source_update verify" in propose_text
     assert "gh pr create" in propose_text
     assert "git ls-remote --heads origin" in workflow_source
-    assert "branch_count" in workflow_source
+    assert 'gh pr list --state all --head "$branch"' in workflow_source
+    assert "orphan_count" in workflow_source
+    assert "association_count" in workflow_source
     assert "pushed=true" in propose_text
     assert "failure() && steps.proposal_branch.outputs.pushed == 'true'" in propose_text
     assert 'git push origin --delete "$UPDATE_BRANCH"' in propose_text

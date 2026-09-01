@@ -34,12 +34,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           pr_count=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("automation/source-lock-update-"))] | length')
-          branch_count=$(git ls-remote --heads origin 'refs/heads/automation/source-lock-update-*' | wc -l)
-          if [ "$pr_count" = "0" ] && [ "$branch_count" = "0" ]; then
+          orphan_count=0
+          while read -r _ ref; do
+            branch=${ref#refs/heads/}
+            association_count=$(gh pr list --state all --head "$branch" --json number --jq 'length')
+            if [ "$association_count" = "0" ]; then
+              orphan_count=$((orphan_count + 1))
+            fi
+          done < <(git ls-remote --heads origin 'refs/heads/automation/source-lock-update-*')
+          if [ "$pr_count" = "0" ] && [ "$orphan_count" = "0" ]; then
             echo "proceed=true" >> "$GITHUB_OUTPUT"
           else
             echo "proceed=false" >> "$GITHUB_OUTPUT"
-            echo "An automated source-lock proposal already exists (pull requests: $pr_count; branches: $branch_count)."
+            echo "An active or orphaned source-lock proposal exists (open pull requests: $pr_count; orphaned branches: $orphan_count)."
           fi
 
       - name: Set up Python 3.13
