@@ -135,7 +135,8 @@ def test_comparison_records_provenance_diff_and_review_gate(tmp_path: Path) -> N
 
 
 def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> None:
-    workflow = yaml.load(WORKFLOW.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+    workflow_source = WORKFLOW.read_text(encoding="utf-8")
+    workflow = yaml.load(workflow_source, Loader=yaml.BaseLoader)
     assert set(workflow["on"]) == {"schedule", "workflow_dispatch"}
     assert workflow["permissions"] == {}
     assert workflow["concurrency"] == {
@@ -162,5 +163,24 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert "actions/download-artifact@v8" in propose_text
     assert "tools.source_update verify" in propose_text
     assert "gh pr create" in propose_text
+    assert "git ls-remote --heads origin" in workflow_source
+    assert 'gh pr list --state all --head "$branch"' in workflow_source
+    assert "orphan_count" in workflow_source
+    assert "association_count" in workflow_source
+    assert "pushed=true" in propose_text
+    assert "failure() && steps.proposal_branch.outputs.pushed == 'true'" in propose_text
+    assert 'git push origin --delete "$UPDATE_BRANCH"' in propose_text
     assert "deploy-pages" not in WORKFLOW.read_text(encoding="utf-8")
     assert "secrets." not in WORKFLOW.read_text(encoding="utf-8")
+
+
+def test_mutable_source_locks_are_not_duplicated_as_test_constants() -> None:
+    lock = yaml.safe_load((ROOT / "sources.lock.yml").read_text(encoding="utf-8"))
+    commits = {source["commit"] for source in lock["sources"].values()}
+    for path in (ROOT / "tests").glob("test_*.py"):
+        text = path.read_text(encoding="utf-8")
+        for commit in commits:
+            assert commit not in text, (
+                f"{path.relative_to(ROOT)} hard-codes mutable source commit {commit}; "
+                "source-update pull requests must remain lock-only"
+            )

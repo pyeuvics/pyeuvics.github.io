@@ -120,14 +120,6 @@ def test_project_overview_links_are_descriptive_and_relative() -> None:
         assert (OVERVIEW.parent / target).resolve().is_file()
 
 
-def test_euvics_lock_uses_the_approved_task_2_commit() -> None:
-    lock = yaml.safe_load((ROOT / "sources.lock.yml").read_text(encoding="utf-8"))
-    assert (
-        lock["sources"]["euvics"]["commit"]
-        == "f142bd188892f9518a956989ebaf7a42b6930f33"
-    )
-
-
 def test_overview_navigation_mathjax_and_project_base_path() -> None:
     config = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     site_url = urlparse(config["site_url"])
