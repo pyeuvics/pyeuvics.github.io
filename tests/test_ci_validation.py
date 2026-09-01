@@ -37,13 +37,18 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
     assert "pages: write" not in text
     assert "id-token: write" not in text
     assert "environment:" not in text
-    assert "secrets." not in text
+    assert text.count("secrets.EUVICS_SOURCE_DEPLOY_KEY") == 1
+    assert text.count("secrets.PYEUVICS_SOURCE_DEPLOY_KEY") == 1
     assert "upload-pages-artifact" not in text
     assert "deploy-pages" not in text
     assert "persist-credentials: false" in text
     assert "steps.locks.outputs.euvics_commit" in text
     assert "steps.locks.outputs.pyeuvics_commit" in text
     assert "sources.lock.yml" in text
+    source_checkouts = [
+        step for step in steps if step.get("uses") == "actions/checkout@v6"
+    ][1:]
+    assert all("ssh-key" in step["with"] for step in source_checkouts)
 
 
 def test_workflow_cache_and_review_artifact_are_bounded() -> None:

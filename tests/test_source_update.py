@@ -79,6 +79,28 @@ def test_discovery_resolves_exact_heads_and_reports_change(
     }
 
 
+def test_discovery_can_use_authenticated_checkouts(tmp_path: Path) -> None:
+    repository = tmp_path / "source"
+    repository.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=repository, check=True)
+    subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=repository, check=True)
+    (repository / "file.txt").write_text("private\n", encoding="utf-8")
+    subprocess.run(["git", "add", "file.txt"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "private source"], cwd=repository, check=True)
+    commit = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repository, text=True
+    ).strip()
+    lock = write_lock(tmp_path / "current.yml", "1" * 40, commit)
+    assert discover(lock, {"euvics": repository, "pyeuvics": repository}) == {
+        "euvics": commit,
+        "pyeuvics": commit,
+        "has_updates": "true",
+    }
+    with pytest.raises(SourceUpdateError, match="both source checkouts"):
+        discover(lock, {"euvics": repository})
+
+
 def test_candidate_lock_changes_only_exact_commits(tmp_path: Path) -> None:
     current = write_lock(tmp_path / "current.yml", "1" * 40, "2" * 40)
     candidate = tmp_path / "candidate.yml"
@@ -171,7 +193,10 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert "failure() && steps.proposal_branch.outputs.pushed == 'true'" in propose_text
     assert 'git push origin --delete "$UPDATE_BRANCH"' in propose_text
     assert "deploy-pages" not in WORKFLOW.read_text(encoding="utf-8")
-    assert "secrets." not in WORKFLOW.read_text(encoding="utf-8")
+    assert workflow_source.count("secrets.EUVICS_SOURCE_DEPLOY_KEY") == 2
+    assert workflow_source.count("secrets.PYEUVICS_SOURCE_DEPLOY_KEY") == 2
+    assert "--euvics-source .sources/candidate-euvics" in workflow_source
+    assert "--pyeuvics-source .sources/candidate-pyeuvics" in workflow_source
 
 
 def test_mutable_source_locks_are_not_duplicated_as_test_constants() -> None:
