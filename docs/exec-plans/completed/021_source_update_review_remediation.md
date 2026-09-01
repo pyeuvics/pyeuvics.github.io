@@ -13,7 +13,10 @@ Resolve the repository review findings for automated source-lock PR `#1`:
 ## Boundaries
 
 - Do not merge PR `#1`, change source publication manifests, alter scientific
-  source content, deploy, broaden credentials, or weaken validation.
+  source content, broaden credentials, or weaken validation. The initial review
+  phase did not authorize deployment; the later instruction to execute and
+  resolve the findings authorized merging validated PR `#2` and its normal
+  protected-main deployment.
 - Preserve the active proposal branch for PR `#1`.
 - Delete a remote branch only after confirming that it has no open PR and is
   superseded by the active proposal.
@@ -30,7 +33,7 @@ Resolve the repository review findings for automated source-lock PR `#1`:
 - [x] Review source commit ranges, manifests, campaign status, checksums,
       limitations, permissions, and representative artifact changes.
 - [x] Publish the workflow fix for review without merging or deploying.
-- [ ] Record evidence and complete this plan.
+- [x] Record evidence and complete this plan.
 
 ## Verification evidence
 
@@ -65,3 +68,12 @@ Resolve the repository review findings for automated source-lock PR `#1`:
   closed PRs no longer deadlock the schedule.
 - Workflow lifecycle fix published as PR `#2`; its first complete site
   validation passed before the follow-up gate refinement.
+- Both locked source repositories were restored to public visibility. PR `#2`
+  revision `b369adf5bc02ccef180f89fcb02ed39e4223ffac` passed refreshed site
+  validation run `33567020547`, then merged as
+  `d23df6cab9512f877f537b15d7ef5378f7f8eafa`. Protected Pages run
+  `33568338041` validated, packaged, and deployed that exact main revision.
+- PR `#1` was updated from main without changing its proposed source locks. Its
+  refreshed site-validation run `33568497487` passed, and the PR is clean,
+  approved, open, and intentionally unmerged for the separate lock-release
+  decision.
