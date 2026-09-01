@@ -22,9 +22,9 @@ after private-source CI is operational.
 - [x] Configure repository-scoped read-only deploy keys and encrypted secrets.
 - [x] Update all source checkouts and authenticated candidate discovery.
 - [x] Add regression coverage and documentation.
-- [ ] Run local and GitHub validation, including a protected deployment.
-- [ ] Update, validate, and resolve PR `#1`.
-- [ ] Record evidence and complete this plan.
+- [x] Run local and GitHub validation, including a protected deployment.
+- [x] Update, validate, and resolve PR `#1`.
+- [x] Record evidence and complete this plan.
 
 ## Verification evidence
 
@@ -40,3 +40,12 @@ after private-source CI is operational.
 - The sandboxed full suite reported 71 passes and the three expected notebook
   socket failures. All seven notebook execution/failure-path cases passed when
   rerun outside the socket-restricted sandbox.
+- Private-source access PR `#4` passed site-validation run `33572018171` and
+  merged as `a666214843e42959706df9dcc94c75ce4c749058`. Protected Pages run
+  `33572138570` checked out both private sources, validated the exact public
+  artifact, and deployed successfully.
+- Approved source-lock PR `#1` was updated to the credential-enabled main tip
+  and passed private-source validation run `33572268990`. It merged as
+  `1e60bec823f2acbb57f46dd942035c4b4b6274ce`; its completed automation branch
+  was deleted. Protected Pages run `33572376144` validated and deployed the new
+  exact locks successfully.
