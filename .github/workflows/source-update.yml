@@ -33,12 +33,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("automation/source-lock-update-"))] | length')
-          if [ "$count" = "0" ]; then
+          pr_count=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("automation/source-lock-update-"))] | length')
+          orphan_count=0
+          while read -r _ ref; do
+            branch=${ref#refs/heads/}
+            association_count=$(gh pr list --state all --head "$branch" --json number --jq 'length')
+            if [ "$association_count" = "0" ]; then
+              orphan_count=$((orphan_count + 1))
+            fi
+          done < <(git ls-remote --heads origin 'refs/heads/automation/source-lock-update-*')
+          if [ "$pr_count" = "0" ] && [ "$orphan_count" = "0" ]; then
             echo "proceed=true" >> "$GITHUB_OUTPUT"
           else
             echo "proceed=false" >> "$GITHUB_OUTPUT"
-            echo "An automated source-lock pull request is already open."
+            echo "An active or orphaned source-lock proposal exists (open pull requests: $pr_count; orphaned branches: $orphan_count)."
           fi
 
       - name: Set up Python 3.13
@@ -221,6 +229,7 @@ jobs:
           path: .staging/source-update
 
       - name: Reverify and commit only the candidate lock
+        id: proposal_branch
         env:
           UPDATE_BRANCH: automation/source-lock-update-${{ github.run_id }}
         run: |
@@ -235,6 +244,7 @@ jobs:
           git add sources.lock.yml
           git commit -m "Propose validated source lock update"
           git push --set-upstream origin "$UPDATE_BRANCH"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
       - name: Open pull request without merge or deployment
         env:
@@ -246,3 +256,9 @@ jobs:
           --head "$UPDATE_BRANCH"
           --title "Propose validated source lock update"
           --body-file .staging/source-update/proposal/pull-request.md
+
+      - name: Remove proposal branch when pull request creation fails
+        if: ${{ failure() && steps.proposal_branch.outputs.pushed == 'true' }}
+        env:
+          UPDATE_BRANCH: automation/source-lock-update-${{ github.run_id }}
+        run: git push origin --delete "$UPDATE_BRANCH"

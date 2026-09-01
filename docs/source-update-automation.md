@@ -37,6 +37,12 @@ the two commit fields. Repository URLs, manifest paths, lock status, source
 names, and schema cannot change. A no-change result exits without an artifact,
 branch, pull request, or deployment.
 
+Website tests must validate the lock schema, provenance behavior, ancestry, and
+publication contracts without duplicating a currently locked commit as a test
+constant. Exact commit pins belong only in `sources.lock.yml`; duplicating them
+in tests would make a verified lock-only proposal fail for an unrelated website
+change.
+
 ## Validation and artifact comparison
 
 Both baseline and candidate locks run the complete `tools.validate_ci` path:
@@ -62,8 +68,13 @@ not scientific or publication approval.
 
 ## Duplicate and failure behavior
 
-Only one source-update workflow runs at a time, and an existing open automation
-branch prevents another proposal. Failures leave production locks unchanged.
+Only one source-update workflow runs at a time. An open automation pull request
+or a remote proposal branch with no associated pull request prevents another
+proposal. Branches retained after a closed or merged pull request do not block
+future proposals. If pull-request creation fails after the branch is pushed, a
+failure-only cleanup step deletes that new orphan branch while leaving
+production locks unchanged. A cleanup failure is visible in the failed run and
+must be resolved before another proposal.
 Expected failure modes include:
 
 - public source/default branch unavailable;
