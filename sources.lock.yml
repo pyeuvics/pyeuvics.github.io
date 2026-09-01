@@ -2,13 +2,11 @@ schema_version: 1
 sources:
   euvics:
     repository: https://github.com/chongshikpark/euvics
-    commit: f142bd188892f9518a956989ebaf7a42b6930f33
+    commit: 35b67441562c3c8506d2db9f658b150b82013e6a
     lock_status: locked
     publication_manifest: publication/public-content-v1.json
   pyeuvics:
     repository: https://github.com/chongshikpark/pyEUVICS
-    commit: 38853bc773bf8594b31fe4c211f444cda5b91320
+    commit: be37b674bf81c4246a04449cf748eab4911f63af
     lock_status: locked
     publication_manifest: publication/public-content-v1.json
-
-# Task 5 locks the reviewed source publication-contract commits exactly.
