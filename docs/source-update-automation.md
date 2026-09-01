@@ -31,6 +31,11 @@ lowercase 40-character commit. The workflow requires the current locked commit
 to be its ancestor. Rewinds, rewritten or unrelated histories, invalid hashes,
 unavailable repositories, and ambiguous responses fail closed.
 
+Source discovery has no unauthenticated remote fallback: callers must provide
+both authenticated checkout paths. After candidate and locked checkouts,
+fail-closed runner-temporary-directory scans verify that checkout private keys
+were removed before source-derived validation or notebook execution begins.
+
 The candidate lock is produced from the current strict schema by changing only
 the two commit fields. Repository URLs, manifest paths, lock status, source
 names, and schema cannot change. A no-change result exits without an artifact,

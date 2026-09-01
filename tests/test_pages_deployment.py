@@ -49,6 +49,11 @@ def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     assert text.count("secrets.EUVICS_SOURCE_DEPLOY_KEY") == 1
     assert text.count("secrets.PYEUVICS_SOURCE_DEPLOY_KEY") == 1
     assert "gh-pages" not in text
+    names = [step["name"] for step in build["steps"]]
+    scrub = names.index("Verify checkout credentials were removed")
+    assert scrub > names.index("Check out locked pyEUVICS source")
+    assert scrub < names.index("Inspect approved document requirements")
+    assert "tools.verify_runner_credentials" in build["steps"][scrub]["run"]
 
 
 def test_deployment_has_only_required_write_permissions_and_environment() -> None:
@@ -82,6 +87,6 @@ def test_manual_checklist_covers_required_external_controls_and_rollback() -> No
         "signed-out browser session",
         "https://chongshikpark.github.io/euvics.github.io/",
         "preceding approved deployment",
-        "read-only credential",
+        "read-only deploy key",
     ):
         assert required in text

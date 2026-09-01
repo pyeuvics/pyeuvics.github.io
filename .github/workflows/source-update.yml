@@ -89,6 +89,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Verify candidate checkout credentials were removed
+        if: steps.gate.outputs.proceed == 'true'
+        run: python -m tools.verify_runner_credentials --root "$RUNNER_TEMP"
+
       - name: Discover exact default-branch candidates
         if: steps.gate.outputs.proceed == 'true'
         id: candidates
@@ -118,6 +122,10 @@ jobs:
           path: .sources/current-pyeuvics
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Verify locked checkout credentials were removed
+        if: steps.candidates.outputs.has_updates == 'true'
+        run: python -m tools.verify_runner_credentials --root "$RUNNER_TEMP"
 
       - name: Create and verify commit-only candidate lock
         if: steps.candidates.outputs.has_updates == 'true'

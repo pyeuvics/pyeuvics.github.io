@@ -60,6 +60,9 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Verify checkout credentials were removed
+        run: python -m tools.verify_runner_credentials --root "$RUNNER_TEMP"
+
       - name: Inspect approved document requirements
         id: publication
         run: >-

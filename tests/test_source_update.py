@@ -64,19 +64,11 @@ def review_manifest(path: Path, files: list[tuple[str, str, int]]) -> Path:
 
 
 def test_discovery_resolves_exact_heads_and_reports_change(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path
 ) -> None:
     lock = write_lock(tmp_path / "current.yml", "1" * 40, "2" * 40)
-
-    def fake_head(repository: str) -> str:
-        return "3" * 40 if repository.endswith("/euvics") else "2" * 40
-
-    monkeypatch.setattr("tools.source_update._remote_head", fake_head)
-    assert discover(lock) == {
-        "euvics": "3" * 40,
-        "pyeuvics": "2" * 40,
-        "has_updates": "true",
-    }
+    with pytest.raises(SourceUpdateError, match="both source checkouts"):
+        discover(lock, {})
 
 
 def test_discovery_can_use_authenticated_checkouts(tmp_path: Path) -> None:
@@ -197,6 +189,14 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert workflow_source.count("secrets.PYEUVICS_SOURCE_DEPLOY_KEY") == 2
     assert "--euvics-source .sources/candidate-euvics" in workflow_source
     assert "--pyeuvics-source .sources/candidate-pyeuvics" in workflow_source
+    names = [step["name"] for step in validate["steps"]]
+    candidate_scrub = names.index("Verify candidate checkout credentials were removed")
+    locked_scrub = names.index("Verify locked checkout credentials were removed")
+    assert candidate_scrub > names.index("Check out candidate pyEUVICS history")
+    assert candidate_scrub < names.index("Discover exact default-branch candidates")
+    assert locked_scrub > names.index("Check out currently locked pyEUVICS")
+    assert locked_scrub < names.index("Create and verify commit-only candidate lock")
+    assert validate_text.count("tools.verify_runner_credentials") == 2
 
 
 def test_mutable_source_locks_are_not_duplicated_as_test_constants() -> None:
