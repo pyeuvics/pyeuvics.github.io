@@ -1,12 +1,12 @@
 schema_version: 1
 sources:
   euvics:
-    repository: https://github.com/chongshikpark/euvics
+    repository: https://github.com/pyeuvics/euvics
     commit: 35b67441562c3c8506d2db9f658b150b82013e6a
     lock_status: locked
     publication_manifest: publication/public-content-v1.json
   pyeuvics:
-    repository: https://github.com/chongshikpark/pyEUVICS
+    repository: https://github.com/pyeuvics/pyEUVICS
     commit: be37b674bf81c4246a04449cf748eab4911f63af
     lock_status: locked
     publication_manifest: publication/public-content-v1.json

@@ -27,13 +27,13 @@ def write_lock(path: Path, euvics: str, pyeuvics: str) -> Path:
                 "schema_version": 1,
                 "sources": {
                     "euvics": {
-                        "repository": "https://github.com/chongshikpark/euvics",
+                        "repository": "https://github.com/pyeuvics/euvics",
                         "commit": euvics,
                         "lock_status": "locked",
                         "publication_manifest": "publication/public-content-v1.json",
                     },
                     "pyeuvics": {
-                        "repository": "https://github.com/chongshikpark/pyEUVICS",
+                        "repository": "https://github.com/pyeuvics/pyEUVICS",
                         "commit": pyeuvics,
                         "lock_status": "locked",
                         "publication_manifest": "publication/public-content-v1.json",

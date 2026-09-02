@@ -24,7 +24,7 @@ def euvics_manifest(path: str = "docs/overview.md") -> dict:
         "schema_version": "1.0",
         "contract_id": "euvics-public-content-v1",
         "repository": {
-            "url": "https://github.com/chongshikpark/euvics",
+            "url": "https://github.com/pyeuvics/euvics",
             "source_commit_policy": "locked-by-consuming-website",
         },
         "default_policy": "excluded",
@@ -71,7 +71,7 @@ def pyeuvics_manifest() -> dict:
         "schema_version": "1.0",
         "contract_id": "pyeuvics-public-content-v1",
         "repository": {
-            "url": "https://github.com/chongshikpark/pyEUVICS",
+            "url": "https://github.com/pyeuvics/pyEUVICS",
             "source_commit_policy": "locked-by-consuming-website",
         },
         "package": {
@@ -353,13 +353,13 @@ def write_locks(path: Path, commits: dict[str, str]) -> Path:
         "schema_version": 1,
         "sources": {
             "euvics": {
-                "repository": "https://github.com/chongshikpark/euvics",
+                "repository": "https://github.com/pyeuvics/euvics",
                 "commit": commits["euvics"],
                 "lock_status": "locked",
                 "publication_manifest": "publication/public-content-v1.json",
             },
             "pyeuvics": {
-                "repository": "https://github.com/chongshikpark/pyEUVICS",
+                "repository": "https://github.com/pyeuvics/pyEUVICS",
                 "commit": commits["pyeuvics"],
                 "lock_status": "locked",
                 "publication_manifest": "publication/public-content-v1.json",
@@ -421,11 +421,11 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
     assert commits["pyeuvics"] in project_overview
     assert "../imported/euvics/docs/overview.md" in project_overview
     assert (
-        f"https://github.com/chongshikpark/euvics/tree/{commits['euvics']}"
+        f"https://github.com/pyeuvics/euvics/tree/{commits['euvics']}"
         in project_overview
     ), "overview provenance must link to the exact EUVICS commit"
     assert (
-        f"https://github.com/chongshikpark/pyEUVICS/tree/{commits['pyeuvics']}"
+        f"https://github.com/pyeuvics/pyEUVICS/tree/{commits['pyeuvics']}"
         in project_overview
     ), "overview provenance must link to the exact pyEUVICS commit"
     assert "/tree/main" not in project_overview and "/tree/master" not in project_overview
@@ -473,7 +473,7 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
     assert 'aria-describedby="ics-schematic-caption"' in overview_html
     assert 'alt="Schematic of an electron bunch traveling left to right' in overview_html
     assert (
-        f'href="https://github.com/chongshikpark/euvics/tree/{commits["euvics"]}"'
+        f'href="https://github.com/pyeuvics/euvics/tree/{commits["euvics"]}"'
         in overview_html
     )
 

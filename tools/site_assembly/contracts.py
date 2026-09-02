@@ -137,7 +137,7 @@ def load_locks(path: Path) -> dict[str, SourceLock]:
         if item["lock_status"] != "locked" or not isinstance(commit, str) or not COMMIT_RE.fullmatch(commit):
             raise ContractError(f"source lock {name} is unresolved or has an invalid commit")
         repository = item["repository"]
-        if not isinstance(repository, str) or repository != f"https://github.com/chongshikpark/{'pyEUVICS' if name == 'pyeuvics' else 'euvics'}":
+        if not isinstance(repository, str) or repository != f"https://github.com/pyeuvics/{'pyEUVICS' if name == 'pyeuvics' else 'euvics'}":
             raise ContractError(f"unexpected repository URL for {name}")
         manifest_path = _safe_path(item["publication_manifest"], f"sources.{name}.publication_manifest")
         locks[name] = SourceLock(name, repository, commit, manifest_path)
