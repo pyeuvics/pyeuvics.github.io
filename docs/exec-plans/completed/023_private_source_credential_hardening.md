@@ -18,9 +18,9 @@ and correct private-source documentation and discovery behavior.
 - [x] Add fail-closed post-checkout credential scans and ordering regressions.
 - [x] Require authenticated checkouts for source discovery.
 - [x] Correct deployment and automation documentation.
-- [ ] Run local and GitHub validation and protected deployment.
-- [ ] Exercise the source-update workflow by controlled manual dispatch.
-- [ ] Record evidence and complete this plan.
+- [x] Run local and GitHub validation and protected deployment.
+- [x] Exercise the source-update workflow by controlled manual dispatch.
+- [x] Record evidence and complete this plan.
 
 ## Verification evidence
 
@@ -34,3 +34,12 @@ and correct private-source documentation and discovery behavior.
 - The full sandboxed suite reported 73 passes and the three expected notebook
   socket failures. All seven notebook execution/failure-path cases passed when
   rerun outside the socket-restricted sandbox.
+- Remediation PR `#6` passed site-validation run `33573391303` and merged as
+  `e37831e413618ed2d7adf3149f5e69fadcc50716`. Protected Pages run
+  `33573515296` passed the residue scan, full artifact validation, and deploy.
+- Controlled source-update run `33573646857` passed authenticated candidate and
+  locked checkouts, both residue scans, ancestry checks, baseline/candidate
+  validation, comparison, evidence transfer, and lock-only PR creation. It
+  opened review-only PR `#7`; approved site-validation run `33573833450` also
+  passed its residue scan and complete validation. PR `#7` remains unmerged for
+  the normal scientific/publication review of its new source commits.
