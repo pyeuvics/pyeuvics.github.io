@@ -17,6 +17,12 @@ read access only to its named source repository and no access to other account
 resources. Never expose either key through generated pages, logs, checkout
 URLs, caches, or artifacts.
 
+`actions/checkout@v6` receives `persist-credentials: false`, which removes SSH
+authentication in the checkout step's `finally` block. Immediately after all
+private checkouts, `tools.verify_runner_credentials` scans the runner temporary
+directory and fails before source-derived commands if private-key material
+remains.
+
 Pull requests from forks do not receive these secrets and therefore cannot run
 the complete source-backed validation. A maintainer must review such changes
 and run them from a trusted branch; the workflow must not be changed to

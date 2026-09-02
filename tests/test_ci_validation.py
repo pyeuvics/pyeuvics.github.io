@@ -49,6 +49,11 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
         step for step in steps if step.get("uses") == "actions/checkout@v6"
     ][1:]
     assert all("ssh-key" in step["with"] for step in source_checkouts)
+    names = [step["name"] for step in steps]
+    scrub = names.index("Verify checkout credentials were removed")
+    assert scrub > names.index("Check out locked pyEUVICS source")
+    assert scrub < names.index("Inspect approved document requirements")
+    assert "tools.verify_runner_credentials" in steps[scrub]["run"]
 
 
 def test_workflow_cache_and_review_artifact_are_bounded() -> None:

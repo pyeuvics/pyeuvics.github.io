@@ -13,15 +13,18 @@ generated output.
 
 The build job has only content and Pages-metadata read access. Only the
 deployment job receives `pages: write` and `id-token: write`. It uses the
-protected `github-pages` environment. Checkouts do not persist credentials, and
-no source credential is configured while both source repositories remain public.
+protected `github-pages` environment. Both source repositories are private and
+each is checked out with its own repository-scoped, read-only deploy key.
+Credentials are not persisted, and a fail-closed scan verifies that no private
+key material remains in the runner temporary directory before source-derived
+validation begins.
 
 ## Administrator checklist before the first deployment
 
-- [ ] Confirm both locked source repositories and commits are publicly readable.
-- [ ] If either source is private, stop and authorize one narrowly scoped,
-      read-only credential for only `chongshikpark/euvics` and
-      `chongshikpark/pyEUVICS`; review the workflow change separately.
+- [ ] Confirm both locked private source repositories and commits are readable
+      through their separate repository-scoped, read-only deploy keys.
+- [ ] Confirm the post-checkout credential scan passes before source-derived
+      validation begins.
 - [ ] Confirm the full review artifact and inventory contain only approved
       public material, with expected PDF/notebook/campaign exclusions visible.
 - [ ] In **Settings → Pages → Build and deployment**, set **Source** to
