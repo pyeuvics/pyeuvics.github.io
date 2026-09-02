@@ -11,7 +11,7 @@ EUVICS documentation website at `https://pyeuvics.github.io/`.
   provenance, and scientific review gates.
 
 This directory contains website-owned planning material, not approved
-scientific content. The `chongshikpark/euvics` and `pyeuvics/pyEUVICS`
+scientific content. The `pyeuvics/euvics` and `pyeuvics/pyEUVICS`
 repositories remain authoritative. A page or asset becomes publishable only
 when a versioned source manifest allows it and the website build uses the
 locked source commit.

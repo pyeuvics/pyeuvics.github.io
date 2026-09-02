@@ -21,7 +21,7 @@ for the historical-document policy and remaining administrator work.
 
 The website aggregates approved public content from:
 
-- [chongshikpark/euvics](https://github.com/chongshikpark/euvics) — EUVICS Proposal, Conceptual Design Report (CDR), requirements, bibliography, and document builds.
+- [pyeuvics/euvics](https://github.com/pyeuvics/euvics) — EUVICS Proposal, Conceptual Design Report (CDR), requirements, bibliography, and document builds.
 - [pyeuvics/pyEUVICS](https://github.com/pyeuvics/pyEUVICS) — package documentation, tutorials, notebooks, scientific validation, and reference campaigns.
 
 Those repositories remain authoritative. This repository owns only the website shell, navigation, staging, link transformation, search, and deployment. Scientific or document corrections must be made and reviewed in the appropriate source repository before republication.

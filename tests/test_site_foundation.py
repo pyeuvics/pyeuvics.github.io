@@ -70,6 +70,20 @@ def test_source_locks_are_exact_and_resolved() -> None:
         assert source["lock_status"] == "locked"
 
 
+def test_current_governance_and_architecture_name_organization_sources() -> None:
+    current_files = (
+        ROOT / "AGENTS.md",
+        ROOT / "README.md",
+        ROOT / "docs/architecture/README.md",
+        ROOT / "docs/architecture/information-architecture.md",
+    )
+    for path in current_files:
+        text = path.read_text(encoding="utf-8")
+        assert "`chongshikpark/euvics`" not in text, path
+        assert "(https://github.com/chongshikpark/euvics)" not in text, path
+        assert "pyeuvics/euvics" in text, path
+
+
 def test_generated_site_is_ignored() -> None:
     result = subprocess.run(["git", "check-ignore", "-q", "site/index.html"], cwd=ROOT, check=False)
     assert result.returncode == 0

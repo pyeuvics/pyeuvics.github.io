@@ -23,6 +23,9 @@ permissions.
 - [x] Update Pages actions to Node.js 24-compatible releases.
 - [x] Run the full test suite, strict MkDocs build, and diff checks.
 - [x] Verify private checkouts, artifact validation, and deployment in Actions.
+- [x] Remove the superseded read-only deploy key from the former
+      `chongshikpark/euvics` repository and the unused `EUVICS_DOCS_APP_ID`
+      website secret after the Client ID deployment passed.
 
 ## Verification
 
@@ -39,6 +42,9 @@ permissions.
   Client ID input and Node.js 24-compatible `configure-pages@v6` and
   `upload-pages-artifact@v5`; both build and deployment jobs succeeded without
   the prior deprecation annotations.
+- The workflow now reads only the `EUVICS_DOCS_APP_CLIENT_ID` repository
+  variable and `EUVICS_DOCS_APP_PRIVATE_KEY` secret; installation tokens are
+  created and revoked per job.
 
 ## Outcome
 

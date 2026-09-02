@@ -13,10 +13,6 @@ import yaml
 from .models import NotebookSpec, PublishedFile, SourceContract, SourceLock
 
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
-EXPECTED_REPOSITORIES = {
-    "euvics": "https://github.com/chongshikpark/euvics",
-    "pyeuvics": "https://github.com/pyeuvics/pyEUVICS",
-}
 GLOB_CHARS = set("*?[]{}")
 SUPPORTED_SUFFIXES = {
     "", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".css", ".js",
