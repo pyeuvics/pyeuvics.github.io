@@ -43,10 +43,22 @@ jobs:
         id: locks
         run: python -m tools.ci_source_locks resolve >> "$GITHUB_OUTPUT"
 
+      - name: Create source-read installation token
+        id: source_token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.EUVICS_DOCS_APP_ID }}
+          private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
+          owner: pyeuvics
+          repositories: |
+            euvics
+            pyEUVICS
+          permission-contents: read
+
       - name: Check out locked EUVICS source
         uses: actions/checkout@v6
         with:
-          ssh-key: ${{ secrets.EUVICS_SOURCE_DEPLOY_KEY }}
+          token: ${{ steps.source_token.outputs.token }}
           repository: ${{ steps.locks.outputs.euvics_repository }}
           ref: ${{ steps.locks.outputs.euvics_commit }}
           path: .sources/euvics
@@ -56,7 +68,7 @@ jobs:
       - name: Check out locked pyEUVICS source
         uses: actions/checkout@v6
         with:
-          ssh-key: ${{ secrets.PYEUVICS_SOURCE_DEPLOY_KEY }}
+          token: ${{ steps.source_token.outputs.token }}
           repository: ${{ steps.locks.outputs.pyeuvics_repository }}
           ref: ${{ steps.locks.outputs.pyeuvics_commit }}
           path: .sources/pyeuvics

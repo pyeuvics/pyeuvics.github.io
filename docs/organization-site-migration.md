@@ -13,19 +13,17 @@ repository URLs and `/euvics.github.io/` paths as historical evidence. Those
 references describe the context in which the records were created; they are
 not current deployment targets.
 
-The authoritative scientific sources remain
-[`chongshikpark/euvics`](https://github.com/chongshikpark/euvics) and
-[`chongshikpark/pyEUVICS`](https://github.com/chongshikpark/pyEUVICS), as locked
-in `sources.lock.yml`. Moving the website does not authorize moving or changing
-those sources.
+The authoritative scientific sources are
+[`pyeuvics/euvics`](https://github.com/pyeuvics/euvics) and
+[`pyeuvics/pyEUVICS`](https://github.com/pyeuvics/pyEUVICS), as locked in
+`sources.lock.yml`.
 
 Before the organization repository becomes the production deployment source,
 an administrator must:
 
-- generate distinct read-only deploy keys for the two private source
-  repositories and store their private halves as `EUVICS_SOURCE_DEPLOY_KEY`
-  and `PYEUVICS_SOURCE_DEPLOY_KEY` Actions secrets in the organization
-  repository;
+- install a Contents-read-only GitHub App only on the two private source
+  repositories and store its App ID and private key as repository Actions
+  secrets;
 - protect `main` and require the site-validation check;
 - confirm least-privilege Actions workflow permissions;
 - restrict the `github-pages` environment to `main` and configure Pages to use
@@ -35,6 +33,6 @@ an administrator must:
 - choose whether the personal repository is a read-only archive or a maintained
   non-deploying mirror.
 
-Secret values cannot be retrieved or copied from the personal repository. Do
-not reuse exposed private key material. Deployment remains blocked until these
-controls and credentials are configured and the organization build succeeds.
+Secret values cannot be retrieved or copied from the personal repository. The
+organization build must succeed before production deployment is considered
+ready.

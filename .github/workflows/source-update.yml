@@ -69,11 +69,24 @@ jobs:
         id: current
         run: python -m tools.ci_source_locks resolve >> "$GITHUB_OUTPUT"
 
+      - name: Create source-read installation token
+        if: steps.gate.outputs.proceed == 'true'
+        id: source_token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.EUVICS_DOCS_APP_ID }}
+          private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
+          owner: pyeuvics
+          repositories: |
+            euvics
+            pyEUVICS
+          permission-contents: read
+
       - name: Check out candidate EUVICS history
         if: steps.gate.outputs.proceed == 'true'
         uses: actions/checkout@v6
         with:
-          ssh-key: ${{ secrets.EUVICS_SOURCE_DEPLOY_KEY }}
+          token: ${{ steps.source_token.outputs.token }}
           repository: ${{ steps.current.outputs.euvics_repository }}
           path: .sources/candidate-euvics
           fetch-depth: 0
@@ -83,7 +96,7 @@ jobs:
         if: steps.gate.outputs.proceed == 'true'
         uses: actions/checkout@v6
         with:
-          ssh-key: ${{ secrets.PYEUVICS_SOURCE_DEPLOY_KEY }}
+          token: ${{ steps.source_token.outputs.token }}
           repository: ${{ steps.current.outputs.pyeuvics_repository }}
           path: .sources/candidate-pyeuvics
           fetch-depth: 0
@@ -105,7 +118,7 @@ jobs:
         if: steps.candidates.outputs.has_updates == 'true'
         uses: actions/checkout@v6
         with:
-          ssh-key: ${{ secrets.EUVICS_SOURCE_DEPLOY_KEY }}
+          token: ${{ steps.source_token.outputs.token }}
           repository: ${{ steps.current.outputs.euvics_repository }}
           ref: ${{ steps.current.outputs.euvics_commit }}
           path: .sources/current-euvics
@@ -116,7 +129,7 @@ jobs:
         if: steps.candidates.outputs.has_updates == 'true'
         uses: actions/checkout@v6
         with:
-          ssh-key: ${{ secrets.PYEUVICS_SOURCE_DEPLOY_KEY }}
+          token: ${{ steps.source_token.outputs.token }}
           repository: ${{ steps.current.outputs.pyeuvics_repository }}
           ref: ${{ steps.current.outputs.pyeuvics_commit }}
           path: .sources/current-pyeuvics

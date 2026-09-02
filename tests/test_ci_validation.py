@@ -30,6 +30,7 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
     steps = job["steps"]
     actions = [step["uses"] for step in steps if "uses" in step]
     assert actions.count("actions/checkout@v6") == 3
+    assert actions.count("actions/create-github-app-token@v3") == 1
     assert "actions/setup-python@v6" in actions
     assert "actions/upload-artifact@v7" in actions
     text = WORKFLOW.read_text(encoding="utf-8")
@@ -37,8 +38,8 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
     assert "pages: write" not in text
     assert "id-token: write" not in text
     assert "environment:" not in text
-    assert text.count("secrets.EUVICS_SOURCE_DEPLOY_KEY") == 1
-    assert text.count("secrets.PYEUVICS_SOURCE_DEPLOY_KEY") == 1
+    assert text.count("secrets.EUVICS_DOCS_APP_ID") == 1
+    assert text.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
     assert "upload-pages-artifact" not in text
     assert "deploy-pages" not in text
     assert "persist-credentials: false" in text
@@ -48,7 +49,18 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
     source_checkouts = [
         step for step in steps if step.get("uses") == "actions/checkout@v6"
     ][1:]
-    assert all("ssh-key" in step["with"] for step in source_checkouts)
+    assert all(
+        step["with"]["token"] == "${{ steps.source_token.outputs.token }}"
+        and "ssh-key" not in step["with"]
+        for step in source_checkouts
+    )
+    token = next(
+        step for step in steps
+        if step.get("uses") == "actions/create-github-app-token@v3"
+    )
+    assert token["with"]["owner"] == "pyeuvics"
+    assert set(token["with"]["repositories"].splitlines()) == {"euvics", "pyEUVICS"}
+    assert token["with"]["permission-contents"] == "read"
     names = [step["name"] for step in steps]
     scrub = names.index("Verify checkout credentials were removed")
     assert scrub > names.index("Check out locked pyEUVICS source")

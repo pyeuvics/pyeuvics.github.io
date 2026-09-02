@@ -13,16 +13,25 @@ permissions.
   repository Actions secrets.
 - The App is reported installed on `pyeuvics/euvics` and
   `pyeuvics/pyEUVICS` with read-only source access.
-- The local branch is two commits ahead of `origin/main`; those commits and the
-  untracked `docs/github_app.md` are user work to preserve.
+- The local branch contained existing migration commits ahead of `origin/main`;
+  those commits were preserved.
 
 ## Work
 
-- [ ] Mint one installation token per source-reading job.
-- [ ] Use the token for all exact source checkouts without persisting it.
-- [ ] Update workflow contract tests and credential documentation.
-- [ ] Run the full test suite, strict MkDocs build, and diff checks.
+- [x] Mint one installation token per source-reading job.
+- [x] Use the token for all exact source checkouts without persisting it.
+- [x] Update workflow contract tests and credential documentation.
+- [x] Run the full test suite, strict MkDocs build, and diff checks.
 - [ ] Record verification and complete this plan.
+
+## Local verification
+
+- `.venv-docs-313/bin/python -m pytest`: 76 passed in 36.96 seconds.
+- `.venv-docs-313/bin/python -m mkdocs build --strict`: passed.
+- `git diff --check`: passed.
+- Workflow contract tests confirm one token action per source-reading job,
+  exactly two repository targets, Contents read-only scope, token-based source
+  checkouts, and `persist-credentials: false`.
 
 ## External verification
 

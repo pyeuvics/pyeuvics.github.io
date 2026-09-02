@@ -14,15 +14,15 @@ generated output.
 The build job has only content and Pages-metadata read access. Only the
 deployment job receives `pages: write` and `id-token: write`. It uses the
 protected `github-pages` environment. Both source repositories are private and
-each is checked out with its own repository-scoped, read-only deploy key.
-Credentials are not persisted, and a fail-closed scan verifies that no private
-key material remains in the runner temporary directory before source-derived
-validation begins.
+are checked out with a short-lived token minted by a GitHub App installed only
+on those repositories with Contents read-only permission. Credentials are not
+persisted, and a fail-closed scan verifies that no credential material remains
+in the runner temporary directory before source-derived validation begins.
 
 ## Administrator checklist before the first deployment
 
 - [ ] Confirm both locked private source repositories and commits are readable
-      through their separate repository-scoped, read-only deploy keys.
+      through the repository-scoped, read-only GitHub App.
 - [ ] Confirm the post-checkout credential scan passes before source-derived
       validation begins.
 - [ ] Confirm the full review artifact and inventory contain only approved
@@ -69,6 +69,6 @@ artifact review, approver, and verification result in the release record.
 
 Repository administrators still own Pages-source selection, environment and
 branch protection, Actions permissions, repository homepage configuration,
-new source deploy keys and Actions secrets, first-deployment
+GitHub App installation and Actions secrets, first-deployment
 approval, signed-out public verification, and incident rollback authorization.
 Adding this workflow does not perform any of those external actions.

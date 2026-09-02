@@ -9,19 +9,18 @@ identity-token, environment, or deployment permission.
 
 The workflow reads repository names and full 40-character commits from
 `sources.lock.yml`, then checks out EUVICS and pyEUVICS at those exact commits
-with `persist-credentials: false`. Both repositories are private. Each has one
-read-only deploy key, stored as a separate encrypted Actions secret because
-GitHub does not permit one deploy key to be shared across repositories:
-`EUVICS_SOURCE_DEPLOY_KEY` and `PYEUVICS_SOURCE_DEPLOY_KEY`. Each key grants
-read access only to its named source repository and no access to other account
-resources. Never expose either key through generated pages, logs, checkout
-URLs, caches, or artifacts.
+with `persist-credentials: false`. Both repositories are private. A GitHub App
+installed only on `pyeuvics/euvics` and `pyeuvics/pyEUVICS`, with Contents
+read-only permission, provides a short-lived installation token. Its App ID and
+private key are stored as `EUVICS_DOCS_APP_ID` and
+`EUVICS_DOCS_APP_PRIVATE_KEY`. Never expose the private key or installation
+token through generated pages, logs, checkout URLs, caches, or artifacts.
 
-`actions/checkout@v6` receives `persist-credentials: false`, which removes SSH
-authentication in the checkout step's `finally` block. Immediately after all
-private checkouts, `tools.verify_runner_credentials` scans the runner temporary
-directory and fails before source-derived commands if private-key material
-remains.
+`actions/checkout@v6` receives the installation token and
+`persist-credentials: false`, which removes authentication in the checkout
+step's `finally` block. Immediately after all private checkouts,
+`tools.verify_runner_credentials` scans the runner temporary directory and
+fails before source-derived commands if credential material remains.
 
 Pull requests from forks do not receive these secrets and therefore cannot run
 the complete source-backed validation. A maintainer must review such changes

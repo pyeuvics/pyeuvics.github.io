@@ -19,9 +19,10 @@ The workflow separates candidate evaluation from repository mutation:
    pull request with `contents: write` and `pull-requests: write`.
 
 The built-in `GITHUB_TOKEN` remains scoped per job for website repository
-operations. Private source reads use one encrypted, read-only deploy key per
-source repository. The keys have no write permission and are unavailable to the
-proposal job, Pages deployment job, artifacts, caches, and fork pull requests.
+operations. Private source reads use a short-lived token from the read-only
+GitHub App installed only on the two source repositories. The App credential
+secrets are unavailable to the proposal job, deployment job, artifacts, caches,
+and fork pull requests.
 
 ## Candidate discovery and provenance
 
@@ -33,7 +34,7 @@ unavailable repositories, and ambiguous responses fail closed.
 
 Source discovery has no unauthenticated remote fallback: callers must provide
 both authenticated checkout paths. After candidate and locked checkouts,
-fail-closed runner-temporary-directory scans verify that checkout private keys
+fail-closed runner-temporary-directory scans verify that checkout credentials
 were removed before source-derived validation or notebook execution begins.
 
 The candidate lock is produced from the current strict schema by changing only

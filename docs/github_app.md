@@ -40,7 +40,7 @@ On the App's **General** page, record the numeric **App ID**, not the Client ID.
 It will be stored as this Actions secret:
 
 ```text
-EUVICS_DOCS_APP_ID 4805823
+EUVICS_DOCS_APP_ID
 ```
 
 ## 3. Generate the private key
@@ -101,22 +101,21 @@ EUVICS_DOCS_APP_ID
 EUVICS_DOCS_APP_PRIVATE_KEY
 ```
 
-## 6. Convert the workflows to installation-token checkout
+## 6. Workflow installation-token checkout
 
-Adding the secrets alone is not sufficient. The current workflows pass
-`EUVICS_SOURCE_DEPLOY_KEY` and `PYEUVICS_SOURCE_DEPLOY_KEY` to the `ssh-key`
-input of `actions/checkout`. Update each source-reading job in:
+The source-reading jobs in these workflows mint a short-lived installation
+token before checking out either private source:
 
 - `.github/workflows/site-check.yml`
 - `.github/workflows/pages.yml`
 - `.github/workflows/source-update.yml`
 
-Before the source checkout steps, mint one short-lived installation token:
+They use this bounded token step:
 
 ```yaml
 - name: Create source-read installation token
   id: source_token
-  uses: actions/create-github-app-token@v2
+  uses: actions/create-github-app-token@v3
   with:
     app-id: ${{ secrets.EUVICS_DOCS_APP_ID }}
     private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
@@ -127,10 +126,9 @@ Before the source checkout steps, mint one short-lived installation token:
     permission-contents: read
 ```
 
-For every EUVICS and pyEUVICS checkout in that job:
+Every EUVICS and pyEUVICS checkout in that job must:
 
-- replace `ssh-key: ...` with
-  `token: ${{ steps.source_token.outputs.token }}`;
+- use `token: ${{ steps.source_token.outputs.token }}`;
 - retain `persist-credentials: false`;
 - retain the repository, exact locked `ref`, path, and fetch-depth settings;
 - keep the post-checkout credential scan; and
@@ -140,9 +138,7 @@ The workflow's `GITHUB_TOKEN` permissions do not provide cross-repository
 private-source access. The short-lived App installation token supplies only the
 separately granted read access.
 
-Update workflow-structure tests and credential documentation in the same
-change. Validate the workflow YAML and run the complete local test suite before
-pushing.
+Workflow-structure tests enforce this configuration.
 
 ## 7. Verify in GitHub Actions
 
@@ -156,7 +152,7 @@ After the reviewed workflow conversion is committed and pushed:
 6. Confirm the signed-out site at <https://pyeuvics.github.io/> shows the
    expected MkDocs site.
 
-Remove the old deploy-key secrets and source-repository deploy keys only after
-all App-token workflows pass. Secret and key removal is a separate authorized
-administrator action; do not remove the last working credential during
-cutover.
+Remove any superseded deploy-key secrets and source-repository deploy keys only
+after all App-token workflows pass. Secret and key removal is a separate
+authorized administrator action; do not remove the last working credential
+during cutover.
