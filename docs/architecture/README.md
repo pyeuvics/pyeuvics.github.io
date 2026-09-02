@@ -1,8 +1,7 @@
 # Website architecture
 
 These documents define the proposed structure and review language for the
-future EUVICS documentation website at
-`https://chongshikpark.github.io/euvics.github.io/`.
+EUVICS documentation website at `https://pyeuvics.github.io/`.
 
 - [Information architecture](information-architecture.md) defines navigation,
   page responsibilities, and provenance links.
@@ -24,4 +23,3 @@ locked source commit.
   states in each source repository.
 - Approve any future branding, logo, affiliations, contact details, and custom
   domain separately. None is defined here.
-

@@ -1,8 +1,8 @@
 site_name: EUVICS Documentation
 site_description: Public documentation portal for approved EUVICS and pyEUVICS material
-site_url: https://chongshikpark.github.io/euvics.github.io/
-repo_url: https://github.com/chongshikpark/euvics.github.io
-repo_name: chongshikpark/euvics.github.io
+site_url: https://pyeuvics.github.io/
+repo_url: https://github.com/pyeuvics/pyeuvics.github.io
+repo_name: pyeuvics/pyeuvics.github.io
 edit_uri: edit/main/content/
 docs_dir: content
 site_dir: site

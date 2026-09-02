@@ -5,8 +5,8 @@
 Develop and maintain the public EUVICS documentation website from:
 
 ```text
-Repository: https://github.com/chongshikpark/euvics.github.io
-Default GitHub Pages URL: https://chongshikpark.github.io/euvics.github.io/
+Repository: https://github.com/pyeuvics/pyeuvics.github.io
+Default GitHub Pages URL: https://pyeuvics.github.io/
 ```
 
 The website presents approved public material from two authoritative source repositories:
@@ -18,15 +18,18 @@ This repository owns website navigation, branding, staging, link transformation,
 
 ## 2. GitHub Pages naming convention
 
-Because the repository owner is `chongshikpark` and the repository name is `euvics.github.io`, this is a GitHub **project site**, not the account-level site `euvics.github.io`.
+Because the repository owner is `pyeuvics` and the repository name is
+`pyeuvics.github.io`, this is the `pyeuvics` organization-level GitHub Pages
+site. It is served from the root of the Pages hostname, not a project-site
+subpath.
 
 Use this URL in MkDocs configuration and tests unless the repository is renamed or a custom domain is explicitly approved:
 
 ```text
-https://chongshikpark.github.io/euvics.github.io/
+https://pyeuvics.github.io/
 ```
 
-Do not claim that the site is available at `https://euvics.github.io/`. That address would require a GitHub user or organization named `euvics` with a repository named `euvics.github.io`.
+Do not add `/euvics.github.io/` to the canonical URL or internal base path.
 
 ## 3. Source-of-truth boundaries
 
@@ -138,12 +141,12 @@ Use temporary or ignored directories for checked-out sources, staging, generated
 ## 8. Site construction rules
 
 - Use MkDocs with Material for MkDocs unless an approved architecture decision changes the generator.
-- Set `site_url` to the full project URL, including `/euvics.github.io/`.
+- Set `site_url` to `https://pyeuvics.github.io/`.
 - Pin documentation dependencies outside the pyEUVICS runtime dependency list.
 - Build with `mkdocs build --strict`.
 - Keep navigation explicit and reviewable.
 - Use MathJax or an equivalent approved static solution for equations.
-- Ensure internal links work under the project-site base path, not only at `/`.
+- Ensure internal links work from the organization-site root path `/`.
 - Prefer relative internal links in source Markdown.
 - Do not hard-code local clone locations.
 - Keep substantial transformation logic in tested tools rather than GitHub Actions shell fragments.
@@ -231,7 +234,7 @@ Also verify:
 
 - Publication manifests and source locks
 - Internal and external links
-- Base-path correctness under `/euvics.github.io/`
+- Root base-path correctness under `/`
 - No local absolute paths
 - No excluded or unexpected files
 - PDF checksums and metadata
@@ -266,7 +269,8 @@ The initial repository audit identified these foundation items:
 - Rename `LINCESNE` to `LICENSE` without changing its MIT license text unless explicitly approved.
 - Replace or archive planning text that incorrectly targets `pyEUVICS/pyEUVICS.github.io`.
 - Review `.gitignore`; ensure the `downloads/` pattern does not accidentally hide intended website-source content.
-- Confirm the project-site URL in all configuration and documentation.
+- Confirm the organization-site URL in all current configuration and
+  documentation while preserving historical records.
 
 Do not combine these mechanical corrections with scientific-content publication.
 
@@ -282,4 +286,3 @@ A website change is complete only when:
 - Generated artifacts contain no excluded content or secrets.
 - Accessibility and link checks pass for the affected pages.
 - Changed files, verification evidence, and remaining decisions are reported.
-

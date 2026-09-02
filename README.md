@@ -5,21 +5,17 @@ This repository builds the public website that brings together approved document
 ## Repository and website address
 
 ```text
-Repository: https://github.com/chongshikpark/euvics.github.io
-Default Pages URL: https://chongshikpark.github.io/euvics.github.io/
+Repository: https://github.com/pyeuvics/pyeuvics.github.io
+Default Pages URL: https://pyeuvics.github.io/
 ```
 
-This is a GitHub **project site** because the repository is owned by `chongshikpark` but is not named `chongshikpark.github.io`. GitHub therefore serves it below the repository-name path.
+This is the `pyeuvics` organization-level GitHub Pages site because the
+repository name matches the organization name. GitHub serves it from `/`; it
+does not use an `/euvics.github.io/` project-site base path.
 
-A repository named `chongshikpark/euvics.github.io` does **not** create `https://euvics.github.io/`. That account-level address would require a GitHub user or organization named `euvics` and a repository named `euvics.github.io`.
-
-If a shorter URL is preferred later, review one of these separately:
-
-- Rename the repository to `euvics`, producing `https://chongshikpark.github.io/euvics/`.
-- Create or transfer the site to an approved `euvics` organization.
-- Configure a separately registered custom domain.
-
-Do not change ownership, repository name, or domain as part of ordinary website development.
+The previous `chongshikpark/euvics.github.io` repository remains a separate
+personal copy. See the [organization-site migration record](docs/organization-site-migration.md)
+for the historical-document policy and remaining administrator work.
 
 ## Authoritative sources
 

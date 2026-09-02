@@ -35,6 +35,8 @@ validation begins.
       explicitly permits it.
 - [ ] Protect `main` with required pull-request reviews and the successful
       **Site validation / Validate public artifact** check.
+- [ ] Confirm repository Actions workflow permissions remain least-privilege.
+- [ ] Set the repository homepage to `https://pyeuvics.github.io/`.
 - [ ] Inspect the first workflow's validated Pages artifact before approving
       the `github-pages` environment deployment.
 - [ ] Do not manually dispatch the production workflow until the first public
@@ -43,8 +45,8 @@ validation begins.
 ## Signed-out release verification
 
 After an authorized deployment, use a signed-out browser session to verify
-<https://chongshikpark.github.io/euvics.github.io/>. Check navigation, search,
-project-site base paths, downloads and checksums, status/limitation notices,
+<https://pyeuvics.github.io/>. Check canonical URLs, navigation, search, edit
+links, root-relative behavior, downloads and checksums, status/limitation notices,
 mobile and keyboard behavior, 404 handling, and the absence of restricted
 content, credentials, and local paths. Record the workflow run, source commits,
 artifact review, approver, and verification result in the release record.
@@ -66,6 +68,7 @@ artifact review, approver, and verification result in the release record.
 ## External actions remaining
 
 Repository administrators still own Pages-source selection, environment and
-branch protection, any future credential authorization, first-deployment
+branch protection, Actions permissions, repository homepage configuration,
+new source deploy keys and Actions secrets, first-deployment
 approval, signed-out public verification, and incident rollback authorization.
 Adding this workflow does not perform any of those external actions.

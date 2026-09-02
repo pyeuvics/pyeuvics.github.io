@@ -1,5 +1,11 @@
 # Codex Tasks for `chongshikpark/euvics.github.io`
 
+> Historical task catalog: these prompts record the original personal
+> project-site implementation and its contemporaneous URLs. They are not
+> current deployment instructions. The canonical repository and site are now
+> `pyeuvics/pyeuvics.github.io` and `https://pyeuvics.github.io/`; see the
+> [organization-site migration record](organization-site-migration.md).
+
 Run these tasks sequentially. Each task is intentionally bounded and includes its own verification requirements. Do not combine deployment, credentials, repository settings, or scientific publication with unrelated implementation work.
 
 ## Task 0 — Correct and baseline the website repository

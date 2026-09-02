@@ -23,9 +23,11 @@ def nav_paths(items: list) -> list[str]:
     return paths
 
 
-def test_project_site_configuration_and_generator() -> None:
+def test_organization_site_configuration_and_generator() -> None:
     config = load_config()
-    assert config["site_url"] == "https://chongshikpark.github.io/euvics.github.io/"
+    assert config["site_url"] == "https://pyeuvics.github.io/"
+    assert config["repo_url"] == "https://github.com/pyeuvics/pyeuvics.github.io"
+    assert config["repo_name"] == "pyeuvics/pyeuvics.github.io"
     assert config["docs_dir"] == "content"
     assert config["site_dir"] == "site"
     assert config["strict"] is True

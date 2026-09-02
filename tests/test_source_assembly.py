@@ -466,9 +466,9 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
         encoding="utf-8"
     )
     assert (
-        'href="https://chongshikpark.github.io/euvics.github.io/project/overview/"'
+        'href="https://pyeuvics.github.io/project/overview/"'
         in overview_html
-    ), "overview canonical URL must include the GitHub project-site base path"
+    ), "overview canonical URL must use the organization-site root path"
     assert 'src="../../assets/images/ics-geometry-source-chain.svg"' in overview_html
     assert 'aria-describedby="ics-schematic-caption"' in overview_html
     assert 'alt="Schematic of an electron bunch traveling left to right' in overview_html

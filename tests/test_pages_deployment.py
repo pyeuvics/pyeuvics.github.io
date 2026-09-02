@@ -85,7 +85,7 @@ def test_manual_checklist_covers_required_external_controls_and_rollback() -> No
         "Protect `main`",
         "first workflow's validated Pages artifact",
         "signed-out browser session",
-        "https://chongshikpark.github.io/euvics.github.io/",
+        "https://pyeuvics.github.io/",
         "preceding approved deployment",
         "read-only deploy key",
     ):

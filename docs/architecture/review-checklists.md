@@ -13,7 +13,7 @@ record.
       heading hierarchy.
 - [ ] Landmarks and semantic elements identify navigation and main content.
 - [ ] Navigation order and breadcrumbs match the approved information
-      architecture and work below `/euvics.github.io/`.
+      architecture and work from the `/` organization-site base path.
 - [ ] All controls and links are reachable and operable by keyboard with a
       visible focus indicator; focus order follows reading order.
 - [ ] Skip navigation and menus work with keyboard and screen-reader use.

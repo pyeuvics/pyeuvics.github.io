@@ -9,9 +9,9 @@
 - Website summaries identify their source and preserve qualifications,
   assumptions, scientific limitations, and publication state.
 - Navigation and authored Markdown use relative internal links so every page
-  works below the `/euvics.github.io/` project-site base path.
+  works from the `/` organization-site base path.
 - The canonical default site URL is
-  `https://chongshikpark.github.io/euvics.github.io/`.
+  `https://pyeuvics.github.io/`.
 
 ## Navigation tree
 
@@ -131,7 +131,7 @@ title or footer:
   scientific prose or calculations.
 
 Links must have descriptive visible text, remain usable without color, and
-resolve under the project-site base path. Missing provenance is a publication
+resolve under the organization-site root path. Missing provenance is a publication
 blocker, not a reason to omit the metadata field silently.
 
 ## Ownership matrix
@@ -152,4 +152,3 @@ blocker, not a reason to omit the metadata field silently.
 - The authorized approvers and evidence locations for release and validation.
 - Branding, logo, affiliations, contact route, custom domain, and any public
   performance values.
-

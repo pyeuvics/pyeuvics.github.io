@@ -120,12 +120,10 @@ def test_project_overview_links_are_descriptive_and_relative() -> None:
         assert (OVERVIEW.parent / target).resolve().is_file()
 
 
-def test_overview_navigation_mathjax_and_project_base_path() -> None:
+def test_overview_navigation_mathjax_and_organization_base_path() -> None:
     config = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     site_url = urlparse(config["site_url"])
-    assert site_url.path == "/euvics.github.io/", (
-        "site_url must retain the GitHub project-site base path"
-    )
+    assert site_url.path == "/", "site_url must use the organization-site root path"
     nav_text = yaml.safe_dump(config["nav"], sort_keys=False)
     assert nav_text.count("project/overview.md") == 1, (
         "project overview must appear exactly once in navigation"
