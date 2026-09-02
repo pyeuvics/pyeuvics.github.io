@@ -1,0 +1,162 @@
+# GitHub App for private source access
+
+Use one narrowly scoped GitHub App to let the public website repository read
+the two private source repositories named by `sources.lock.yml`:
+
+- `pyeuvics/euvics`
+- `pyeuvics/pyEUVICS`
+
+Store the App credentials in `pyeuvics/pyeuvics.github.io`. The App replaces
+source deploy keys; it does not grant deployment or website-repository write
+access.
+
+This procedure applies while `sources.lock.yml` names the repositories above.
+If an authoritative source moves, review and update the lock separately before
+changing the App installation. Repository presence or copying alone does not
+authorize a source-location change.
+
+## 1. Create the GitHub App
+
+While signed in as an owner of the `pyeuvics` organization:
+
+1. Open **Profile picture → Settings**.
+2. Select **Developer settings → GitHub Apps**.
+3. Select **New GitHub App**.
+4. Configure:
+   - **GitHub App name:** for example `EUVICS Documentation Reader`
+   - **Homepage URL:** `https://pyeuvics.github.io/`
+   - **Webhook:** clear **Active**
+   - **Repository permissions → Contents:** **Read-only**
+   - Leave every other repository and organization permission at **No access**
+   - **Where can this GitHub App be installed?** Select **Only on this account**
+5. Select **Create GitHub App**.
+
+Create the App under the `pyeuvics` organization, not a personal account, so it
+can be installed on both locked organization repositories.
+
+## 2. Record the App ID
+
+On the App's **General** page, record the numeric **App ID**, not the Client ID.
+It will be stored as this Actions secret:
+
+```text
+EUVICS_DOCS_APP_ID 4805823
+```
+
+## 3. Generate the private key
+
+On the same App configuration page:
+
+1. Scroll to **Private keys**.
+2. Select **Generate a private key**.
+3. GitHub downloads a `.pem` file.
+4. Keep the file private and never add it to a repository or build artifact.
+
+The secret must contain the complete downloaded file, including its `BEGIN`
+and `END` lines. Do not print the key in a terminal, workflow log, or generated
+page.
+
+## 4. Install the App on the two private sources
+
+From the App configuration page:
+
+1. Select **Install App**.
+2. Select **Install** beside the `pyeuvics` organization.
+3. Choose **Only select repositories**.
+4. Select only:
+   - `pyeuvics/euvics`
+   - `pyeuvics/pyEUVICS`
+5. Complete the installation.
+
+Do not install the App on every repository. Read-only Contents access to these
+two sources is sufficient.
+
+## 5. Add the website repository secrets
+
+Open:
+
+**pyeuvics/pyeuvics.github.io → Settings → Secrets and variables → Actions**
+
+Create these repository secrets:
+
+| Name | Value |
+| --- | --- |
+| `EUVICS_DOCS_APP_ID` | Numeric GitHub App ID |
+| `EUVICS_DOCS_APP_PRIVATE_KEY` | Complete contents of the downloaded `.pem` file |
+
+Use repository secrets rather than `github-pages` environment secrets because
+the pull-request validation, Pages build, and source-update validation jobs all
+need source read access. GitHub will not display the values again.
+
+Verify only their presence, without revealing values:
+
+```bash
+gh secret list --repo pyeuvics/pyeuvics.github.io
+```
+
+The output should list:
+
+```text
+EUVICS_DOCS_APP_ID
+EUVICS_DOCS_APP_PRIVATE_KEY
+```
+
+## 6. Convert the workflows to installation-token checkout
+
+Adding the secrets alone is not sufficient. The current workflows pass
+`EUVICS_SOURCE_DEPLOY_KEY` and `PYEUVICS_SOURCE_DEPLOY_KEY` to the `ssh-key`
+input of `actions/checkout`. Update each source-reading job in:
+
+- `.github/workflows/site-check.yml`
+- `.github/workflows/pages.yml`
+- `.github/workflows/source-update.yml`
+
+Before the source checkout steps, mint one short-lived installation token:
+
+```yaml
+- name: Create source-read installation token
+  id: source_token
+  uses: actions/create-github-app-token@v2
+  with:
+    app-id: ${{ secrets.EUVICS_DOCS_APP_ID }}
+    private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
+    owner: pyeuvics
+    repositories: |
+      euvics
+      pyEUVICS
+    permission-contents: read
+```
+
+For every EUVICS and pyEUVICS checkout in that job:
+
+- replace `ssh-key: ...` with
+  `token: ${{ steps.source_token.outputs.token }}`;
+- retain `persist-credentials: false`;
+- retain the repository, exact locked `ref`, path, and fetch-depth settings;
+- keep the post-checkout credential scan; and
+- do not print the token or persist it in artifacts.
+
+The workflow's `GITHUB_TOKEN` permissions do not provide cross-repository
+private-source access. The short-lived App installation token supplies only the
+separately granted read access.
+
+Update workflow-structure tests and credential documentation in the same
+change. Validate the workflow YAML and run the complete local test suite before
+pushing.
+
+## 7. Verify in GitHub Actions
+
+After the reviewed workflow conversion is committed and pushed:
+
+1. Confirm the source-token step succeeds without exposing credentials.
+2. Confirm both exact locked source checkouts succeed.
+3. Confirm the runner credential scan succeeds.
+4. Confirm **Site validation / Validate public artifact** passes.
+5. Confirm **Deploy GitHub Pages** builds and deploys the validated artifact.
+6. Confirm the signed-out site at <https://pyeuvics.github.io/> shows the
+   expected MkDocs site.
+
+Remove the old deploy-key secrets and source-repository deploy keys only after
+all App-token workflows pass. Secret and key removal is a separate authorized
+administrator action; do not remove the last working credential during
+cutover.
