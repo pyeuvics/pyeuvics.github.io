@@ -1,5 +1,9 @@
 # Project-physics overview release review
 
+> Historical URL note (2026-09-02): the website moved to
+> `https://pyeuvics.github.io/`. Project-site URLs below record the original
+> review environment and are no longer the canonical deployment target.
+
 Review date: 2026-08-04 (Asia/Seoul)
 
 Approval state: **Approved for protected deployment by the project owner on
