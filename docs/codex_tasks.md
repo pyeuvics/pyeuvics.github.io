@@ -1,9 +1,9 @@
-# Codex Tasks for `chongshikpark/euvics.github.io`
+# Codex Tasks for `pyeuvics/pyeuvics.github.io`
 
-> Historical task catalog: these prompts record the original personal
-> project-site implementation and its contemporaneous URLs. They are not
-> current deployment instructions. The canonical repository and site are now
-> `pyeuvics/pyeuvics.github.io` and `https://pyeuvics.github.io/`; see the
+> Historical task catalog: these prompts retain their original implementation
+> scope, but repository identities and site-base instructions were updated on
+> 2026-09-02 for the organization-site migration. They are not current
+> deployment instructions; see the
 > [organization-site migration record](organization-site-migration.md).
 
 Run these tasks sequentially. Each task is intentionally bounded and includes its own verification requirements. Do not combine deployment, credentials, repository settings, or scientific publication with unrelated implementation work.
@@ -11,7 +11,7 @@ Run these tasks sequentially. Each task is intentionally bounded and includes it
 ## Task 0 — Correct and baseline the website repository
 
 ```text
-Work in the local clone of https://github.com/chongshikpark/euvics.github.io.
+Work in the local clone of https://github.com/pyeuvics/pyeuvics.github.io.
 
 Inspect the complete repository and preserve the current clean working tree. Add the reviewed root AGENTS.md and README.md supplied for this website. Create docs/exec-plans/active/ and docs/exec-plans/completed/, then create an active execution plan for repository foundation.
 
@@ -20,7 +20,7 @@ Make only these mechanical corrections:
 - replace or archive planning documents that incorrectly refer to pyEUVICS/pyEUVICS.github.io or https://pyEUVICS.github.io/;
 - install the updated website Codex task file at docs/codex_tasks.md;
 - review .gitignore for duplicate entries and ensure that a generic downloads/ rule will not hide intended content/downloads/ website source;
-- document the actual default Pages URL as https://chongshikpark.github.io/euvics.github.io/;
+- document the actual default Pages URL as https://pyeuvics.github.io/;
 - ensure temporary source checkouts, staging, rendered intermediates, secrets, and site output remain ignored.
 
 Do not add scientific content, create a remote resource, change repository visibility, configure Pages, add credentials, push, or deploy.
@@ -38,7 +38,7 @@ Record verification evidence and move the execution plan to completed only when 
 ## Task 1 — Define the website information architecture and status language
 
 ```text
-Work in chongshikpark/euvics.github.io after Task 0 is complete. Read AGENTS.md and the completed foundation plan. Create a new active execution plan.
+Work in pyeuvics/pyeuvics.github.io after Task 0 is complete. Read AGENTS.md and the completed foundation plan. Create a new active execution plan.
 
 Define the website's initial information architecture under docs/architecture/ without importing source-repository content yet. Specify:
 - Home;
@@ -55,7 +55,7 @@ Create accessibility and content checklists covering headings, alternative text,
 
 Do not invent branding, a logo, affiliations, contact information, performance values, document approval, or validation status. Mark unresolved owner decisions explicitly.
 
-Verify all architecture documents are internally consistent with the project-site URL and authoritative source boundaries. Do not deploy.
+Verify all architecture documents are internally consistent with the organization-site URL and authoritative source boundaries. Do not deploy.
 ```
 
 ## Task 2 — Add the EUVICS source publication contract
@@ -63,7 +63,7 @@ Verify all architecture documents are internally consistent with the project-sit
 ```text
 Work in https://github.com/chongshikpark/euvics, not the website repository. Read that repository's AGENTS.md and preserve its working tree. Create an active execution plan following its rules.
 
-Design and implement a versioned public-content manifest consumed by chongshikpark/euvics.github.io. Treat every file as excluded unless explicitly allowlisted.
+Design and implement a versioned public-content manifest consumed by pyeuvics/pyeuvics.github.io. Treat every file as excluded unless explicitly allowlisted.
 
 Initially allowlist only reviewed material needed for:
 - the project overview;
@@ -82,9 +82,9 @@ Run make check and all new tests. Do not deploy, push, change visibility, or add
 ## Task 3 — Add the pyEUVICS source publication contract
 
 ```text
-Work in https://github.com/chongshikpark/pyEUVICS, not the website repository. Read AGENTS.md and preserve committed and untracked user work. Create an active execution plan using the repository's naming rules.
+Work in https://github.com/pyeuvics/pyEUVICS, not the website repository. Read AGENTS.md and preserve committed and untracked user work. Create an active execution plan using the repository's naming rules.
 
-Design and implement a versioned public-content manifest consumed by chongshikpark/euvics.github.io. Start with reviewed documentation from docs/, selected reference-campaign summaries and figures, and a bounded notebook set.
+Design and implement a versioned public-content manifest consumed by pyeuvics/pyeuvics.github.io. Start with reviewed documentation from docs/, selected reference-campaign summaries and figures, and a bounded notebook set.
 
 Candidate initial content:
 - docs/index.md;
@@ -108,7 +108,7 @@ Run the repository-required pytest, Ruff, mypy, documentation, and notebook chec
 ## Task 4 — Scaffold the local MkDocs website
 
 ```text
-Work in chongshikpark/euvics.github.io after Tasks 0 and 1 are complete. Read AGENTS.md and create an active execution plan.
+Work in pyeuvics/pyeuvics.github.io after Tasks 0 and 1 are complete. Read AGENTS.md and create an active execution plan.
 
 Create a local, non-deploying site foundation:
 - mkdocs.yml using Material for MkDocs;
@@ -120,7 +120,8 @@ Create a local, non-deploying site foundation:
 - tools/ and tests/ foundations;
 - documented local commands.
 
-Set site_url exactly to https://chongshikpark.github.io/euvics.github.io/ and verify all generated links work below the /euvics.github.io/ base path. Do not assume root-domain hosting.
+Set `site_url` exactly to `https://pyeuvics.github.io/` and verify all
+generated links work from the organization-site root path.
 
 Use placeholders for unapproved content. Do not checkout source repositories, copy their documentation, render notebooks, build PDFs, add workflows, or deploy during this task.
 
@@ -137,7 +138,7 @@ Report the exact dependency versions and warnings.
 ## Task 5 — Implement deterministic source assembly
 
 ```text
-Work in chongshikpark/euvics.github.io after both source publication contracts and the local site foundation are reviewed. Read AGENTS.md and create an active execution plan.
+Work in pyeuvics/pyeuvics.github.io after both source publication contracts and the local site foundation are reviewed. Read AGENTS.md and create an active execution plan.
 
 Implement a deterministic assembly command that accepts local paths to checked-out euvics and pyEUVICS repositories and verifies their exact commits against sources.lock.yml.
 
@@ -161,7 +162,7 @@ This task imports Markdown and ordinary assets only. Defer LaTeX/PDF builds and 
 ## Task 6 — Integrate Proposal and CDR publication
 
 ```text
-Work in chongshikpark/euvics.github.io after deterministic source assembly is complete. Read AGENTS.md and create an active execution plan.
+Work in pyeuvics/pyeuvics.github.io after deterministic source assembly is complete. Read AGENTS.md and create an active execution plan.
 
 Extend the assembly pipeline to build approved EUVICS documents through the source repository's documented Makefile. Do not auto-convert the complete LaTeX sources to Markdown.
 
@@ -180,7 +181,7 @@ Add failure-path tests using small synthetic document fixtures where practical. 
 ## Task 7 — Integrate pyEUVICS notebooks and campaigns
 
 ```text
-Work in chongshikpark/euvics.github.io after deterministic source assembly is complete. Read AGENTS.md and create an active execution plan.
+Work in pyeuvics/pyeuvics.github.io after deterministic source assembly is complete. Read AGENTS.md and create an active execution plan.
 
 Extend the assembly pipeline to render only allowlisted pyEUVICS notebooks into static website pages. Use a temporary staging directory and prove that source notebooks remain byte-for-byte unchanged.
 
@@ -202,7 +203,7 @@ Run source-immutability, deterministic-render, link, asset, size, and strict-sit
 ## Task 8 — Add GitHub Actions validation
 
 ```text
-Work in chongshikpark/euvics.github.io after the complete local site build is reviewed. Read AGENTS.md and create an active execution plan.
+Work in pyeuvics/pyeuvics.github.io after the complete local site build is reviewed. Read AGENTS.md and create an active execution plan.
 
 Add a pull-request validation workflow that:
 - checks out the website repository;
@@ -222,7 +223,7 @@ Validate workflow syntax and demonstrate local/CI build equivalence. Do not enab
 ## Task 9 — Add GitHub Pages deployment
 
 ```text
-Work in chongshikpark/euvics.github.io only after Task 8 passes and the full public artifact is approved. Read AGENTS.md and create an active execution plan.
+Work in pyeuvics/pyeuvics.github.io only after Task 8 passes and the full public artifact is approved. Read AGENTS.md and create an active execution plan.
 
 Add a deployment job for approved default-branch pushes and explicit manual dispatch. Use the official GitHub Pages configure, artifact-upload, and deployment actions, the protected github-pages environment, deployment concurrency, and least-privilege permissions.
 
@@ -234,7 +235,7 @@ Add a manual administrator checklist for:
 - github-pages environment protection;
 - default branch restrictions;
 - first-artifact inspection;
-- signed-out verification at https://chongshikpark.github.io/euvics.github.io/;
+- signed-out verification at https://pyeuvics.github.io/;
 - rollback to the preceding approved deployment.
 
 Do not change GitHub settings, add secrets, enable Pages, or trigger the first public deployment without explicit authorization. Validate workflow configuration and document the exact external actions remaining.
@@ -243,10 +244,10 @@ Do not change GitHub settings, add secrets, enable Pages, or trigger the first p
 ## Task 10 — Public release and accessibility review
 
 ```text
-Review the complete proposed website artifact and, after explicitly authorized deployment, the live signed-out site at https://chongshikpark.github.io/euvics.github.io/.
+Review the complete proposed website artifact and, after explicitly authorized deployment, the live signed-out site at https://pyeuvics.github.io/.
 
 Check:
-- all routes include the correct project-site base path;
+- all routes use the correct organization-site root path;
 - navigation and search cover project, documents, software, campaigns, downloads, and about;
 - Proposal/CDR PDF versions, statuses, source commits, and checksums;
 - pyEUVICS equations, tables, code, assets, notebooks, and campaign pages;

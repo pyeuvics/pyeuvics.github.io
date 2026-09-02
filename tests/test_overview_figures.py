@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def _contract(root: Path, paths: tuple[str, ...] = (SVG_PATH, CSV_PATH, JSON_PATH)) -> SourceContract:
     lock = SourceLock(
         "pyeuvics",
-        "https://github.com/chongshikpark/pyEUVICS",
+        "https://github.com/pyeuvics/pyEUVICS",
         "2" * 40,
         "publication/public-content-v1.json",
     )

@@ -12,7 +12,7 @@ Default GitHub Pages URL: https://pyeuvics.github.io/
 The website presents approved public material from two authoritative source repositories:
 
 - `https://github.com/chongshikpark/euvics` — EUVICS Proposal, Conceptual Design Report (CDR), requirements, bibliography, and document releases.
-- `https://github.com/chongshikpark/pyEUVICS` — pyEUVICS package documentation, tutorials, notebooks, validation reports, and reference campaigns.
+- `https://github.com/pyeuvics/pyEUVICS` — pyEUVICS package documentation, tutorials, notebooks, validation reports, and reference campaigns.
 
 This repository owns website navigation, branding, staging, link transformation, search, and deployment. It is not the authoritative location for scientific models, document prose, validation conclusions, or source data.
 
@@ -102,7 +102,7 @@ A build must fail when a source checkout does not match its locked commit.
 ## 7. Intended repository layout
 
 ```text
-euvics.github.io/
+pyeuvics.github.io/
 ├── AGENTS.md
 ├── README.md
 ├── LICENSE
@@ -184,7 +184,7 @@ If source repositories are public, prefer public read-only checkout.
 If private-source access is required:
 
 - Use a narrowly scoped read-only GitHub App or fine-grained token.
-- Grant access only to `chongshikpark/euvics` and `chongshikpark/pyEUVICS` contents.
+- Grant access only to `chongshikpark/euvics` and `pyeuvics/pyEUVICS` contents.
 - Store the credential only as a GitHub Actions secret.
 - Never print it, save it in artifacts, place it in a remote URL, or write it to generated pages.
 - Never request broader repository, workflow, administration, issue, or write permission merely for convenience.
@@ -282,7 +282,7 @@ A website change is complete only when:
 - Every imported item is allowlisted and traceable.
 - Scientific status and limitations are preserved.
 - The local build and relevant tests pass.
-- The project-site base path works.
+- The organization-site root path works.
 - Generated artifacts contain no excluded content or secrets.
 - Accessibility and link checks pass for the affected pages.
 - Changed files, verification evidence, and remaining decisions are reported.

@@ -13,6 +13,10 @@ import yaml
 from .models import NotebookSpec, PublishedFile, SourceContract, SourceLock
 
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+EXPECTED_REPOSITORIES = {
+    "euvics": "https://github.com/chongshikpark/euvics",
+    "pyeuvics": "https://github.com/pyeuvics/pyEUVICS",
+}
 GLOB_CHARS = set("*?[]{}")
 SUPPORTED_SUFFIXES = {
     "", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".css", ".js",
@@ -137,7 +141,7 @@ def load_locks(path: Path) -> dict[str, SourceLock]:
         if item["lock_status"] != "locked" or not isinstance(commit, str) or not COMMIT_RE.fullmatch(commit):
             raise ContractError(f"source lock {name} is unresolved or has an invalid commit")
         repository = item["repository"]
-        if not isinstance(repository, str) or repository != f"https://github.com/chongshikpark/{'pyEUVICS' if name == 'pyeuvics' else 'euvics'}":
+        if not isinstance(repository, str) or repository != EXPECTED_REPOSITORIES[name]:
             raise ContractError(f"unexpected repository URL for {name}")
         manifest_path = _safe_path(item["publication_manifest"], f"sources.{name}.publication_manifest")
         locks[name] = SourceLock(name, repository, commit, manifest_path)

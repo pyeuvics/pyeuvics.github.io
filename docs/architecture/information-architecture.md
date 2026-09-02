@@ -87,7 +87,7 @@ pending without implying approval.
 
 Each page identifies the pyEUVICS version and locked source commit where
 applicable. Corrections to models, code, tutorials, or validation conclusions
-must be made in `chongshikpark/pyEUVICS` first.
+must be made in `pyeuvics/pyEUVICS` first.
 
 ### Reference campaigns
 
@@ -139,7 +139,7 @@ blocker, not a reason to omit the metadata field silently.
 | Material | Authoritative owner | Website responsibility |
 | --- | --- | --- |
 | Proposal, CDR, requirements, bibliography | `chongshikpark/euvics` | Approved overview, download, metadata, navigation |
-| pyEUVICS code, science, API, tutorials, validation | `chongshikpark/pyEUVICS` | Approved staging, static rendering, metadata, navigation |
+| pyEUVICS code, science, API, tutorials, validation | `pyeuvics/pyEUVICS` | Approved staging, static rendering, metadata, navigation |
 | Campaign results and limitations | Manifest-declared source in `pyEUVICS` | Approved summary and provenance presentation |
 | Navigation, theme, search, assembly, deployment | This repository | Implementation and verification |
 

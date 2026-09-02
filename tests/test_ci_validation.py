@@ -94,7 +94,7 @@ def test_ci_dependencies_are_exactly_pinned_and_python_matches_pyeuvics() -> Non
 def test_source_lock_outputs_are_exact_and_safe() -> None:
     output = dict(line.split("=", 1) for line in resolve(ROOT / "sources.lock.yml"))
     assert output["euvics_repository"] == "chongshikpark/euvics"
-    assert output["pyeuvics_repository"] == "chongshikpark/pyEUVICS"
+    assert output["pyeuvics_repository"] == "pyeuvics/pyEUVICS"
     assert len(output["euvics_commit"]) == len(output["pyeuvics_commit"]) == 40
     assert all(value.isalnum() for key, value in output.items() if key.endswith("_commit"))
 
