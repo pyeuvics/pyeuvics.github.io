@@ -47,7 +47,7 @@ jobs:
         id: source_token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.EUVICS_DOCS_APP_ID }}
+          client-id: ${{ vars.EUVICS_DOCS_APP_CLIENT_ID }}
           private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
           owner: pyeuvics
           repositories: |
@@ -98,12 +98,12 @@ jobs:
           --output .staging/pages
 
       - name: Configure GitHub Pages metadata
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: false
 
       - name: Upload validated GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: .staging/pages/site
           retention-days: 1

@@ -34,11 +34,11 @@ def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     actions = [step["uses"] for step in build["steps"] if "uses" in step]
     assert actions.count("actions/checkout@v6") == 3
     assert actions.count("actions/create-github-app-token@v3") == 1
-    assert "actions/configure-pages@v5" in actions
-    assert "actions/upload-pages-artifact@v4" in actions
+    assert "actions/configure-pages@v6" in actions
+    assert "actions/upload-pages-artifact@v5" in actions
 
     upload = next(
-        step for step in build["steps"] if step.get("uses") == "actions/upload-pages-artifact@v4"
+        step for step in build["steps"] if step.get("uses") == "actions/upload-pages-artifact@v5"
     )
     assert upload["with"] == {"path": ".staging/pages/site", "retention-days": "1"}
 
@@ -47,7 +47,7 @@ def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     assert "steps.locks.outputs.euvics_commit" in text
     assert "steps.locks.outputs.pyeuvics_commit" in text
     assert text.count("persist-credentials: false") == 3
-    assert text.count("secrets.EUVICS_DOCS_APP_ID") == 1
+    assert text.count("vars.EUVICS_DOCS_APP_CLIENT_ID") == 1
     assert text.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
     source_checkouts = [
         step for step in build["steps"] if step.get("uses") == "actions/checkout@v6"

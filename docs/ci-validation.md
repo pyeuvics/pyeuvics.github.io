@@ -12,7 +12,8 @@ The workflow reads repository names and full 40-character commits from
 with `persist-credentials: false`. Both repositories are private. A GitHub App
 installed only on `pyeuvics/euvics` and `pyeuvics/pyEUVICS`, with Contents
 read-only permission, provides a short-lived installation token. Its App ID and
-private key are stored as `EUVICS_DOCS_APP_ID` and
+Client ID is stored as the repository variable `EUVICS_DOCS_APP_CLIENT_ID`,
+and its private key is stored as the repository secret
 `EUVICS_DOCS_APP_PRIVATE_KEY`. Never expose the private key or installation
 token through generated pages, logs, checkout URLs, caches, or artifacts.
 

@@ -36,11 +36,11 @@ can be installed on both locked organization repositories.
 
 ## 2. Record the App ID
 
-On the App's **General** page, record the numeric **App ID**, not the Client ID.
-It will be stored as this Actions secret:
+On the App's **General** page, record the **Client ID**. Store this non-secret
+identifier as a repository Actions variable:
 
 ```text
-EUVICS_DOCS_APP_ID
+EUVICS_DOCS_APP_CLIENT_ID
 ```
 
 ## 3. Generate the private key
@@ -71,33 +71,36 @@ From the App configuration page:
 Do not install the App on every repository. Read-only Contents access to these
 two sources is sufficient.
 
-## 5. Add the website repository secrets
+## 5. Add the website repository variable and secret
 
 Open:
 
 **pyeuvics/pyeuvics.github.io → Settings → Secrets and variables → Actions**
 
-Create these repository secrets:
+Create the Client ID under **Actions variables** and the private key under
+**Actions secrets**:
 
 | Name | Value |
 | --- | --- |
-| `EUVICS_DOCS_APP_ID` | Numeric GitHub App ID |
-| `EUVICS_DOCS_APP_PRIVATE_KEY` | Complete contents of the downloaded `.pem` file |
+| `EUVICS_DOCS_APP_CLIENT_ID` | GitHub App Client ID (repository variable) |
+| `EUVICS_DOCS_APP_PRIVATE_KEY` | Complete downloaded `.pem` file (repository secret) |
 
-Use repository secrets rather than `github-pages` environment secrets because
-the pull-request validation, Pages build, and source-update validation jobs all
-need source read access. GitHub will not display the values again.
+Use repository-level configuration rather than `github-pages` environment
+configuration because pull-request validation, Pages build, and source-update
+validation jobs all need source read access. GitHub will not display the secret
+value again.
 
 Verify only their presence, without revealing values:
 
 ```bash
+gh variable list --repo pyeuvics/pyeuvics.github.io
 gh secret list --repo pyeuvics/pyeuvics.github.io
 ```
 
 The output should list:
 
 ```text
-EUVICS_DOCS_APP_ID
+EUVICS_DOCS_APP_CLIENT_ID
 EUVICS_DOCS_APP_PRIVATE_KEY
 ```
 
@@ -117,7 +120,7 @@ They use this bounded token step:
   id: source_token
   uses: actions/create-github-app-token@v3
   with:
-    app-id: ${{ secrets.EUVICS_DOCS_APP_ID }}
+    client-id: ${{ vars.EUVICS_DOCS_APP_CLIENT_ID }}
     private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
     owner: pyeuvics
     repositories: |

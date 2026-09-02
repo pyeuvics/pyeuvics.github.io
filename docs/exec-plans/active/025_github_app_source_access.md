@@ -9,8 +9,8 @@ permissions.
 
 ## Starting state
 
-- `EUVICS_DOCS_APP_ID` and `EUVICS_DOCS_APP_PRIVATE_KEY` are present as
-  repository Actions secrets.
+- `EUVICS_DOCS_APP_CLIENT_ID` is present as a repository Actions variable, and
+  `EUVICS_DOCS_APP_PRIVATE_KEY` is present as a repository Actions secret.
 - The App is reported installed on `pyeuvics/euvics` and
   `pyeuvics/pyEUVICS` with read-only source access.
 - The local branch contained existing migration commits ahead of `origin/main`;

@@ -185,7 +185,7 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert "failure() && steps.proposal_branch.outputs.pushed == 'true'" in propose_text
     assert 'git push origin --delete "$UPDATE_BRANCH"' in propose_text
     assert "deploy-pages" not in WORKFLOW.read_text(encoding="utf-8")
-    assert workflow_source.count("secrets.EUVICS_DOCS_APP_ID") == 1
+    assert workflow_source.count("vars.EUVICS_DOCS_APP_CLIENT_ID") == 1
     assert workflow_source.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
     assert validate_text.count("actions/create-github-app-token@v3") == 1
     assert validate_text.count("steps.source_token.outputs.token") == 4

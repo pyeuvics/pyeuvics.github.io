@@ -38,7 +38,7 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
     assert "pages: write" not in text
     assert "id-token: write" not in text
     assert "environment:" not in text
-    assert text.count("secrets.EUVICS_DOCS_APP_ID") == 1
+    assert text.count("vars.EUVICS_DOCS_APP_CLIENT_ID") == 1
     assert text.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
     assert "upload-pages-artifact" not in text
     assert "deploy-pages" not in text
@@ -59,6 +59,7 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
         if step.get("uses") == "actions/create-github-app-token@v3"
     )
     assert token["with"]["owner"] == "pyeuvics"
+    assert token["with"]["client-id"] == "${{ vars.EUVICS_DOCS_APP_CLIENT_ID }}"
     assert set(token["with"]["repositories"].splitlines()) == {"euvics", "pyEUVICS"}
     assert token["with"]["permission-contents"] == "read"
     names = [step["name"] for step in steps]
