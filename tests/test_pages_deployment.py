@@ -98,6 +98,7 @@ def test_manual_checklist_covers_required_external_controls_and_rollback() -> No
         "github-pages` environment",
         "Protect `main`",
         "first workflow's validated Pages artifact",
+        "Validate website source",
         "signed-out browser session",
         "https://pyeuvics.github.io/",
         "preceding approved deployment",

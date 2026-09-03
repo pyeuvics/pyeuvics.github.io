@@ -193,7 +193,11 @@ Adding or changing credentials requires explicit user authorization.
 
 ## 12. GitHub Actions and deployment
 
-Pull requests must assemble and validate the site without deploying it. Deployment may occur only from the approved default branch or an explicitly authorized manual workflow.
+Pull requests must run secret-free website tests, strict typing, and a strict
+MkDocs build without deploying or reading private sources. Complete assembly
+and validation against the locked private sources must run after protected
+merge on the approved default branch, or in an explicitly authorized trusted
+manual workflow, before deployment.
 
 The deployment workflow should:
 

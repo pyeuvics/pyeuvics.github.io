@@ -150,7 +150,7 @@ After the reviewed workflow conversion is committed and pushed:
 2. Confirm the trusted source-token step succeeds without exposing credentials.
 3. Confirm both exact locked source checkouts succeed.
 4. Confirm the runner credential scan succeeds.
-5. Confirm **Site validation / Validate public artifact** passes.
+5. Confirm **Site validation / Validate website source** passes.
 6. Confirm **Deploy GitHub Pages** builds and deploys the validated artifact.
 7. Confirm the signed-out site at <https://pyeuvics.github.io/> shows the
    expected MkDocs site.
