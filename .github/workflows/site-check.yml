@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate public artifact
+    name: Validate website source
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 

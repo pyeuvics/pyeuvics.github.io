@@ -28,6 +28,7 @@ def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
     assert workflow["permissions"] == {"contents": "read"}
     assert set(workflow["jobs"]) == {"validate"}
     job = workflow["jobs"]["validate"]
+    assert job["name"] == "Validate website source"
     assert job["runs-on"] == "ubuntu-24.04"
     steps = job["steps"]
     actions = [step["uses"] for step in steps if "uses" in step]

@@ -33,8 +33,8 @@ in the runner temporary directory before source-derived validation begins.
       `main`, require designated reviewers where appropriate, and prevent
       administrators from bypassing the protection unless incident policy
       explicitly permits it.
-- [ ] Protect `main` with required pull-request reviews and the successful
-      **Site validation / Validate public artifact** check.
+- [ ] Protect `main` with required pull requests and the successful
+      **Site validation / Validate website source** check.
 - [ ] Confirm repository Actions workflow permissions remain least-privilege.
 - [ ] Restrict Actions to approved sources and require full commit-SHA pins.
 - [ ] Set the repository homepage to `https://pyeuvics.github.io/`.
