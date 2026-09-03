@@ -34,7 +34,7 @@ While signed in as an owner of the `pyeuvics` organization:
 Create the App under the `pyeuvics` organization, not a personal account, so it
 can be installed on both locked organization repositories.
 
-## 2. Record the App ID
+## 2. Record the Client ID
 
 On the App's **General** page, record the **Client ID**. Store this non-secret
 identifier as a repository Actions variable:
@@ -86,9 +86,9 @@ Create the Client ID under **Actions variables** and the private key under
 | `EUVICS_DOCS_APP_PRIVATE_KEY` | Complete downloaded `.pem` file (repository secret) |
 
 Use repository-level configuration rather than `github-pages` environment
-configuration because pull-request validation, Pages build, and source-update
-validation jobs all need source read access. GitHub will not display the secret
-value again.
+configuration because the Pages build and source-update validation jobs need
+source read access. Pull-request validation deliberately receives no secret.
+GitHub will not display the secret value again.
 
 Verify only their presence, without revealing values:
 
@@ -106,10 +106,9 @@ EUVICS_DOCS_APP_PRIVATE_KEY
 
 ## 6. Workflow installation-token checkout
 
-The source-reading jobs in these workflows mint a short-lived installation
-token before checking out either private source:
+The trusted source-reading jobs in these workflows mint a short-lived
+installation token before checking out either private source:
 
-- `.github/workflows/site-check.yml`
 - `.github/workflows/pages.yml`
 - `.github/workflows/source-update.yml`
 
@@ -118,7 +117,7 @@ They use this bounded token step:
 ```yaml
 - name: Create source-read installation token
   id: source_token
-  uses: actions/create-github-app-token@v3
+  uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
   with:
     client-id: ${{ vars.EUVICS_DOCS_APP_CLIENT_ID }}
     private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
@@ -147,12 +146,13 @@ Workflow-structure tests enforce this configuration.
 
 After the reviewed workflow conversion is committed and pushed:
 
-1. Confirm the source-token step succeeds without exposing credentials.
-2. Confirm both exact locked source checkouts succeed.
-3. Confirm the runner credential scan succeeds.
-4. Confirm **Site validation / Validate public artifact** passes.
-5. Confirm **Deploy GitHub Pages** builds and deploys the validated artifact.
-6. Confirm the signed-out site at <https://pyeuvics.github.io/> shows the
+1. Confirm pull-request validation contains no secret or App-token step.
+2. Confirm the trusted source-token step succeeds without exposing credentials.
+3. Confirm both exact locked source checkouts succeed.
+4. Confirm the runner credential scan succeeds.
+5. Confirm **Site validation / Validate public artifact** passes.
+6. Confirm **Deploy GitHub Pages** builds and deploys the validated artifact.
+7. Confirm the signed-out site at <https://pyeuvics.github.io/> shows the
    expected MkDocs site.
 
 Remove any superseded deploy-key secrets and source-repository deploy keys only

@@ -18,6 +18,8 @@ from tools.source_update import (
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/source-update.yml"
+CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
+APP_TOKEN = "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1"
 
 
 def write_lock(path: Path, euvics: str, pyeuvics: str) -> Path:
@@ -166,15 +168,15 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     validate_text = yaml.safe_dump(validate, sort_keys=False)
     propose_text = yaml.safe_dump(propose, sort_keys=False)
     checkouts = [
-        step for step in validate["steps"] if step.get("uses") == "actions/checkout@v6"
+        step for step in validate["steps"] if step.get("uses") == CHECKOUT
     ]
     assert len(checkouts) == 5
     assert all(step["with"]["persist-credentials"] == "false" for step in checkouts)
     assert ".sources/candidate-euvics" in validate_text
     assert "tools.validate_ci" in validate_text
-    assert "actions/upload-artifact@v7" in validate_text
+    assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in validate_text
     assert ".sources/" not in propose_text
-    assert "actions/download-artifact@v8" in propose_text
+    assert "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c" in propose_text
     assert "tools.source_update verify" in propose_text
     assert "gh pr create" in propose_text
     assert "git ls-remote --heads origin" in workflow_source
@@ -187,7 +189,7 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert "deploy-pages" not in WORKFLOW.read_text(encoding="utf-8")
     assert workflow_source.count("vars.EUVICS_DOCS_APP_CLIENT_ID") == 1
     assert workflow_source.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
-    assert validate_text.count("actions/create-github-app-token@v3") == 1
+    assert validate_text.count(APP_TOKEN) == 1
     assert validate_text.count("steps.source_token.outputs.token") == 4
     assert "ssh-key" not in validate_text
     assert "--euvics-source .sources/candidate-euvics" in workflow_source

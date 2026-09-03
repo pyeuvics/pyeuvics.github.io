@@ -1,32 +1,23 @@
 # Pull-request site validation
 
 `.github/workflows/site-check.yml` validates proposed website changes without
-deploying them. It runs for pull requests and manual validation dispatches only.
-Its sole repository permission is `contents: read`; it has no Pages,
-identity-token, environment, or deployment permission.
+deploying them or reading private sources. It runs for pull requests and manual
+dispatches. Its sole repository permission is `contents: read`; it has no
+private credential, Pages, identity-token, environment, or deployment access.
 
 ## Source checkout and credentials
 
-The workflow reads repository names and full 40-character commits from
-`sources.lock.yml`, then checks out EUVICS and pyEUVICS at those exact commits
-with `persist-credentials: false`. Both repositories are private. A GitHub App
-installed only on `pyeuvics/euvics` and `pyeuvics/pyEUVICS`, with Contents
-read-only permission, provides a short-lived installation token. Its App ID and
-Client ID is stored as the repository variable `EUVICS_DOCS_APP_CLIENT_ID`,
-and its private key is stored as the repository secret
-`EUVICS_DOCS_APP_PRIVATE_KEY`. Never expose the private key or installation
-token through generated pages, logs, checkout URLs, caches, or artifacts.
+Pull-request validation checks out only the website revision, installs pinned
+dependencies, and runs pytest, strict mypy, and a strict MkDocs build. It does
+not mint a GitHub App token, check out either private source, upload a
+source-derived artifact, or reference any Actions secret. This protects the App
+private key from both forks and same-repository feature branches.
 
-`actions/checkout@v6` receives the installation token and
-`persist-credentials: false`, which removes authentication in the checkout
-step's `finally` block. Immediately after all private checkouts,
-`tools.verify_runner_credentials` scans the runner temporary directory and
-fails before source-derived commands if credential material remains.
-
-Pull requests from forks do not receive these secrets and therefore cannot run
-the complete source-backed validation. A maintainer must review such changes
-and run them from a trusted branch; the workflow must not be changed to
-`pull_request_target` to make credentials available to untrusted code.
+Complete source-backed validation runs only in trusted default-branch or
+administrator-controlled workflows: `.github/workflows/pages.yml` and
+`.github/workflows/source-update.yml`. Those workflows use the GitHub App
+described in [github_app.md](github_app.md), exact source locks, non-persisted
+checkout credentials, and a fail-closed runner credential scan.
 
 ## Reproducible environment
 
@@ -35,8 +26,9 @@ CI uses Ubuntu 24.04, CPython 3.13, exact versions from
 from both requirement files plus `sources.lock.yml`. CPython 3.13 matches the
 supported pyEUVICS runtime; pyEUVICS excludes Python 3.14.
 
-The EUVICS TeX toolchain is installed only when the locked publication manifest
-contains an approved PDF. Source validators still run on every build.
+The complete trusted workflow installs the EUVICS TeX toolchain only when the
+locked publication manifest contains an approved PDF. Pull-request validation
+does not build private-source documents.
 
 ## Local-equivalent validation
 
@@ -61,13 +53,14 @@ website scaffold strictly, assembles and scans the complete locked-source site,
 and writes `review-artifact-manifest.json` with a SHA-256 checksum and byte size
 for every uploaded file.
 
-## Review artifact
+## Trusted review artifact
 
-Successful runs upload only:
+Successful source-backed trusted runs upload only:
 
 - the final static `site/` directory;
 - `staged-content-inventory.json`;
 - `review-artifact-manifest.json`.
 
-The artifact is retained for seven days and is not a GitHub Pages artifact.
-The workflow contains no deployment job or action.
+The artifact is retained for seven days. Pull-request validation uploads no
+artifact; the Pages workflow uploads only its separately validated Pages
+artifact.

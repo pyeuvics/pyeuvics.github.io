@@ -19,12 +19,12 @@ jobs:
 
     steps:
       - name: Check out website source
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
           cache: pip
@@ -36,71 +36,13 @@ jobs:
       - name: Install pinned validation environment
         run: python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
 
-      - name: Resolve exact source locks
-        id: locks
-        run: python -m tools.ci_source_locks resolve >> "$GITHUB_OUTPUT"
-
-      - name: Create source-read installation token
-        id: source_token
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ vars.EUVICS_DOCS_APP_CLIENT_ID }}
-          private-key: ${{ secrets.EUVICS_DOCS_APP_PRIVATE_KEY }}
-          owner: pyeuvics
-          repositories: |
-            euvics
-            pyEUVICS
-          permission-contents: read
-
-      - name: Check out locked EUVICS source
-        uses: actions/checkout@v6
-        with:
-          token: ${{ steps.source_token.outputs.token }}
-          repository: ${{ steps.locks.outputs.euvics_repository }}
-          ref: ${{ steps.locks.outputs.euvics_commit }}
-          path: .sources/euvics
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Check out locked pyEUVICS source
-        uses: actions/checkout@v6
-        with:
-          token: ${{ steps.source_token.outputs.token }}
-          repository: ${{ steps.locks.outputs.pyeuvics_repository }}
-          ref: ${{ steps.locks.outputs.pyeuvics_commit }}
-          path: .sources/pyeuvics
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Verify checkout credentials were removed
-        run: python -m tools.verify_runner_credentials --root "$RUNNER_TEMP"
-
-      - name: Inspect approved document requirements
-        id: publication
-        run: >-
-          python -m tools.ci_source_locks inspect-euvics
-          --source .sources/euvics >> "$GITHUB_OUTPUT"
-
-      - name: Install EUVICS document toolchain
-        if: steps.publication.outputs.approved_pdf == 'true'
+      - name: Validate website source without private credentials
         run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends latexmk texlive-latex-base texlive-latex-extra
-
-      - name: Run local-equivalent validation
-        run: >-
-          python -m tools.validate_ci
-          --euvics-source .sources/euvics
-          --pyeuvics-source .sources/pyeuvics
-          --output .staging/ci-review
-
-      - name: Upload non-deploying review artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: euvics-site-review-${{ github.run_id }}
-          path: |
-            .staging/ci-review/site
-            .staging/ci-review/staged-content-inventory.json
-            .staging/ci-review/review-artifact-manifest.json
-          if-no-files-found: error
-          retention-days: 7
+          python -m pytest
+          python -m mypy --strict \
+            tools/site_assembly \
+            tools/assemble_site.py \
+            tools/ci_source_locks.py \
+            tools/source_update.py \
+            tools/validate_ci.py
+          python -m mkdocs build --strict

@@ -7,6 +7,11 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/pages.yml"
 CHECKLIST = ROOT / "docs/pages-deployment.md"
+CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
+APP_TOKEN = "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1"
+CONFIGURE_PAGES = "actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d"
+UPLOAD_PAGES = "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9"
+DEPLOY_PAGES = "actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e"
 
 
 def load_workflow() -> dict:
@@ -32,13 +37,13 @@ def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     build = workflow["jobs"]["build"]
     assert build["permissions"] == {"contents": "read", "pages": "read"}
     actions = [step["uses"] for step in build["steps"] if "uses" in step]
-    assert actions.count("actions/checkout@v6") == 3
-    assert actions.count("actions/create-github-app-token@v3") == 1
-    assert "actions/configure-pages@v6" in actions
-    assert "actions/upload-pages-artifact@v5" in actions
+    assert actions.count(CHECKOUT) == 3
+    assert actions.count(APP_TOKEN) == 1
+    assert CONFIGURE_PAGES in actions
+    assert UPLOAD_PAGES in actions
 
     upload = next(
-        step for step in build["steps"] if step.get("uses") == "actions/upload-pages-artifact@v5"
+        step for step in build["steps"] if step.get("uses") == UPLOAD_PAGES
     )
     assert upload["with"] == {"path": ".staging/pages/site", "retention-days": "1"}
 
@@ -50,7 +55,7 @@ def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     assert text.count("vars.EUVICS_DOCS_APP_CLIENT_ID") == 1
     assert text.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
     source_checkouts = [
-        step for step in build["steps"] if step.get("uses") == "actions/checkout@v6"
+        step for step in build["steps"] if step.get("uses") == CHECKOUT
     ][1:]
     assert all(
         step["with"]["token"] == "${{ steps.source_token.outputs.token }}"
@@ -81,7 +86,7 @@ def test_deployment_has_only_required_write_permissions_and_environment() -> Non
         {
             "name": "Deploy to GitHub Pages",
             "id": "deployment",
-            "uses": "actions/deploy-pages@v4",
+            "uses": DEPLOY_PAGES,
         }
     ]
 

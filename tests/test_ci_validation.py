@@ -12,6 +12,8 @@ from tools.validate_ci import ValidationError, _source_date_epoch, write_review_
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/site-check.yml"
+CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
+SETUP_PYTHON = "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1"
 
 
 def load_workflow() -> dict:
@@ -20,7 +22,7 @@ def load_workflow() -> dict:
     return value
 
 
-def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
+def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
     workflow = load_workflow()
     assert set(workflow["on"]) == {"pull_request", "workflow_dispatch"}
     assert workflow["permissions"] == {"contents": "read"}
@@ -29,70 +31,41 @@ def test_workflow_is_read_only_non_deploying_and_uses_locked_refs() -> None:
     assert job["runs-on"] == "ubuntu-24.04"
     steps = job["steps"]
     actions = [step["uses"] for step in steps if "uses" in step]
-    assert actions.count("actions/checkout@v6") == 3
-    assert actions.count("actions/create-github-app-token@v3") == 1
-    assert "actions/setup-python@v6" in actions
-    assert "actions/upload-artifact@v7" in actions
+    assert actions == [CHECKOUT, SETUP_PYTHON]
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "pull_request_target" not in text
     assert "pages: write" not in text
     assert "id-token: write" not in text
     assert "environment:" not in text
-    assert text.count("vars.EUVICS_DOCS_APP_CLIENT_ID") == 1
-    assert text.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
+    assert "secrets." not in text
+    assert "vars.EUVICS_DOCS_APP_CLIENT_ID" not in text
+    assert "create-github-app-token" not in text
     assert "upload-pages-artifact" not in text
     assert "deploy-pages" not in text
     assert "persist-credentials: false" in text
-    assert "steps.locks.outputs.euvics_commit" in text
-    assert "steps.locks.outputs.pyeuvics_commit" in text
     assert "sources.lock.yml" in text
-    source_checkouts = [
-        step for step in steps if step.get("uses") == "actions/checkout@v6"
-    ][1:]
-    assert all(
-        step["with"]["token"] == "${{ steps.source_token.outputs.token }}"
-        and "ssh-key" not in step["with"]
-        for step in source_checkouts
-    )
-    token = next(
-        step for step in steps
-        if step.get("uses") == "actions/create-github-app-token@v3"
-    )
-    assert token["with"]["owner"] == "pyeuvics"
-    assert token["with"]["client-id"] == "${{ vars.EUVICS_DOCS_APP_CLIENT_ID }}"
-    assert set(token["with"]["repositories"].splitlines()) == {"euvics", "pyEUVICS"}
-    assert token["with"]["permission-contents"] == "read"
-    names = [step["name"] for step in steps]
-    scrub = names.index("Verify checkout credentials were removed")
-    assert scrub > names.index("Check out locked pyEUVICS source")
-    assert scrub < names.index("Inspect approved document requirements")
-    assert "tools.verify_runner_credentials" in steps[scrub]["run"]
+    validation = steps[-1]["run"]
+    assert "python -m pytest" in validation
+    assert "python -m mypy --strict" in validation
+    assert "python -m mkdocs build --strict" in validation
 
 
-def test_workflow_cache_and_review_artifact_are_bounded() -> None:
+def test_workflow_cache_is_bounded() -> None:
     workflow = load_workflow()
     steps = workflow["jobs"]["validate"]["steps"]
-    setup = next(step for step in steps if step.get("uses") == "actions/setup-python@v6")
+    setup = next(step for step in steps if step.get("uses") == SETUP_PYTHON)
     dependencies = setup["with"]["cache-dependency-path"]
     assert set(dependencies.splitlines()) == {
         "requirements-docs.txt",
         "requirements-notebooks.txt",
         "sources.lock.yml",
     }
-    upload = next(step for step in steps if step.get("uses") == "actions/upload-artifact@v7")
-    paths = set(upload["with"]["path"].splitlines())
-    assert paths == {
-        ".staging/ci-review/site",
-        ".staging/ci-review/staged-content-inventory.json",
-        ".staging/ci-review/review-artifact-manifest.json",
-    }
-    assert upload["with"]["retention-days"] == "7"
 
 
 def test_ci_dependencies_are_exactly_pinned_and_python_matches_pyeuvics() -> None:
     workflow = load_workflow()
     steps = workflow["jobs"]["validate"]["steps"]
-    setup = next(step for step in steps if step.get("uses") == "actions/setup-python@v6")
+    setup = next(step for step in steps if step.get("uses") == SETUP_PYTHON)
     assert setup["with"]["python-version"] == "3.13"
     for filename in ("requirements-docs.txt", "requirements-notebooks.txt"):
         requirements = [

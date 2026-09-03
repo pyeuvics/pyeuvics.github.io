@@ -36,6 +36,7 @@ in the runner temporary directory before source-derived validation begins.
 - [ ] Protect `main` with required pull-request reviews and the successful
       **Site validation / Validate public artifact** check.
 - [ ] Confirm repository Actions workflow permissions remain least-privilege.
+- [ ] Restrict Actions to approved sources and require full commit-SHA pins.
 - [ ] Set the repository homepage to `https://pyeuvics.github.io/`.
 - [ ] Inspect the first workflow's validated Pages artifact before approving
       the `github-pages` environment deployment.
