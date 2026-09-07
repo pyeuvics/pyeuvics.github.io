@@ -61,7 +61,6 @@ class SourceContract:
     lock: SourceLock
     root: Path
     files: tuple[PublishedFile, ...]
-    rewrite_unpublished_links: bool
     notebooks: tuple[NotebookSpec, ...] = ()
 
 

@@ -10,9 +10,11 @@ import re
 import shutil
 import subprocess
 import sys
+from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlsplit
 
+import markdown
 import yaml
 
 from .contracts import ContractError, load_contract, load_locks
@@ -27,7 +29,13 @@ from .notebooks import (
 from .overview_figures import OverviewFigureError, stage_overview_figure
 
 LOCAL_PATH_RE = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\\\)")
+UNSAFE_ACTIVE_ELEMENT_RE = re.compile(r"<(?:script|iframe)\b", re.IGNORECASE)
 LINK_RE = re.compile(r"(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>[^)]*\))")
+CSS_URL_RE = re.compile(
+    r"url\(\s*(?:([\"'])(.*?)\1|([^\s)]+))\s*\)", re.IGNORECASE | re.DOTALL
+)
+CSS_IMPORT_RE = re.compile(r"@import\s+([\"'])(.*?)\1", re.IGNORECASE | re.DOTALL)
+CSS_COMMENT_RE = re.compile(r"/\*.*?(?:\*/|$)", re.DOTALL)
 CREDENTIAL_PATTERNS = (
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
@@ -52,10 +60,92 @@ TEXT_SUFFIXES = {
     ".bib",
 }
 ARTIFACT_SUFFIXES = TEXT_SUFFIXES | {".png", ".jpg", ".jpeg", ".gif", ".gz", ".map", ".ico", ".pdf"}
+MARKDOWN_EXTENSIONS = [
+    "admonition",
+    "attr_list",
+    "md_in_html",
+    "tables",
+    "pymdownx.arithmatex",
+    "pymdownx.details",
+    "pymdownx.superfences",
+]
 
 
 class AssemblyError(ValueError):
     """The website assembly could not be completed safely."""
+
+
+class _RenderedLinkParser(HTMLParser):
+    """Collect destinations that Python-Markdown will render as links or images."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.targets: list[str] = []
+        self.unsafe_active_content = False
+
+    def handle_starttag(
+        self, tag: str, attrs: list[tuple[str, str | None]]
+    ) -> None:
+        tag = tag.lower()
+        if tag in {"script", "iframe", "object", "embed"}:
+            self.unsafe_active_content = True
+        attributes = {name.lower(): value for name, value in attrs}
+        for name, value in attrs:
+            name = name.lower()
+            if name.startswith("on"):
+                self.unsafe_active_content = True
+            is_target = (
+                name in {"href", "src", "xlink:href"}
+                or (name == "action" and tag == "form")
+                or (name == "formaction" and tag in {"button", "input"})
+                or (name == "poster" and tag == "video")
+                or (name == "data" and tag == "object")
+                or (name == "cite" and tag in {"blockquote", "del", "ins", "q"})
+                or (name == "background" and tag in {"body", "table", "td", "th"})
+            )
+            if is_target and value is not None:
+                self.targets.append(value)
+            elif name == "srcset" and tag in {"img", "source"} and value is not None:
+                self.targets.extend(_srcset_targets(value))
+            elif name == "style" and value is not None:
+                self.targets.extend(_css_targets(value))
+        if tag == "meta" and (attributes.get("http-equiv") or "").lower() == "refresh":
+            content = attributes.get("content") or ""
+            refresh = re.search(
+                r"(?:^|;)\s*url\s*=\s*(.+)\s*$", content, re.IGNORECASE
+            )
+            if refresh is not None:
+                self.targets.append(refresh.group(1).strip(" \t\"'"))
+
+
+def _css_targets(value: str) -> list[str]:
+    active_css = CSS_COMMENT_RE.sub("", value)
+    targets = [
+        match.group(2) or match.group(3) for match in CSS_URL_RE.finditer(active_css)
+    ]
+    targets.extend(match.group(2) for match in CSS_IMPORT_RE.finditer(active_css))
+    return targets
+
+
+def _srcset_targets(value: str) -> list[str]:
+    targets: list[str] = []
+    offset = 0
+    while offset < len(value):
+        while offset < len(value) and value[offset] in " \t\r\n,":
+            offset += 1
+        start = offset
+        while offset < len(value) and not value[offset].isspace():
+            offset += 1
+        raw_target = value[start:offset]
+        target = raw_target.rstrip(",")
+        if target:
+            targets.append(target)
+        if raw_target.endswith(","):
+            continue
+        while offset < len(value) and value[offset] != ",":
+            offset += 1
+        offset += offset < len(value)
+    return targets
 
 
 def _sha256(path: Path) -> str:
@@ -90,9 +180,28 @@ def _source_url(contract: SourceContract, path: str, *, edit: bool = False, dire
     return f"{contract.lock.repository}/{action}/{contract.lock.commit}/{quote(path)}"
 
 
+def _local_link_parts(target: str) -> tuple[str, str] | None:
+    parsed = urlsplit(target.strip())
+    if parsed.scheme.lower() in {
+        "data", "ftp", "ftps", "http", "https", "mailto", "tel"
+    } or parsed.netloc or not parsed.path:
+        return None
+    if parsed.scheme:
+        raise AssemblyError(f"unsafe or unsupported link scheme: {target}")
+    path = unquote(parsed.path)
+    suffix = f"?{parsed.query}" if parsed.query else ""
+    if parsed.fragment:
+        suffix += f"#{parsed.fragment}"
+    return path, suffix
+
+
 def _resolve_source_target(source_path: str, target: str) -> tuple[str, str]:
-    decoded = unquote(target)
-    path_part, separator, fragment = decoded.partition("#")
+    parts = _local_link_parts(target)
+    if parts is None:
+        raise AssemblyError(f"link is not a local path in {source_path}: {target}")
+    path_part, suffix = parts
+    if path_part.startswith("/"):
+        raise AssemblyError(f"unsafe root/local link in {source_path}: {target}")
     base = PurePosixPath(source_path).parent
     resolved = base.joinpath(path_part)
     normalized: list[str] = []
@@ -105,7 +214,35 @@ def _resolve_source_target(source_path: str, target: str) -> tuple[str, str]:
             normalized.pop()
         else:
             normalized.append(part)
-    return "/".join(normalized), f"#{fragment}" if separator else ""
+    return "/".join(normalized), suffix
+
+
+def _validate_rendered_links(
+    text: str,
+    published: PublishedFile,
+    destinations: dict[str, Path],
+) -> None:
+    """Validate every link form rendered by the configured Markdown engine."""
+    rendered = markdown.markdown(text, extensions=MARKDOWN_EXTENSIONS)
+    if UNSAFE_ACTIVE_ELEMENT_RE.search(rendered):
+        raise AssemblyError(
+            f"unsafe active content detected in source Markdown {published.path}"
+        )
+    parser = _RenderedLinkParser()
+    parser.feed(rendered)
+    if parser.unsafe_active_content:
+        raise AssemblyError(
+            f"unsafe active content detected in source Markdown {published.path}"
+        )
+    for target in parser.targets:
+        parts = _local_link_parts(target)
+        if parts is None:
+            continue
+        resolved, _ = _resolve_source_target(published.path, target)
+        if resolved not in destinations:
+            raise AssemblyError(
+                f"broken or unpublished link in {published.path}: {target}"
+            )
 
 
 def _rewrite_markdown(
@@ -118,20 +255,16 @@ def _rewrite_markdown(
     source_sha256: str,
 ) -> str:
     _scan_text(text, f"source Markdown {contract.lock.name}:{published.path}")
+    _validate_rendered_links(text, published, destinations)
 
     def replace(match: re.Match[str]) -> str:
         target = match.group("target")
-        if target.startswith(("#", "http://", "https://", "mailto:", "data:")):
+        if _local_link_parts(target) is None:
             return match.group(0)
-        if target.startswith(("/", "file:")):
-            raise AssemblyError(f"unsafe root/local link in {published.path}: {target}")
         resolved, fragment = _resolve_source_target(published.path, target)
-        source_target = contract.root / resolved
         if resolved in destinations:
             relative = os.path.relpath(destinations[resolved], destination.parent).replace(os.sep, "/")
             rewritten = quote(relative, safe="/._-") + fragment
-        elif source_target.exists() and contract.rewrite_unpublished_links:
-            rewritten = _source_url(contract, resolved, directory=source_target.is_dir()) + fragment
         else:
             raise AssemblyError(f"broken or unpublished link in {published.path}: {target}")
         return f"{match.group('prefix')}{rewritten}{match.group('suffix')}"

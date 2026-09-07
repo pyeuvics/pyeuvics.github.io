@@ -14,8 +14,31 @@ from reportlab.pdfgen import canvas
 
 from tools.site_assembly import AssemblyError, assemble_site
 from tools.site_assembly.contracts import load_locks
+from tools.site_assembly.pipeline import (
+    MARKDOWN_EXTENSIONS,
+    _css_targets,
+    _srcset_targets,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_rendered_resource_lists_ignore_css_comments_and_preserve_data_urls() -> None:
+    assert _css_targets(
+        "/* background: url(../private.png); */ background: url(public.png)"
+    ) == ["public.png"]
+    assert _srcset_targets(
+        "data:image/png;base64,AAAA 1x, public.png 2x"
+    ) == ["data:image/png;base64,AAAA", "public.png"]
+
+
+def test_publication_validator_uses_the_mkdocs_markdown_extensions() -> None:
+    configuration = yaml.safe_load((ROOT / "mkdocs.yml").read_text(encoding="utf-8"))
+    configured = [
+        item if isinstance(item, str) else next(iter(item))
+        for item in configuration["markdown_extensions"]
+    ]
+    assert configured == MARKDOWN_EXTENSIONS
 
 
 def euvics_manifest(path: str = "docs/overview.md") -> dict:
@@ -72,6 +95,8 @@ def pyeuvics_manifest() -> dict:
         "contract_id": "pyeuvics-public-content-v1",
         "repository": {
             "url": "https://github.com/pyeuvics/pyEUVICS",
+            "website_repository_url": "https://github.com/pyeuvics/pyeuvics.github.io",
+            "website_url": "https://pyeuvics.github.io",
             "source_commit_policy": "locked-by-consuming-website",
         },
         "package": {
@@ -80,14 +105,31 @@ def pyeuvics_manifest() -> dict:
             "license": "MIT",
             "citation": "CITATION.cff",
             "documentation_status": "released-with-package",
-            "known_scientific_limitations": ["Synthetic test content only."],
+            "known_scientific_limitations": [
+                "Synthetic test content only.",
+                "No external scientific validation.",
+                "No experimental measurement is represented.",
+            ],
         },
         "default_policy": "excluded",
-        "unpublished_link_policy": "rewrite-to-locked-source",
+        "unpublished_link_policy": "reject",
         "allowlist": ["docs/index.md", "docs/guide.md"],
         "candidate_sets": [],
         "excluded_prefixes": ["private/"],
     }
+
+
+def pending_pyeuvics_set(**overrides: object) -> dict:
+    candidate = {
+        "name": "pending-static-fixture",
+        "status": "approval-pending",
+        "owner": "fixture-owner",
+        "reason": "Synthetic pending publication fixture.",
+        "files": ["notes/note.md"],
+        "dependencies": [],
+    }
+    candidate.update(overrides)
+    return candidate
 
 
 def write_files(root: Path, files: dict[str, str | bytes]) -> None:
@@ -129,7 +171,7 @@ def create_sources(tmp_path: Path, euvics: dict | None = None, pyeuvics: dict | 
         pyeuvics_root,
         pyeuvics or pyeuvics_manifest(),
         {
-            "docs/index.md": "# Generic package\n\n[Guide](guide.md)\n\n[Source note](../notes/note.md)\n",
+            "docs/index.md": "# Generic package\n\n[Guide](guide.md)\n",
             "docs/guide.md": "# Generic guide\n",
             "notes/note.md": "# Unpublished source note\n",
             "CITATION.cff": "cff-version: 1.2.0\n",
@@ -288,7 +330,7 @@ def add_approved_notebook_set(
             "known_limitations": ["Synthetic notebook; no scientific result."],
             "local_requirements": ["Python and the pinned pyEUVICS environment."],
             "execution_policy": "execute-during-build",
-            "random_seed": "17",
+            "random_seed": 17,
             "configurations": ["configs/fixture.yaml"],
             "max_bytes_per_notebook": max_source_bytes,
             "max_rendered_bytes": max_rendered_bytes,
@@ -408,7 +450,7 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
     package_index = first.staged_content / "imported/pyeuvics/docs/index.md"
     package_text = package_index.read_text(encoding="utf-8")
     assert "guide.md" in package_text
-    assert f"/blob/{commits['pyeuvics']}/notes/note.md" in package_text
+    assert "notes/note.md" not in package_text
     assert "## Provenance" in package_text
     staged_home = (first.staged_content / "index.md").read_text(encoding="utf-8")
     assert "2 manifest-approved pyEUVICS files" in staged_home
@@ -545,6 +587,8 @@ def test_invalid_euvics_contract_is_rejected(
         ("# Broken\n\n[Missing](missing.md)\n", "broken or unpublished link"),
         ("# Local\n\nUse /Users/example/private/input.csv\n", "local absolute path"),
         ("# Secret\n\nghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n", "credential-like"),
+        ("# Active\n\n<script>alert('unsafe')</script>\n", "unsafe active content"),
+        ("# Active\n\n[unsafe](javascript:alert(1))\n", "unsupported link scheme"),
     ],
 )
 def test_unsafe_source_markdown_is_rejected(
@@ -609,6 +653,173 @@ def test_pyeuvics_exclusion_leakage_is_rejected(
     lock = write_locks(tmp_path / "sources.lock.yml", commits)
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
     with pytest.raises(AssemblyError, match="leaks from pyEUVICS exclusions"):
+        assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (lambda manifest: manifest.update(schema_version="2.0"), "identity or policy"),
+        (
+            lambda manifest: manifest["repository"].update(
+                website_url="https://example.invalid"
+            ),
+            "repository identity",
+        ),
+        (
+            lambda manifest: manifest["package"].update(
+                known_scientific_limitations=[]
+            ),
+            "scientific limitations",
+        ),
+        (
+            lambda manifest: manifest["candidate_sets"].append(
+                pending_pyeuvics_set(files=[])
+            ),
+            "non-empty array",
+        ),
+        (
+            lambda manifest: manifest["candidate_sets"].append(
+                pending_pyeuvics_set(files=["notes/missing.md"])
+            ),
+            "source file is missing",
+        ),
+        (
+            lambda manifest: manifest["candidate_sets"].extend(
+                [pending_pyeuvics_set(), pending_pyeuvics_set(files=["CITATION.cff"])]
+            ),
+            "duplicate pyEUVICS candidate name",
+        ),
+    ],
+)
+def test_invalid_pyeuvics_contract_declarations_are_rejected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation,
+    message: str,
+) -> None:
+    manifest = pyeuvics_manifest()
+    mutation(manifest)
+    euvics, pyeuvics, commits = create_sources(tmp_path, pyeuvics=manifest)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    with pytest.raises(AssemblyError, match=message):
+        assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+
+
+def test_pyeuvics_unpublished_link_policy_and_targets_are_rejected(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifest = pyeuvics_manifest()
+    manifest["unpublished_link_policy"] = "rewrite-to-locked-source"
+    euvics, pyeuvics, commits = create_sources(tmp_path, pyeuvics=manifest)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    with pytest.raises(AssemblyError, match="unpublished-link policy"):
+        assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "policy-output")
+
+    manifest["unpublished_link_policy"] = "reject"
+    (tmp_path / "target-case").mkdir()
+    euvics, pyeuvics, commits = create_sources(
+        tmp_path / "target-case", pyeuvics=manifest
+    )
+    (pyeuvics / "docs/index.md").write_text(
+        "# Generic package\n\n[Private](../notes/note.md)\n", encoding="utf-8"
+    )
+    subprocess.run(["git", "add", "."], cwd=pyeuvics, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "Add unpublished fixture link"],
+        cwd=pyeuvics,
+        check=True,
+    )
+    commits["pyeuvics"] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=pyeuvics, text=True
+    ).strip()
+    lock = write_locks(tmp_path / "target-case/sources.lock.yml", commits)
+    with pytest.raises(AssemblyError, match="broken or unpublished link"):
+        assemble_site(
+            ROOT, lock, euvics, pyeuvics, tmp_path / "target-case/target-output"
+        )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "[Private][note]\n\n[note]: ../notes/note.md\n",
+        '<a href="../notes/note.md">Private</a>\n',
+        '<img src="../notes/private.png" alt="Private">\n',
+        '<video poster="../notes/private.png"></video>\n',
+        '<source srcset="../notes/private.png 1x">\n',
+        '<form action="../notes/submit"></form>\n',
+        '<div style="background-image: url(../notes/private.png)"></div>\n',
+        '<div markdown="1">\n[Private](../notes/note.md)\n</div>\n',
+    ],
+)
+def test_rendered_markdown_link_forms_cannot_bypass_publication_boundary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    source: str,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    (pyeuvics / "docs/index.md").write_text(source, encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=pyeuvics, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Add link form"], cwd=pyeuvics, check=True)
+    commits["pyeuvics"] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=pyeuvics, text=True
+    ).strip()
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    with pytest.raises(AssemblyError, match="broken or unpublished link"):
+        assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+
+
+def test_rendered_markdown_ignores_link_examples_in_fenced_code(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    (pyeuvics / "docs/index.md").write_text(
+        "```markdown\n[Private][note]\n\n[note]: ../notes/note.md\n```\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "."], cwd=pyeuvics, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Add fenced example"], cwd=pyeuvics, check=True)
+    commits["pyeuvics"] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=pyeuvics, text=True
+    ).strip()
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    result = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+    assert (result.site / "imported/pyeuvics/docs/index.html").is_file()
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "<script>alert('unsafe')</script>\n",
+        '<iframe src="https://example.org"></iframe>\n',
+        '<object data="https://example.org/document.pdf"></object>\n',
+        '<svg onload="alert(1)"></svg>\n',
+        '[unsafe](javascript:alert(1))\n',
+        '[Guide](guide.md){: onclick="alert(1)"}\n',
+    ],
+)
+def test_rendered_markdown_rejects_active_content(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    source: str,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    (pyeuvics / "docs/index.md").write_text(source, encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=pyeuvics, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Add active content"], cwd=pyeuvics, check=True)
+    commits["pyeuvics"] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=pyeuvics, text=True
+    ).strip()
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    with pytest.raises(AssemblyError, match="unsafe active content|unsupported link scheme"):
         assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
 
 
@@ -744,6 +955,35 @@ def test_approved_notebook_is_executed_deterministically_and_source_is_immutable
     assert (first.output_root / "staged-content-inventory.json").read_bytes() == (
         second.output_root / "staged-content-inventory.json"
     ).read_bytes()
+
+
+def test_approved_notebook_writes_only_to_isolated_runtime_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    code = (
+        "import os\n"
+        "from pathlib import Path\n"
+        "output = Path(os.environ['PYEUVICS_NOTEBOOK_OUTPUT'])\n"
+        "output.mkdir(parents=True, exist_ok=True)\n"
+        "(output / 'status.txt').write_text('ok\\n', encoding='utf-8')\n"
+        "print(output.as_posix(), (output / 'status.txt').read_text().strip())\n"
+        "print('token=' + os.environ.get('GITHUB_TOKEN', 'absent'))\n"
+    )
+    commits["pyeuvics"] = add_approved_notebook_set(pyeuvics, code)
+    before = snapshot(pyeuvics)
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+    result = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "runtime-output")
+    assert snapshot(pyeuvics) == before
+    rendered = (
+        result.staged_content / "software/notebooks/00_environment_check.md"
+    ).read_text(encoding="utf-8")
+    assert "../notebook-runtime-output/00_environment_check ok" in rendered
+    assert "token=absent" in rendered
+    assert "ghp_" not in rendered
 
 
 @pytest.mark.parametrize(

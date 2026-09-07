@@ -41,7 +41,7 @@ def _contract(root: Path, paths: tuple[str, ...] = (SVG_PATH, CSV_PATH, JSON_PAT
         )
         for path in paths
     )
-    return SourceContract(lock, root, files, True)
+    return SourceContract(lock, root, files)
 
 
 def _write_candidate(root: Path) -> None:

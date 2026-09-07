@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import re
 import subprocess
@@ -37,13 +38,17 @@ PYEUVICS_ROOT_FIELDS = {
     "default_policy", "unpublished_link_policy", "allowlist", "candidate_sets",
     "excluded_prefixes",
 }
+PYEUVICS_REPOSITORY_FIELDS = {
+    "url", "website_repository_url", "website_url", "source_commit_policy",
+}
 EUVICS_ENTRY_FIELDS = {
     "path", "kind", "title", "version", "publication_status", "approval",
     "license", "attribution", "known_limitations", "document_date",
 }
 PYEUVICS_SET_BASE_FIELDS = {
     "name", "status", "owner", "reason", "files", "dependencies",
-    "max_bytes_per_notebook", "output_policy",
+    "max_bytes_per_notebook", "output_policy", "execution_policy", "random_seed",
+    "configurations", "max_rendered_bytes",
 }
 PYEUVICS_SET_APPROVAL_FIELDS = PYEUVICS_SET_BASE_FIELDS | {
     "approval", "publication_status", "validation_status", "known_limitations",
@@ -83,6 +88,12 @@ INITIAL_OVERVIEW_FIGURE_PATHS = {
 
 class ContractError(ValueError):
     """A lock, repository, or publication contract is unsafe or inconsistent."""
+
+
+def _text(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ContractError(f"{label} must be a non-empty string")
+    return value
 
 
 def _safe_path(value: object, label: str, *, directory: bool = False) -> str:
@@ -194,7 +205,6 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
     contract_id = manifest.get("contract_id")
     files: list[PublishedFile] = []
     notebooks: list[NotebookSpec] = []
-    rewrite_unpublished = False
     if lock.name == "euvics":
         _strict_object(manifest, "EUVICS manifest", EUVICS_ROOT_FIELDS)
         if contract_id != "euvics-public-content-v1" or manifest.get("default_policy") != "excluded":
@@ -259,15 +269,45 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             )
     elif lock.name == "pyeuvics":
         _strict_object(manifest, "pyEUVICS manifest", PYEUVICS_ROOT_FIELDS)
-        if contract_id != "pyeuvics-public-content-v1" or manifest.get("default_policy") != "excluded":
+        if (
+            manifest.get("$schema") != "public-content-v1.schema.json"
+            or manifest.get("schema_version") != "1.0"
+            or contract_id != "pyeuvics-public-content-v1"
+            or manifest.get("default_policy") != "excluded"
+        ):
             raise ContractError("invalid pyEUVICS publication contract identity or policy")
+        repository = _strict_object(
+            manifest["repository"],
+            "pyEUVICS repository metadata",
+            PYEUVICS_REPOSITORY_FIELDS,
+        )
+        if repository != {
+            "url": "https://github.com/pyeuvics/pyEUVICS",
+            "website_repository_url": "https://github.com/pyeuvics/pyeuvics.github.io",
+            "website_url": "https://pyeuvics.github.io",
+            "source_commit_policy": "locked-by-consuming-website",
+        }:
+            raise ContractError("invalid pyEUVICS repository identity or commit policy")
         package = _strict_object(
             manifest["package"],
             "pyEUVICS package metadata",
             {"name", "version", "license", "citation", "documentation_status", "known_scientific_limitations"},
         )
+        if (
+            package.get("name") != "pyEUVICS"
+            or package.get("license") != "MIT"
+            or package.get("citation") != "CITATION.cff"
+            or package.get("documentation_status") != "released-with-package"
+        ):
+            raise ContractError("invalid pyEUVICS package identity or release metadata")
+        _text(package["version"], "pyEUVICS package version")
+        _validate_file(root, "CITATION.cff")
         limitations = package["known_scientific_limitations"]
-        if not isinstance(limitations, list) or any(not isinstance(v, str) or not v for v in limitations):
+        if (
+            not isinstance(limitations, list)
+            or len(limitations) < 3
+            or any(not isinstance(value, str) or not value.strip() for value in limitations)
+        ):
             raise ContractError("pyEUVICS scientific limitations are missing")
         allowlist = manifest["allowlist"]
         if not isinstance(allowlist, list):
@@ -279,7 +319,8 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             _safe_path(value, f"pyEUVICS excluded_prefixes[{index}]", directory=True)
             for index, value in enumerate(excluded_values)
         ]
-        rewrite_unpublished = manifest.get("unpublished_link_policy") == "rewrite-to-locked-source"
+        if manifest.get("unpublished_link_policy") != "reject":
+            raise ContractError("invalid pyEUVICS unpublished-link policy")
         for index, value in enumerate(allowlist):
             relative = _safe_path(value, f"pyEUVICS allowlist[{index}]")
             if any(relative.startswith(prefix) for prefix in excluded_prefixes):
@@ -302,6 +343,8 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
         if not isinstance(candidate_sets, list):
             raise ContractError("pyEUVICS candidate_sets must be an array")
         candidate_paths: set[str] = set()
+        candidate_names: set[str] = set()
+        allowlisted_paths = {item.path for item in files}
         for set_index, raw_set in enumerate(candidate_sets):
             if not isinstance(raw_set, dict):
                 raise ContractError(f"pyEUVICS candidate_sets[{set_index}] must be an object")
@@ -320,6 +363,18 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             )
             if status not in {"approval-pending", "blocked-source-approval", "approved"}:
                 raise ContractError(f"invalid pyEUVICS publication-set status: {status}")
+            name = _text(
+                publication_set["name"],
+                f"pyEUVICS candidate_sets[{set_index}].name",
+            )
+            for field in ("owner", "reason"):
+                _text(
+                    publication_set[field],
+                    f"pyEUVICS candidate_sets[{set_index}].{field}",
+                )
+            if name in candidate_names:
+                raise ContractError(f"duplicate pyEUVICS candidate name: {name}")
+            candidate_names.add(name)
             set_files = publication_set["files"]
             dependencies = publication_set["dependencies"]
             if not isinstance(set_files, list) or not isinstance(dependencies, list):
@@ -328,17 +383,77 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                 _safe_path(value, f"pyEUVICS candidate_sets[{set_index}].files[{file_index}]")
                 for file_index, value in enumerate(set_files)
             )
-            if len(set(safe_files)) != len(safe_files) or candidate_paths.intersection(safe_files):
+            if not safe_files:
+                raise ContractError("pyEUVICS candidate files must be a non-empty array")
+            if (
+                len(set(safe_files)) != len(safe_files)
+                or candidate_paths.intersection(safe_files)
+                or allowlisted_paths.intersection(safe_files)
+            ):
                 raise ContractError("duplicate pyEUVICS candidate path")
             candidate_paths.update(safe_files)
-            if status != "approved":
-                continue
             safe_dependencies = tuple(
                 _safe_path(value, f"pyEUVICS candidate_sets[{set_index}].dependencies[{dep_index}]")
                 for dep_index, value in enumerate(dependencies)
             )
+            if len(set(safe_dependencies)) != len(safe_dependencies):
+                raise ContractError("duplicate pyEUVICS candidate dependency")
             for relative in (*safe_files, *safe_dependencies):
                 _validate_file(root, relative)
+            notebook_paths = tuple(path for path in safe_files if path.endswith(".ipynb"))
+            campaign_paths = tuple(path for path in safe_files if not path.endswith(".ipynb"))
+            if notebook_paths and campaign_paths:
+                raise ContractError("pyEUVICS set must not mix notebooks and static files")
+            configuration_paths: tuple[str, ...] = ()
+            seed: int | None = None
+            maximum: int | None = None
+            rendered_maximum: int | None = None
+            if notebook_paths:
+                configurations = publication_set.get("configurations")
+                if not isinstance(configurations, list) or not configurations or any(
+                    not isinstance(item, str) or not item for item in configurations
+                ):
+                    raise ContractError("notebook configurations are invalid")
+                configuration_paths = tuple(
+                    _safe_path(
+                        value,
+                        f"pyEUVICS candidate_sets[{set_index}].configurations",
+                    )
+                    for value in configurations
+                )
+                if len(set(configuration_paths)) != len(configuration_paths):
+                    raise ContractError("notebook configurations must be unique")
+                if not set(configuration_paths).issubset(safe_dependencies):
+                    raise ContractError(
+                        "notebook configurations must be explicitly approved dependencies"
+                    )
+                if publication_set.get("execution_policy") != "execute-during-build":
+                    raise ContractError("notebooks must execute during the build")
+                if publication_set.get("output_policy") != "source-notebooks-must-have-no-outputs":
+                    raise ContractError("notebooks must have no source outputs")
+                seed = publication_set.get("random_seed")
+                if type(seed) is not int or seed < 0:
+                    raise ContractError("notebook random_seed must be a non-negative integer")
+                maximum = publication_set.get("max_bytes_per_notebook")
+                rendered_maximum = publication_set.get("max_rendered_bytes")
+                if (
+                    type(maximum) is not int
+                    or maximum < 1
+                    or type(rendered_maximum) is not int
+                    or rendered_maximum < 1
+                ):
+                    raise ContractError("notebook size limits are invalid")
+            elif any(
+                field in publication_set
+                for field in (
+                    "execution_policy", "random_seed", "configurations",
+                    "max_rendered_bytes", "max_bytes_per_notebook", "output_policy",
+                )
+            ):
+                raise ContractError("static set contains notebook execution fields")
+            if status != "approved":
+                continue
+            for relative in safe_files:
                 if any(relative.startswith(prefix) for prefix in excluded_prefixes):
                     raise ContractError(f"approved pyEUVICS set leaks from excluded prefix: {relative}")
             approval = _strict_object(
@@ -348,40 +463,35 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             )
             if approval["status"] != "approved":
                 raise ContractError("approved pyEUVICS set lacks explicit approval")
+            _text(approval["approved_by"], "pyEUVICS approval.approved_by")
+            approved_on = _text(
+                approval["approved_on"], "pyEUVICS approval.approved_on"
+            )
+            try:
+                dt.date.fromisoformat(approved_on)
+            except ValueError as exc:
+                raise ContractError("pyEUVICS approved_on must be a valid ISO date") from exc
+            for field in ("publication_status", "validation_status"):
+                _text(
+                    publication_set[field],
+                    f"approved pyEUVICS set {field}",
+                )
             set_limitations = publication_set["known_limitations"]
             local_requirements = publication_set["local_requirements"]
             for label, values in (
                 ("known_limitations", set_limitations),
                 ("local_requirements", local_requirements),
             ):
-                if not isinstance(values, list) or any(not isinstance(item, str) or not item for item in values):
+                if not isinstance(values, list) or not values or any(
+                    not isinstance(item, str) or not item.strip() for item in values
+                ):
                     raise ContractError(f"approved pyEUVICS set has invalid {label}")
-            notebook_paths = tuple(path for path in safe_files if path.endswith(".ipynb"))
-            campaign_paths = tuple(path for path in safe_files if not path.endswith(".ipynb"))
-            if notebook_paths and campaign_paths:
-                raise ContractError("approved pyEUVICS set must not mix notebooks and campaign files")
             if notebook_paths:
                 if not set(notebook_paths).issubset(INITIAL_NOTEBOOK_PATHS):
                     raise ContractError("approved notebook is outside the initial reviewed subset")
-                configurations = publication_set.get("configurations")
-                if not isinstance(configurations, list) or any(
-                    not isinstance(item, str) or not item for item in configurations
-                ):
-                    raise ContractError("approved notebook configurations are invalid")
-                configuration_paths = tuple(
-                    _safe_path(value, f"pyEUVICS candidate_sets[{set_index}].configurations")
-                    for value in configurations
-                )
-                if not set(configuration_paths).issubset(safe_dependencies):
-                    raise ContractError("notebook configurations must be explicitly approved dependencies")
-                if publication_set["execution_policy"] != "execute-during-build":
-                    raise ContractError("approved notebooks must execute during the build")
-                if publication_set.get("output_policy") != "source-notebooks-must-have-no-outputs":
-                    raise ContractError("approved notebooks must have no source outputs")
-                maximum = publication_set.get("max_bytes_per_notebook")
-                rendered_maximum = publication_set["max_rendered_bytes"]
-                if not isinstance(maximum, int) or maximum < 1 or not isinstance(rendered_maximum, int) or rendered_maximum < 1:
-                    raise ContractError("approved notebook size limits are invalid")
+                assert seed is not None
+                assert maximum is not None
+                assert rendered_maximum is not None
                 for relative in notebook_paths:
                     notebooks.append(
                         NotebookSpec(
@@ -392,7 +502,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                             str(package["license"]),
                             "See source citation and license metadata.",
                             "execute-during-build",
-                            str(publication_set.get("random_seed", "not applicable")),
+                            str(seed),
                             configuration_paths,
                             safe_dependencies,
                             str(publication_set["validation_status"]),
@@ -448,6 +558,5 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
         lock,
         root,
         tuple(sorted(files, key=lambda item: item.path)),
-        rewrite_unpublished,
         tuple(sorted(notebooks, key=lambda item: item.path)),
     )

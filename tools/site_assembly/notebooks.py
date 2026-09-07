@@ -6,6 +6,7 @@ import hashlib
 import io
 import os
 import re
+import shutil
 import subprocess
 import tarfile
 from pathlib import Path, PurePosixPath
@@ -29,6 +30,10 @@ DATA_LITERAL = re.compile(
 NETWORK_CODE = re.compile(r"\b(?:requests\.|httpx\.|urlopen\s*\(|socket\.|wget\b|curl\b)")
 UNSAFE_HTML = re.compile(r"<(?:script|iframe)\b|javascript:", re.IGNORECASE)
 SAFE_OUTPUT_MIMES = {"text/plain", "text/markdown", "image/png", "image/jpeg"}
+INHERITED_ENVIRONMENT = {
+    "CONDA_PREFIX", "PATH", "SYSTEMROOT", "TEMP", "TMP", "TMPDIR",
+    "VIRTUAL_ENV", "WINDIR",
+}
 
 
 class NotebookError(ValueError):
@@ -118,8 +123,34 @@ def _render_once(spec: NotebookSpec, source_root: Path) -> tuple[str, dict[str, 
     source = source_root / spec.path
     notebook = _validate_source(spec, source, source_root)
     before = _tree_snapshot(source_root)
-    environment = dict(os.environ)
-    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    runtime_parent = source_root.parent / "notebook-runtime-output"
+    runtime_output = runtime_parent / Path(spec.path).stem
+    if runtime_output.exists():
+        shutil.rmtree(runtime_output)
+    runtime_output.mkdir(parents=True)
+    runtime_home = source_root.parent / "notebook-runtime-home"
+    if runtime_home.exists():
+        shutil.rmtree(runtime_home)
+    runtime_home.mkdir()
+    environment = {
+        name: value
+        for name in INHERITED_ENVIRONMENT
+        if (value := os.environ.get(name)) is not None
+    }
+    environment.update(
+        {
+            "HOME": str(runtime_home),
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "MPLBACKEND": "Agg",
+            "PYEUVICS_NOTEBOOK_OUTPUT": (
+                f"../notebook-runtime-output/{Path(spec.path).stem}"
+            ),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": spec.random_seed,
+            "TZ": "UTC",
+        }
+    )
     source_path = source_root / "src"
     if source_path.is_dir():
         environment["PYTHONPATH"] = str(source_path)
