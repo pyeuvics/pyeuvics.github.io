@@ -17,6 +17,7 @@ from tools.site_assembly.contracts import load_locks
 from tools.site_assembly.pipeline import (
     MARKDOWN_EXTENSIONS,
     _css_targets,
+    _RenderedLinkParser,
     _srcset_targets,
 )
 
@@ -30,6 +31,25 @@ def test_rendered_resource_lists_ignore_css_comments_and_preserve_data_urls() ->
     assert _srcset_targets(
         "data:image/png;base64,AAAA 1x, public.png 2x"
     ) == ["data:image/png;base64,AAAA", "public.png"]
+
+
+@pytest.mark.parametrize(
+    ("html", "unsafe"),
+    [
+        ('<script type="math/tex">a_0</script>', False),
+        ('<script type="math/tex; mode=display">a_0</script>', False),
+        ("<script>alert(1)</script>", True),
+        ('<script type="text/javascript">alert(1)</script>', True),
+        ('<script type="math/tex" src="evil.js"></script>', True),
+        ('<iframe src="https://example.org"></iframe>', True),
+    ],
+)
+def test_rendered_link_parser_only_allows_inert_math_script_tags(
+    html: str, unsafe: bool
+) -> None:
+    parser = _RenderedLinkParser()
+    parser.feed(html)
+    assert parser.unsafe_active_content is unsafe
 
 
 def test_publication_validator_uses_the_mkdocs_markdown_extensions() -> None:
@@ -608,6 +628,29 @@ def test_unsafe_source_markdown_is_rejected(
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
     with pytest.raises(AssemblyError, match=message):
         assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
+
+
+def test_arithmatex_math_script_is_not_rejected_as_unsafe_active_content(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """pymdownx.arithmatex renders every equation as an inert `<script
+    type="math/tex">` data island for client-side MathJax; real pyEUVICS
+    documentation is full of these and must not trip the active-content
+    boundary."""
+    euvics, pyeuvics, commits = create_sources(tmp_path)
+    (euvics / "docs/overview.md").write_text(
+        "# Math\n\nInline \\(a_0\\) and display:\n\n\\[\n\\gamma = 1+\\frac{K_e}{m_ec^2}\n\\]\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "."], cwd=euvics, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "Math fixture"], cwd=euvics, check=True)
+    commits["euvics"] = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=euvics, text=True
+    ).strip()
+    lock = write_locks(tmp_path / "sources.lock.yml", commits)
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
+    assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
 
 
 def test_unexpected_allowlisted_type_is_rejected(

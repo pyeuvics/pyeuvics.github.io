@@ -29,7 +29,8 @@ from .notebooks import (
 from .overview_figures import OverviewFigureError, stage_overview_figure
 
 LOCAL_PATH_RE = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\\\)")
-UNSAFE_ACTIVE_ELEMENT_RE = re.compile(r"<(?:script|iframe)\b", re.IGNORECASE)
+UNSAFE_ACTIVE_ELEMENT_RE = re.compile(r"<iframe\b", re.IGNORECASE)
+SAFE_MATH_SCRIPT_TYPE_RE = re.compile(r"^math/tex(?:\s*;\s*mode\s*=\s*display\s*)?$", re.IGNORECASE)
 LINK_RE = re.compile(r"(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>[^)]*\))")
 CSS_URL_RE = re.compile(
     r"url\(\s*(?:([\"'])(.*?)\1|([^\s)]+))\s*\)", re.IGNORECASE | re.DOTALL
@@ -87,9 +88,18 @@ class _RenderedLinkParser(HTMLParser):
         self, tag: str, attrs: list[tuple[str, str | None]]
     ) -> None:
         tag = tag.lower()
-        if tag in {"script", "iframe", "object", "embed"}:
-            self.unsafe_active_content = True
         attributes = {name.lower(): value for name, value in attrs}
+        if tag in {"iframe", "object", "embed"}:
+            self.unsafe_active_content = True
+        elif tag == "script":
+            # pymdownx.arithmatex (generic mode) renders every equation as an
+            # inert `<script type="math/tex">` data island for MathJax to read
+            # client-side; it is not executable and must not be rejected as
+            # active content. Any other script tag (no type, a JS MIME type,
+            # or one carrying `src`) is still unsafe.
+            script_type = (attributes.get("type") or "").strip()
+            if "src" in attributes or not SAFE_MATH_SCRIPT_TYPE_RE.match(script_type):
+                self.unsafe_active_content = True
         for name, value in attrs:
             name = name.lower()
             if name.startswith("on"):
