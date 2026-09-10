@@ -10,11 +10,13 @@ private credential, Pages, identity-token, environment, or deployment access.
 Pull-request validation checks out only the website revision, installs pinned
 dependencies, and runs pytest, strict mypy, and a strict MkDocs build. It does
 not mint a GitHub App token, check out either private source, upload a
-source-derived artifact, or reference any Actions secret. This protects the App
-private key from both forks and same-repository feature branches.
+source-derived artifact, or reference any Actions secret. This alone does not
+protect repository secrets from a modified same-repository PR workflow. The
+App key must exist only in the `source-read` environment, restricted to the
+`main` branch as described in [github_app.md](github_app.md).
 
 Complete source-backed validation runs only in trusted default-branch or
-administrator-controlled workflows: `.github/workflows/pages.yml` and
+main-branch manual workflows: `.github/workflows/pages.yml` and
 `.github/workflows/source-update.yml`. Those workflows use the GitHub App
 described in [github_app.md](github_app.md), exact source locks, non-persisted
 checkout credentials, and a fail-closed runner credential scan.
@@ -55,12 +57,8 @@ for every uploaded file.
 
 ## Trusted review artifact
 
-Successful source-backed trusted runs upload only:
-
-- the final static `site/` directory;
-- `staged-content-inventory.json`;
-- `review-artifact-manifest.json`.
-
-The artifact is retained for seven days. Pull-request validation uploads no
-artifact; the Pages workflow uploads only its separately validated Pages
-artifact.
+The source-update workflow uploads the candidate lock, comparison report, and
+baseline/candidate review manifests for seven days. It does not upload either
+rendered site. The Pages workflow uploads only its validated static site as a
+Pages artifact for one day; that site includes the staged-content inventory.
+Pull-request validation uploads no artifact.

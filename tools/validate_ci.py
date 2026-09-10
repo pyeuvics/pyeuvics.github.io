@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.site_assembly import AssemblyError, assemble_site
-from tools.site_assembly.contracts import ContractError
+from tools.site_assembly.contracts import ContractError, load_locks, verify_checkout
 
 
 class ValidationError(ValueError):
@@ -99,6 +99,14 @@ def validate(
 
     website_root = website_root.resolve()
     output_root = output_root.resolve()
+    euvics_source = euvics_source.resolve()
+    pyeuvics_source = pyeuvics_source.resolve()
+    try:
+        locks = load_locks(lock_path)
+        for name, source in (("euvics", euvics_source), ("pyeuvics", pyeuvics_source)):
+            verify_checkout(locks[name], source)
+    except ContractError as exc:
+        raise ValidationError(str(exc)) from exc
     strict_site = output_root.parent / f"{output_root.name}-strict-site"
     if output_root.exists() or strict_site.exists():
         raise ValidationError("CI validation output paths must not already exist")
@@ -112,7 +120,7 @@ def validate(
             "--repository-root",
             str(euvics_source),
             "--manifest",
-            str(euvics_source / "publication/public-content-v1.json"),
+            str(euvics_source / locks["euvics"].manifest_path),
         ],
         website_root,
     )
@@ -124,7 +132,7 @@ def validate(
             "--repository-root",
             str(pyeuvics_source),
             "--manifest",
-            str(pyeuvics_source / "publication/public-content-v1.json"),
+            str(pyeuvics_source / locks["pyeuvics"].manifest_path),
         ],
         website_root,
     )

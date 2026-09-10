@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlsplit
@@ -28,7 +29,7 @@ from .notebooks import (
 )
 from .overview_figures import OverviewFigureError, stage_overview_figure
 
-LOCAL_PATH_RE = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\\\)")
+LOCAL_PATH_RE = re.compile(r"(?:/Users/|/home/[^/\s]+/|\b[A-Za-z]:[\\/]+[\w.-])")
 UNSAFE_ACTIVE_ELEMENT_RE = re.compile(r"<iframe\b", re.IGNORECASE)
 SAFE_MATH_SCRIPT_TYPE_RE = re.compile(r"^math/tex(?:\s*;\s*mode\s*=\s*display\s*)?$", re.IGNORECASE)
 LINK_RE = re.compile(r"(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>[^)]*\))")
@@ -41,6 +42,7 @@ CREDENTIAL_PATTERNS = (
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
+    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
     re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b"),
 )
 TEXT_SUFFIXES = {
@@ -231,7 +233,7 @@ def _validate_rendered_links(
     text: str,
     published: PublishedFile,
     destinations: dict[str, Path],
-) -> None:
+) -> set[str]:
     """Validate every link form rendered by the configured Markdown engine."""
     rendered = markdown.markdown(text, extensions=MARKDOWN_EXTENSIONS)
     if UNSAFE_ACTIVE_ELEMENT_RE.search(rendered):
@@ -253,6 +255,7 @@ def _validate_rendered_links(
             raise AssemblyError(
                 f"broken or unpublished link in {published.path}: {target}"
             )
+    return set(parser.targets)
 
 
 def _rewrite_markdown(
@@ -265,10 +268,14 @@ def _rewrite_markdown(
     source_sha256: str,
 ) -> str:
     _scan_text(text, f"source Markdown {contract.lock.name}:{published.path}")
-    _validate_rendered_links(text, published, destinations)
+    rendered_targets = _validate_rendered_links(text, published, destinations)
 
     def replace(match: re.Match[str]) -> str:
         target = match.group("target")
+        # Link-shaped examples in code are not published hyperlinks. The
+        # rendered validation above remains authoritative for actual targets.
+        if unescape(target) not in rendered_targets:
+            return match.group(0)
         if _local_link_parts(target) is None:
             return match.group(0)
         resolved, fragment = _resolve_source_target(published.path, target)

@@ -35,6 +35,8 @@ def test_deployment_triggers_are_main_and_manual_only() -> None:
 def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     workflow = load_workflow()
     build = workflow["jobs"]["build"]
+    assert build["if"] == "github.ref == 'refs/heads/main'"
+    assert build["environment"] == "source-read"
     assert build["permissions"] == {"contents": "read", "pages": "read"}
     actions = [step["uses"] for step in build["steps"] if "uses" in step]
     assert actions.count(CHECKOUT) == 3

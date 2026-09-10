@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from tools.ci_source_locks import resolve
-from tools.validate_ci import ValidationError, _source_date_epoch, write_review_manifest
+from tools.validate_ci import ValidationError, _source_date_epoch, validate, write_review_manifest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/site-check.yml"
@@ -111,3 +111,14 @@ def test_invalid_configured_source_date_epoch_is_rejected(
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "not-an-integer")
     with pytest.raises(ValidationError, match="non-negative integer"):
         _source_date_epoch(tmp_path)
+
+
+def test_validation_checks_source_locks_before_executing_source_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commands = []
+    monkeypatch.setattr("tools.validate_ci._run", lambda *args: commands.append(args))
+    with pytest.raises(ValidationError, match="not a Git checkout"):
+        validate(ROOT, ROOT / "sources.lock.yml", tmp_path, tmp_path, tmp_path / "output")
+    assert commands == []
+    assert not (tmp_path / "output").exists()

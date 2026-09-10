@@ -1,10 +1,10 @@
 # GitHub Pages deployment
 
 `.github/workflows/pages.yml` is the production publication path. It runs only
-for pushes to `main` and explicit administrator dispatches. Pull requests remain
+for pushes to `main` and explicit dispatches on `main`. Pull requests remain
 covered by the separate read-only, non-deploying `site-check.yml` workflow.
 
-The build job checks out both public source repositories at the exact commits
+The build job checks out both private source repositories at the exact commits
 in `sources.lock.yml`, runs the complete `tools.validate_ci` pipeline, and
 uploads only the resulting `.staging/pages/site` directory with the official
 GitHub Pages artifact action. The deployment job consumes that same artifact;
@@ -23,6 +23,8 @@ in the runner temporary directory before source-derived validation begins.
 
 - [ ] Confirm both locked private source repositories and commits are readable
       through the repository-scoped, read-only GitHub App.
+- [ ] Configure `source-read` to allow only branch `main`, and store the App
+      private key only there; follow [the credential migration](github_app.md).
 - [ ] Confirm the post-checkout credential scan passes before source-derived
       validation begins.
 - [ ] Confirm the full review artifact and inventory contain only approved
