@@ -99,6 +99,11 @@ publication of the existing migration commit through a pull request on
 - Anonymous HTTPS access to the public homepage succeeds and returns canonical
   URL `https://pyeuvics.github.io/`.
 
-The migration is complete. This completion record is a local, uncommitted
-follow-up: the owner's publication authorization covered the existing migration
-commit, so no additional documentation commit or push was made.
+The migration is complete. This completion record was published through
+[PR #6](https://github.com/pyeuvics/pyeuvics.github.io/pull/6), merged at
+`b2f9f5a5e2b0dec729937376034a13a09b54c233`. The required
+[`Validate website source` check](https://github.com/pyeuvics/pyeuvics.github.io/actions/runs/34496029712)
+passed, and the subsequent
+[Pages deployment](https://github.com/pyeuvics/pyeuvics.github.io/actions/runs/34496636017)
+succeeded after all 130 tests, strict typing, strict builds, and artifact
+validation passed.
