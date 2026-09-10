@@ -13,15 +13,67 @@ import yaml
 from reportlab.pdfgen import canvas
 
 from tools.site_assembly import AssemblyError, assemble_site
-from tools.site_assembly.contracts import load_locks
+from tools.site_assembly.contracts import ContractError, _safe_path, load_contract, load_locks
+from tools.site_assembly.models import SourceLock
 from tools.site_assembly.pipeline import (
     MARKDOWN_EXTENSIONS,
     _css_targets,
     _RenderedLinkParser,
     _srcset_targets,
+    _scan_text,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("text", [r"C:\Users\fixture\private.txt", r"C:\\Users\\fixture\\private.txt", "C:/Users/fixture/private.txt", "github_pat_" + "A" * 30])
+def test_artifact_scan_rejects_windows_paths_and_fine_grained_tokens(text: str) -> None:
+    with pytest.raises(AssemblyError, match="local absolute path|credential-like"):
+        _scan_text(text, "fixture")
+
+
+def test_artifact_scan_accepts_web_urls_and_drive_name_documentation() -> None:
+    _scan_text("https://pyeuvics.github.io/ and device names (c:\\)", "fixture")
+
+
+@pytest.mark.parametrize("path", [".", "./private/file.md", "docs//file.md", "docs/./file.md", "docs/file\n.md"])
+def test_noncanonical_publication_paths_are_rejected(path: str) -> None:
+    with pytest.raises(ContractError, match="safe repository-relative"):
+        _safe_path(path, "fixture")
+
+
+@pytest.mark.parametrize("digest", [None, "invalid", "0" * 64, "valid"])
+def test_euvics_v11_requires_exact_approved_bytes(tmp_path: Path, digest: str | None) -> None:
+    manifest = euvics_manifest()
+    manifest["schema_version"] = "1.1"
+    manifest["allowlist"] = manifest["allowlist"][:1]
+    content = "# Approved content\n"
+    if digest is not None:
+        manifest["allowlist"][0]["approval"]["sha256"] = (
+            hashlib.sha256(content.encode()).hexdigest() if digest == "valid" else digest
+        )
+    source = tmp_path / "source"
+    commit = create_repo(source, manifest, {"docs/overview.md": content})
+    lock = SourceLock("euvics", "https://github.com/pyeuvics/euvics", commit, "publication/public-content-v1.json")
+    if digest == "valid":
+        assert len(load_contract(lock, source).files) == 1
+    else:
+        with pytest.raises(ContractError, match="approval|SHA-256"):
+            load_contract(lock, source)
+
+
+def test_allowlist_rejects_symlinked_parent(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    manifest = euvics_manifest("docs/overview.md")
+    manifest["allowlist"] = manifest["allowlist"][:1]
+    create_repo(source, manifest, {"private/overview.md": "# Excluded\n"})
+    (source / "docs").symlink_to("private", target_is_directory=True)
+    subprocess.run(["git", "add", "docs"], cwd=source, check=True)
+    subprocess.run(["git", "commit", "-qm", "Symlink fixture"], cwd=source, check=True)
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source, text=True).strip()
+    lock = SourceLock("euvics", "https://github.com/pyeuvics/euvics", commit, "publication/public-content-v1.json")
+    with pytest.raises(ContractError, match="symlink"):
+        load_contract(lock, source)
 
 
 def test_rendered_resource_lists_ignore_css_comments_and_preserve_data_urls() -> None:
@@ -817,13 +869,20 @@ def test_rendered_markdown_link_forms_cannot_bypass_publication_boundary(
         assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
 
 
+@pytest.mark.parametrize("example", [
+    "```markdown\n[Private][note]\n\n[note]: ../notes/note.md\n```\n",
+    "```markdown\n[Private](../notes/note.md)\n```\n",
+    "Example: `[Private](../notes/note.md)`\n",
+    "```markdown\n[Example](javascript:example)\n```\n",
+])
 def test_rendered_markdown_ignores_link_examples_in_fenced_code(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    example: str,
 ) -> None:
     euvics, pyeuvics, commits = create_sources(tmp_path)
     (pyeuvics / "docs/index.md").write_text(
-        "```markdown\n[Private][note]\n\n[note]: ../notes/note.md\n```\n",
+        example,
         encoding="utf-8",
     )
     subprocess.run(["git", "add", "."], cwd=pyeuvics, check=True)
@@ -835,6 +894,7 @@ def test_rendered_markdown_ignores_link_examples_in_fenced_code(
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
     result = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
     assert (result.site / "imported/pyeuvics/docs/index.html").is_file()
+    assert example in (result.staged_content / "imported/pyeuvics/docs/index.md").read_text()
 
 
 @pytest.mark.parametrize(

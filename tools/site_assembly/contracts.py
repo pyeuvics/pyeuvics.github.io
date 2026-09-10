@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 import re
 import subprocess
@@ -14,6 +15,7 @@ import yaml
 from .models import NotebookSpec, PublishedFile, SourceContract, SourceLock
 
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 GLOB_CHARS = set("*?[]{}")
 SUPPORTED_SUFFIXES = {
     "", ".md", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".css", ".js",
@@ -106,6 +108,9 @@ def _safe_path(value: object, label: str, *, directory: bool = False) -> str:
         or "\\" in value
         or any(char in value for char in GLOB_CHARS)
         or directory != value.endswith("/")
+        or any(ord(char) < 32 or ord(char) == 127 for char in value)
+        or pure.as_posix() == "."
+        or value != pure.as_posix() + ("/" if directory else "")
     ):
         raise ContractError(f"{label} is not an exact safe repository-relative path: {value}")
     return value
@@ -177,6 +182,7 @@ def verify_checkout(lock: SourceLock, root: Path) -> None:
     tracked = _git(root, "ls-tree", "-r", "--name-only", "HEAD", "--", lock.manifest_path)
     if tracked != lock.manifest_path:
         raise ContractError(f"publication manifest is not tracked at locked commit: {lock.name}")
+    _validate_file(root, lock.manifest_path)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -191,6 +197,11 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _validate_file(root: Path, relative: str) -> None:
     path = root / relative
+    current = root
+    for part in PurePosixPath(relative).parts:
+        current = current / part
+        if current.is_symlink():
+            raise ContractError(f"allowlisted source path contains a symlink: {relative}")
     if not path.is_file() or path.is_symlink():
         raise ContractError(f"allowlisted source file is missing, non-regular, or a symlink: {relative}")
     if path.suffix.lower() not in SUPPORTED_SUFFIXES:
@@ -207,7 +218,16 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
     notebooks: list[NotebookSpec] = []
     if lock.name == "euvics":
         _strict_object(manifest, "EUVICS manifest", EUVICS_ROOT_FIELDS)
-        if contract_id != "euvics-public-content-v1" or manifest.get("default_policy") != "excluded":
+        if (
+            contract_id != "euvics-public-content-v1"
+            or manifest.get("default_policy") != "excluded"
+            or manifest.get("$schema") != "public-content-v1.schema.json"
+            or manifest.get("schema_version") not in ("1.0", "1.1")
+            or manifest.get("repository") != {
+                "url": lock.repository,
+                "source_commit_policy": "locked-by-consuming-website",
+            }
+        ):
             raise ContractError("invalid EUVICS publication contract identity or policy")
         allowlist = manifest["allowlist"]
         if not isinstance(allowlist, list):
@@ -246,10 +266,31 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             approval = _strict_object(
                 entry["approval"],
                 f"EUVICS allowlist[{index}].approval",
-                {"status", "approved_by", "approved_on"},
+                {"status", "approved_by", "approved_on"}
+                | ({"sha256"} if manifest["schema_version"] == "1.1" else set()),
             )
             if approval["status"] != "approved":
                 raise ContractError(f"missing explicit publication approval: {relative}")
+            _text(approval["approved_by"], "EUVICS approval.approved_by")
+            approved_on = _text(approval["approved_on"], "EUVICS approval.approved_on")
+            try:
+                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", approved_on):
+                    raise ValueError
+                dt.date.fromisoformat(approved_on)
+            except ValueError as exc:
+                raise ContractError("EUVICS approved_on must be a valid ISO date") from exc
+            for field in ("title", "version", "license", "attribution"):
+                _text(entry[field], f"EUVICS {relative}.{field}")
+            if entry["publication_status"] not in ("public-draft", "released"):
+                raise ContractError(f"ambiguous EUVICS publication status: {relative}")
+            if manifest["schema_version"] == "1.1":
+                _validate_file(root, relative)
+                expected = approval["sha256"]
+                if not isinstance(expected, str) or not SHA256_RE.fullmatch(expected):
+                    raise ContractError(f"invalid EUVICS approval.sha256: {relative}")
+                actual = hashlib.sha256((root / relative).read_bytes()).hexdigest()
+                if actual != expected:
+                    raise ContractError(f"approved SHA-256 mismatch; repeat publication review: {relative}")
             limitations = entry["known_limitations"]
             if not isinstance(limitations, list) or any(not isinstance(v, str) or not v for v in limitations):
                 raise ContractError(f"invalid known limitations: {relative}")

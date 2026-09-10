@@ -196,6 +196,8 @@ def write_comparison(
         "- [ ] Inspect the uploaded baseline/candidate manifests and review artifact diff.\n"
         "- [ ] Verify document, notebook, campaign, license, attribution, and permission changes.\n"
         "- [ ] Confirm the pull request changes only `sources.lock.yml`.\n"
+        "- [ ] Select **Approve workflows to run** if GitHub requests it for this bot-created PR; "
+        "otherwise manually run `site-check.yml` on this proposal branch if no check appears.\n"
         "- [ ] Require normal validation checks; do not merge on automation authority alone.\n"
         "- [ ] After merge, verify the protected Pages deployment and retain rollback provenance.\n",
         encoding="utf-8",

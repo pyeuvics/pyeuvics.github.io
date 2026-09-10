@@ -21,8 +21,14 @@ The workflow separates candidate evaluation from repository mutation:
 The built-in `GITHUB_TOKEN` remains scoped per job for website repository
 operations. Private source reads use a short-lived token from the read-only
 GitHub App installed only on the two source repositories. The App credential
-secrets are unavailable to the proposal job, deployment job, artifacts, caches,
-and fork pull requests.
+private key must be stored only in the `source-read` environment restricted to
+branch `main`. Only the validation job references that environment. This
+restriction is required even when the ordinary PR workflow references no secret.
+
+Repository **Actions → General → Workflow permissions** must permit GitHub
+Actions to create pull requests for the proposal job to work. The combined
+setting also permits approval requests; this workflow never approves or merges.
+Keep the default token read-only and the per-job permissions above.
 
 ## Candidate discovery and provenance
 
@@ -104,7 +110,11 @@ An automated pull request must receive the same review as a manual lock update:
    licenses, attribution, document metadata, notebook policy, and campaigns.
 3. Inspect the old/new artifact manifests and representative rendered changes.
 4. Confirm the PR changes only `sources.lock.yml` and contains two exact hashes.
-5. Require normal site validation. Automation is never an approving reviewer.
+5. Require normal site validation. For a PR created with `GITHUB_TOKEN`, select
+   **Approve workflows to run** when GitHub displays that banner. If no run is
+   available, manually run `site-check.yml` on the proposal branch, then confirm
+   `Validate website source` passes on its current commit. Automation is never
+   an approving reviewer. See [GitHub's workflow trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 6. Merge only through protected `main`; the normal Pages workflow rebuilds from
    the merged exact locks and protected deployment rules.
 7. Verify the deployed artifact signed out and retain run/commit provenance.

@@ -77,24 +77,36 @@ Open:
 
 **pyeuvics/pyeuvics.github.io → Settings → Secrets and variables → Actions**
 
-Create the Client ID under **Actions variables** and the private key under
-**Actions secrets**:
+Create the Client ID under **Actions variables**. For the private key, open
+**Settings → Environments → New environment** and create `source-read`.
+Select **Selected branches and tags** and add one **Branch** rule named `main`.
+Do not add tag rules or PR-ref patterns. Set administrator bypass off.
+Store the private key under that environment's **Environment secrets**:
 
 | Name | Value |
 | --- | --- |
 | `EUVICS_DOCS_APP_CLIENT_ID` | GitHub App Client ID (repository variable) |
-| `EUVICS_DOCS_APP_PRIVATE_KEY` | Complete downloaded `.pem` file (repository secret) |
+| `EUVICS_DOCS_APP_PRIVATE_KEY` | Complete downloaded `.pem` file (`source-read` environment secret) |
 
-Use repository-level configuration rather than `github-pages` environment
-configuration because the Pages build and source-update validation jobs need
-source read access. Pull-request validation deliberately receives no secret.
-GitHub will not display the secret value again.
+Both source-reading jobs name `environment: source-read` and run only on
+`refs/heads/main`. The environment branch policy prevents a modified PR
+workflow or a feature-branch manual dispatch from obtaining the App key.
+Keep deployment authorization separately in `github-pages`. GitHub will not
+display the secret value again.
+
+For migration from a repository secret, first configure the environment and
+install its secret from the retained PEM file. Merge the workflow changes
+through a passing PR, verify a source-backed run on `main`, then delete the
+repository-level secret. Until that last step, same-repository branch workflows
+can still request the old secret. Do not claim the migration is complete before
+the repository-level copy is absent. Credential changes require explicit owner
+authorization; never retrieve or print private key material through logs.
 
 Verify only their presence, without revealing values:
 
 ```bash
 gh variable list --repo pyeuvics/pyeuvics.github.io
-gh secret list --repo pyeuvics/pyeuvics.github.io
+gh secret list --repo pyeuvics/pyeuvics.github.io --env source-read
 ```
 
 The output should list:
@@ -141,6 +153,9 @@ private-source access. The short-lived App installation token supplies only the
 separately granted read access.
 
 Workflow-structure tests enforce this configuration.
+
+Environment policy is an external control and must be verified separately;
+workflow tests cannot prove it. See [GitHub environment protection guidance](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
 
 ## 7. Verify in GitHub Actions
 

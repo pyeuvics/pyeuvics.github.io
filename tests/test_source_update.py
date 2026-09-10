@@ -160,6 +160,8 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
         "cancel-in-progress": "false",
     }
     validate = workflow["jobs"]["validate"]
+    assert validate["if"] == "github.ref == 'refs/heads/main'"
+    assert validate["environment"] == "source-read"
     propose = workflow["jobs"]["propose"]
     assert validate["permissions"] == {"contents": "read", "pull-requests": "read"}
     assert propose["permissions"] == {"contents": "write", "pull-requests": "write"}

@@ -21,7 +21,7 @@ from .models import InventoryEntry, NotebookSpec, SourceContract
 
 LOCAL_PATH = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\)")
 SECRET = re.compile(
-    r"(?:gh[pousr]_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)"
+    r"(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)"
 )
 DATA_LITERAL = re.compile(
     r"[\"']([^\"']+\.(?:csv|json|ya?ml|npy|npz|h5|hdf5|parquet|dat|txt))[\"']",
