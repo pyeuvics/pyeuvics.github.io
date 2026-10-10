@@ -1,6 +1,6 @@
 # Website development and validation runbook
 
-Reviewed against the maintained entry points and workflows on **2026-10-10**.
+Reviewed against the maintained entry points and workflows on **2026-10-11**.
 Run commands from the website repository root. A successful check is evidence
 for review; it grants no scientific approval or permission to publish.
 
@@ -34,6 +34,14 @@ inherit global packages without this metadata. Identify the affected
 distributions before repairing them; install wheels of the same pinned versions
 locally in the virtual environment without changing global packages. Do not
 bypass the provenance check or change numerical pins to silence this error.
+
+The reviewed website numerical pins are NumPy 2.5.3 and SciPy 1.18.1.
+The YAML typing stubs are pinned to 6.0.12.20260906.
+Both `requirements-notebooks.txt` and `constraints-validation.txt` declare them.
+A shared pyEUVICS interpreter must also satisfy every other website pin and
+provide complete installed-file metadata. These patch upgrades do not revise
+frozen source environments: an admitted notebook declaring older exact versions
+still fails validation and requires a separately reviewed source update.
 
 The same declared Python environment runs source-only synthetic checks and
 source-backed assembly. Approved document builds additionally need the source's
