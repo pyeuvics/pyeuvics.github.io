@@ -28,6 +28,13 @@ python -m tools.dependencies
 python -m pytest -v tests
 ```
 
+Notebook provenance also requires installed package `RECORD` metadata. An
+environment created with `--system-site-packages` can pass version checks yet
+inherit global packages without this metadata. Identify the affected
+distributions before repairing them; install wheels of the same pinned versions
+locally in the virtual environment without changing global packages. Do not
+bypass the provenance check or change numerical pins to silence this error.
+
 The same declared Python environment runs source-only synthetic checks and
 source-backed assembly. Approved document builds additionally need the source's
 TeX/font/toolchain packages. See [dependency policy](dependency-policy.md) for

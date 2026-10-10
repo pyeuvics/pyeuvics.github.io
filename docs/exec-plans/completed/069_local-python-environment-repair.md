@@ -60,3 +60,11 @@ The local environment is repaired, and full validation now passes in the
 user's checkout rather than only in a separate verification environment.
 Environment files and backups remain ignored; the commit records only the
 runbook, the local alias ignore rule, and this repair evidence. No push or deployment was performed.
+
+## Follow-up clarification — 2026-10-10
+
+The owner subsequently identified a different interpreter in the pyEUVICS
+checkout. Its Python and numerical versions already match the website pins;
+the repair above did not diagnose that interpreter's failure. See
+[the exact-interpreter metadata repair](070_shared-interpreter-record-metadata.md)
+for the reproduced missing-RECORD cause and the verified fix.
