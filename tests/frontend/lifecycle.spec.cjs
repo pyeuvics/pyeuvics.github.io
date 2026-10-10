@@ -1,0 +1,25 @@
+const { test } = require('@playwright/test');
+const assert = require('node:assert/strict');
+test('isolated delayed readiness, repeated setup and error recovery', async ({page}) => {
+  await page.setContent('<input id="__drawer" type="checkbox"><header class="md-header"><label for="__drawer">Menu</label></header><nav class="md-nav--primary"><a href="#">Item</a></nav><article class="md-content__inner"><span class="arithmatex">\\(x^2\\)</span></article>');
+  await page.evaluate(() => {window.subscribers = new Set();window.document$={subscribe(fn){subscribers.add(fn);fn();return{unsubscribe(){subscribers.delete(fn);}}}};});
+  await page.addScriptTag({path:'content/javascripts/navigation.js'});
+  await page.evaluate(()=>{for(let i=0;i<5;i++)EuvicsNavigation.initialize();});
+  const menu=page.locator('label');
+  await menu.focus(); await page.keyboard.press('Enter');assert.equal(await page.locator('input').isChecked(),true);
+  await page.keyboard.press('Escape');assert.equal(await page.locator('input').isChecked(),false);assert.equal(await menu.evaluate(el=>el===document.activeElement),true);
+  await page.keyboard.press('Space');assert.equal(await page.locator('input').isChecked(),true);assert.equal(await menu.getAttribute('aria-expanded'),'true');
+  await page.addScriptTag({path:'content/javascripts/navigation.js'});
+  assert.equal(await page.evaluate(()=>subscribers.size),1);
+  await menu.focus();await page.keyboard.press('Enter');assert.equal(await page.locator('input').isChecked(),false);
+  await page.addScriptTag({path:'content/javascripts/mathjax.js'});
+  await page.evaluate(async()=>{await EuvicsMath.render();await EuvicsMath.render(); window.calls=0;window.running=0;window.peak=0;window.cleared=0;window.reset=0;MathJax.typesetClear=()=>cleared++;MathJax.texReset=()=>reset++;MathJax.typesetPromise=async()=>{calls++;running++;peak=Math.max(peak,running);await new Promise(r=>setTimeout(r,5));running--;};await MathJax.startup.pageReady();document.querySelector('article').insertAdjacentHTML('beforeend','<span class=arithmatex>alpha</span>');const first=EuvicsMath.render();await new Promise(r=>setTimeout(r,1));document.querySelector('article').insertAdjacentHTML('beforeend','<span class=arithmatex>beta</span>');await Promise.all([first,EuvicsMath.render()]);});
+  assert.equal(await page.evaluate(()=>calls),3);assert.equal(await page.evaluate(()=>peak),1);
+  await page.evaluate(async()=>{document.querySelector('article').outerHTML='<article class="md-content__inner"><span class="arithmatex">new</span></article>';await EuvicsMath.render();});
+  assert.equal(await page.evaluate(()=>cleared),1);assert.equal(await page.evaluate(()=>reset),1);
+  await page.evaluate(async()=>{document.querySelector('article').insertAdjacentHTML('beforeend','<span class=arithmatex>failure</span>');MathJax.typesetPromise=()=>Promise.reject(new Error('private error'));await EuvicsMath.render();});
+  assert.match(await page.locator('[role=status]').innerText(),/unavailable/);
+  assert.doesNotMatch(await page.locator('body').innerText(),/private error/);
+  await page.evaluate(async()=>{MathJax.typesetPromise=()=>Promise.resolve();await EuvicsMath.render();});assert.equal(await page.locator('[role=status]').count(),0);
+  console.log('Lifecycle checks passed: keyboard, repeat setup, disposal, delayed readiness, serialized renders, root cleanup, rejection and recovery.');
+});

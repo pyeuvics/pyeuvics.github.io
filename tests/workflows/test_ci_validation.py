@@ -11,7 +11,7 @@ from tools.ci_source_locks import resolve
 from tools.validate_ci import ValidationError, _source_date_epoch, validate, write_review_manifest
 
 from tests.support.paths import ROOT
-from tests.support.workflows import CHECKOUT, SETUP_PYTHON, SETUP_VALIDATION, load_setup_action
+from tests.support.workflows import CHECKOUT, SETUP_PYTHON, SETUP_VALIDATION, SETUP_NODE, load_setup_action
 WORKFLOW = ROOT / ".github/workflows/site-check.yml"
 
 
@@ -31,7 +31,7 @@ def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
     assert job["runs-on"] == "ubuntu-24.04"
     steps = job["steps"]
     actions = [step["uses"] for step in steps if "uses" in step]
-    assert actions == [CHECKOUT, SETUP_VALIDATION]
+    assert actions == [CHECKOUT, SETUP_VALIDATION, SETUP_NODE]
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "pull_request_target" not in text
     assert "pages: write" not in text
@@ -44,7 +44,7 @@ def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
     assert "deploy-pages" not in text
     assert "persist-credentials: false" in text
     assert "sources.lock.yml" in load_setup_action()["runs"]["steps"][0]["with"]["cache-dependency-path"]
-    validation = steps[-1]["run"]
+    validation = next(step["run"] for step in steps if step.get("name") == "Validate website source without private credentials")
     assert validation == "python -m tools.quality --output .staging/source-check --bind"
 
 
@@ -121,3 +121,17 @@ def test_validation_checks_source_locks_before_executing_source_code(
         validate(ROOT, ROOT / "sources.lock.yml", tmp_path, tmp_path, tmp_path / "output")
     assert commands == []
     assert not (tmp_path / "output").exists()
+
+
+def test_browser_checks_are_pinned_local_and_in_required_source_job() -> None:
+    steps=load_workflow()['jobs']['validate']['steps']
+    node=next(step for step in steps if step.get('uses')==SETUP_NODE)
+    assert node['with']=={'node-version':'24'}
+    assert steps[-1]['run']=='npm run test:browser'
+    assert steps[-2]['run']=='npm ci --ignore-scripts\nnpx playwright install --with-deps chromium\n'
+    package=json.loads((ROOT/'package.json').read_text(encoding='utf-8'))
+    lock=json.loads((ROOT/'package-lock.json').read_text(encoding='utf-8'))
+    assert package['private'] is True
+    assert package['devDependencies']=={'@playwright/test':'1.64.0','mathjax':'3.2.2'}
+    for name,version in package['devDependencies'].items():
+        assert lock['packages']['node_modules/'+name]['version']==version

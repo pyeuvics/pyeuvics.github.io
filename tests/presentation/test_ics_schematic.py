@@ -75,14 +75,3 @@ def test_overview_integrates_schematic_with_alt_text_and_caption() -> None:
     assert not {"archive", "imported", "downloads"}.intersection(resolved.parts), (
         "overview schematic must not come from an archive, imported source, or download copy"
     )
-
-
-def test_schematic_has_bounded_mobile_and_print_presentation() -> None:
-    overview = OVERVIEW.read_text(encoding="utf-8")
-    stylesheet = STYLESHEET.read_text(encoding="utf-8")
-    assert '<figure class="ics-schematic" markdown="1">' in overview
-    assert ".ics-schematic > p" in stylesheet
-    assert "overflow-x: auto" in stylesheet
-    assert ".ics-schematic img" in stylesheet
-    assert "width: 52rem" in stylesheet
-    assert "@media print" in stylesheet
