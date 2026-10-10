@@ -1,0 +1,537 @@
+{
+  "corpus_version": "1.0",
+  "description": "Independent synthetic producer-consumer contract vectors; not publication approval.",
+  "cases": [
+    {
+      "id": "euvics-1.0-approved",
+      "source": "euvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [],
+      "error": null,
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-1.0-pending",
+      "source": "euvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "approval",
+            "status"
+          ],
+          "value": "pending"
+        }
+      ],
+      "error": "publication approval",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-1.0-traversal",
+      "source": "euvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "path"
+          ],
+          "value": "../private.md"
+        }
+      ],
+      "error": "exact safe",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-1.0-blank-owner",
+      "source": "euvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "approval",
+            "approved_by"
+          ],
+          "value": " "
+        }
+      ],
+      "error": "non-empty",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-1.1-approved",
+      "source": "euvics",
+      "schema": "1.1",
+      "fixture": "basic",
+      "edits": [],
+      "error": null,
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-1.1-pending",
+      "source": "euvics",
+      "schema": "1.1",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "approval",
+            "status"
+          ],
+          "value": "pending"
+        }
+      ],
+      "error": "publication approval",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-1.1-traversal",
+      "source": "euvics",
+      "schema": "1.1",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "path"
+          ],
+          "value": "../private.md"
+        }
+      ],
+      "error": "exact safe",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-1.1-blank-owner",
+      "source": "euvics",
+      "schema": "1.1",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "approval",
+            "approved_by"
+          ],
+          "value": " "
+        }
+      ],
+      "error": "non-empty",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-v11-wrong-hash",
+      "source": "euvics",
+      "schema": "1.1",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "approval",
+            "sha256"
+          ],
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "error": "SHA-256 mismatch",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-v11-invalid-hash",
+      "source": "euvics",
+      "schema": "1.1",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist",
+            "0",
+            "approval",
+            "sha256"
+          ],
+          "value": true
+        }
+      ],
+      "error": "invalid EUVICS approval",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-unknown-schema",
+      "source": "euvics",
+      "schema": "2.0",
+      "fixture": "basic",
+      "edits": [],
+      "error": "identity or policy",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "euvics-unknown-field",
+      "source": "euvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "undocumented"
+          ],
+          "value": true
+        }
+      ],
+      "error": "fields invalid",
+      "files": [
+        "assets/diagram.svg",
+        "docs/overview.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-v1-approved",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [],
+      "error": null,
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-unknown-schema",
+      "source": "pyeuvics",
+      "schema": "2.0",
+      "fixture": "basic",
+      "edits": [],
+      "error": "identity or policy",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-blank-version",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "package",
+            "version"
+          ],
+          "value": " "
+        }
+      ],
+      "error": "non-empty",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-no-limitations",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "package",
+            "known_scientific_limitations"
+          ],
+          "value": []
+        }
+      ],
+      "error": "scientific limitations",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-duplicate-path",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "allowlist"
+          ],
+          "value": [
+            "docs/index.md",
+            "docs/index.md"
+          ]
+        }
+      ],
+      "error": "duplicate allowlist",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-approval-pending",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "candidate_sets"
+          ],
+          "value": [
+            {
+              "name": "neutral-pending",
+              "status": "approval-pending",
+              "owner": "Fixture",
+              "reason": "Unapproved synthetic data",
+              "files": [
+                "notes/note.md"
+              ],
+              "dependencies": []
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-blocked-source-approval",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "basic",
+      "edits": [
+        {
+          "path": [
+            "candidate_sets"
+          ],
+          "value": [
+            {
+              "name": "neutral-pending",
+              "status": "blocked-source-approval",
+              "owner": "Fixture",
+              "reason": "Unapproved synthetic data",
+              "files": [
+                "notes/note.md"
+              ],
+              "dependencies": []
+            }
+          ]
+        }
+      ],
+      "error": null,
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-approved-notebook",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "notebook",
+      "edits": [],
+      "error": null,
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": [
+        "notebooks/00_environment_check.ipynb"
+      ]
+    },
+    {
+      "id": "pyeuvics-notebook-missing-dependency",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "notebook",
+      "edits": [
+        {
+          "path": [
+            "candidate_sets",
+            "0",
+            "dependencies"
+          ],
+          "value": []
+        }
+      ],
+      "error": "approved dependencies",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-notebook-bool-seed",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "notebook",
+      "edits": [
+        {
+          "path": [
+            "candidate_sets",
+            "0",
+            "random_seed"
+          ],
+          "value": true
+        }
+      ],
+      "error": "non-negative integer",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-notebook-tampered-approval",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "notebook",
+      "edits": [
+        {
+          "path": [
+            "candidate_sets",
+            "0",
+            "approval",
+            "status"
+          ],
+          "value": "pending"
+        }
+      ],
+      "error": "explicit approval",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    },
+    {
+      "id": "pyeuvics-compact-approval-date",
+      "source": "pyeuvics",
+      "schema": "1.0",
+      "fixture": "notebook",
+      "edits": [
+        {
+          "path": [
+            "candidate_sets",
+            "0",
+            "approval",
+            "approved_on"
+          ],
+          "value": "20261010"
+        }
+      ],
+      "error": "ISO date",
+      "files": [
+        "docs/guide.md",
+        "docs/index.md"
+      ],
+      "notebooks": []
+    }
+  ],
+  "content_cases": [
+    {
+      "id": "relative-link",
+      "text": "[Guide](guide.md)",
+      "error": null
+    },
+    {
+      "id": "raw-html-link",
+      "text": "<a href=\"guide.md\">Guide</a>",
+      "error": null
+    },
+    {
+      "id": "unpublished-link",
+      "text": "[Unapproved](unapproved.md)",
+      "error": "broken or unpublished"
+    },
+    {
+      "id": "active-script",
+      "text": "<script>alert(1)</script>",
+      "error": "unsafe active content"
+    },
+    {
+      "id": "javascript-link",
+      "text": "[Bad](javascript:alert(1))",
+      "error": "unsupported link scheme"
+    },
+    {
+      "id": "inert-math",
+      "text": "<script type=\"math/tex\">a_0</script>",
+      "error": null
+    }
+  ]
+}
