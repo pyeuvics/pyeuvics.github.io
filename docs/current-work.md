@@ -12,9 +12,13 @@ The owner authorized the ordered tasks in
 local commit per task. Its checked task entries link to completed execution
 plans. [Active plans](exec-plans/active/) show in-progress work and
 [completed plans](exec-plans/completed/) retain task-specific decisions and
-verification. WEB-35 established the [bounded quality policy](quality-policy.md).
-WEB-36 remains for final acceptance; update its status only after its checks pass. [tasks/TODO.md](../tasks/TODO.md) is a short pointer
-to this queue, not an independent contradictory backlog.
+verification. All **36 tasks are complete** with separate verified local commits.
+WEB-35 established the [bounded quality policy](quality-policy.md); WEB-36 records
+[final acceptance](refactoring-acceptance.md), including full artifact identity,
+observed build costs, 670 Python tests and 15 browser checks. Future maintenance
+requires a new bounded execution plan. [tasks/TODO.md](../tasks/TODO.md) points
+here, not to an independent contradictory backlog. Publication decisions and
+hosted release verification remain separate from local refactoring completion.
 
 ## Current boundaries and decisions
 
