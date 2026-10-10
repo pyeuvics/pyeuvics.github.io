@@ -27,7 +27,7 @@ from .ownership import RenderedBuild, plan_artifact, stage_receipt, verify_owner
 from .context import BuildContext, BuildInputs
 from .timestamps import TimestampError, parse_timestamp
 from .promotion import promote_directory
-from .primitives import atomic_write_text, sha256_file
+from .primitives import atomic_write_text, sha256_file, run_text
 
 from tools.privacy import PrivacyError, ScanProfile, scan_text, scan_file
 
@@ -44,7 +44,8 @@ from .notebooks import (
     render_approved_notebooks,
     stage_campaign_overviews,
 )
-from .staging import StagingError, create_staging_plan
+from .staging import StagingError, StagingPlan, create_staging_plan
+from .page_actions import page_actions, correction_url
 from .entry_pages import stage_source_entry_pages
 from .publication_pages import stage_publication_indexes
 from .template_slots import TemplateSlotError
@@ -196,7 +197,7 @@ def _rewrite_markdown(
         raise AssemblyError(f"cannot rewrite links in {published.path}: {exc}") from exc
     fields = [
         MetadataRow("Source", Link(published.path, _source_url(contract, published.path), contract.lock.commit)),
-        MetadataRow("Edit in source repository", Link("Propose a source change", _source_url(contract, published.path, edit=True))),
+        MetadataRow("Source corrections", Link("Propose a source correction", correction_url(contract.lock.repository, _source_url(contract, published.path)))),
         MetadataRow("Repository", Link(contract.lock.repository, contract.lock.repository)),
         MetadataRow("Version", published.version),
         MetadataRow("Publication status", published.publication_status),
@@ -317,13 +318,16 @@ def _write_inventory(
     atomic_write_text(path, json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
-def _configure_site(website_root: Path, output_root: Path) -> Path:
+def _configure_site(website_root: Path, output_root: Path, plan: StagingPlan | None = None) -> Path:
     config = yaml.safe_load((website_root / "mkdocs.yml").read_text(encoding="utf-8"))
     shutil.copytree(website_root / "overrides", output_root / "overrides")
     config["docs_dir"] = "content"
     config["site_dir"] = "site"
     config["not_in_nav"] = "/imported/**"
     config["theme"]["custom_dir"] = "overrides"
+    if plan is not None:
+        revision=run_text(["git","rev-parse","HEAD"],website_root,"website action revision").strip()
+        config.setdefault("extra",{})["publication_pages"]=page_actions(plan,revision)
     config_path = output_root / "mkdocs.yml"
     config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
     return config_path
@@ -471,7 +475,7 @@ def _materialize_build(context: BuildContext) -> tuple[InventoryEntry, ...]:
 
 def _render_build(context: BuildContext, entries: tuple[InventoryEntry, ...]) -> RenderedBuild:
     staged = stage_receipt(context, entries)
-    _configure_site(context.inputs.website_root, context.workspace)
+    _configure_site(context.inputs.website_root, context.workspace, context.inputs.plan)
     artifact = plan_artifact(context, staged)
     site = _build_site(context.inputs.website_root, context.workspace, context.inputs.timestamp.epoch)
     return RenderedBuild(site, artifact)

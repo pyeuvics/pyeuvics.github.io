@@ -18,6 +18,10 @@ def test_real_owned_kernel_and_environment_provenance(tmp_path: Path,monkeypatch
     before=snapshot(pyeuvics)
     locks=write_locks(tmp_path/'sources.lock.yml',commits)
     result=assemble_site(ROOT,locks,euvics,pyeuvics,tmp_path/'output',source_date_epoch='1785628800')
+    html=(result.site/'software/notebooks/00_environment_check/index.html').read_text(encoding='utf-8')
+    assert 'data-page-ownership="source-generated"' in html
+    assert 'pyEUVICS/issues/new?' in html
+    assert 'edit/main/content/software/notebooks/' not in html
     assert snapshot(pyeuvics)==before
     provenance=json.loads((result.output_root/'notebook-execution-provenance.json').read_text(encoding='utf-8'))['notebooks'][0]
     expected=hashlib.sha256(Path(sys.executable).read_bytes()).hexdigest()

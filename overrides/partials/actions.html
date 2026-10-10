@@ -1,5 +1,15 @@
-{# Imported pages are generated from authoritative source repositories. #}
-{% if page.edit_url and not page.file.src_uri.startswith("imported/") %}
+{# All assembled generated pages have explicit output ownership actions. #}
+{% set ownership = config.extra.get("publication_pages", {}).get(page.file.src_uri) %}
+{% if ownership %}
+  <a href="{{ ownership.source | e }}" title="View immutable source" aria-label="View immutable source" class="md-content__button md-icon" data-page-ownership="{{ ownership.kind | e }}">
+    {% include ".icons/material/file-eye-outline.svg" %}
+  </a>
+  {% if "content.action.edit" in features %}
+    <a href="{{ ownership.correction | e }}" title="{{ ownership.correction_label | e }}" aria-label="{{ ownership.correction_label | e }}" class="md-content__button md-icon">
+      {% include ".icons/material/file-edit-outline.svg" %}
+    </a>
+  {% endif %}
+{% elif page.edit_url %}
   {% if "content.action.edit" in features %}
     <a href="{{ page.edit_url }}" title="{{ lang.t('action.edit') }}" class="md-content__button md-icon" rel="edit">
       {% set icon = config.theme.icon.edit or "material/file-edit-outline" %}

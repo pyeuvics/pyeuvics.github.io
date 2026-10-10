@@ -39,6 +39,10 @@ def test_approved_proposal_is_rebuilt_staged_and_described(
     assert commits["euvics"] in overview
     assert (result.site / "documents/proposal.pdf").is_file()
     assert (result.site / "documents/proposal/index.html").is_file()
+    html=(result.site / "documents/proposal/index.html").read_text(encoding="utf-8")
+    assert 'data-page-ownership="source-generated"' in html
+    assert 'euvics/issues/new?' in html
+    assert 'edit/main/content/documents/proposal.md' not in html
     pdf_entry = next(
         item for item in result.inventory if item.source_path == "build/proposal/main.pdf"
     )
