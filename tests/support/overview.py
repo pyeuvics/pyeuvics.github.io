@@ -48,8 +48,17 @@ def write_overview_candidate(root: Path) -> None:
         encoding="utf-8",
     )
     metadata = {
-        "package": {"version": "0.5.0", "source_commit": "1" * 40},
+        "artifact_status": "calculated-unvalidated",
+        "calculation_entry_point": "examples/generate_overview_energy_scan.py",
+        "files": [Path(CSV_PATH).name, Path(SVG_PATH).name],
+        "package": {"name": "pyEUVICS", "version": "0.5.0", "source_commit": "1" * 40},
         "model": {
+            "api": "pyEUVICS.linear_ics",
+            "collision_angle_convention": "between electron and laser propagation vectors; 180 degrees is head-on",
+            "observation_angle_convention": "relative to electron propagation; 0 mrad is forward",
+            "electron_kinetic_energy_MeV": {"minimum": 1.5, "maximum": 4.5, "point_count": 61, "spacing": "linear"},
+            "laser_strength_a0": None,
+            "polarization": "not-applicable-to-linear-kinematics",
             "electron_energy_convention": "kinetic",
             "laser_wavelength_nm": 800.0,
             "collision_angle_deg": 180.0,
