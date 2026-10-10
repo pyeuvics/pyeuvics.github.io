@@ -19,7 +19,7 @@ import yaml
 
 from .primitives import atomic_write_text, sha256_file
 
-from .contracts import ContractError, load_contract, load_locks
+from .contracts import ContractError, load_contract, load_locks, verify_contract_inputs
 from .documents import DocumentError, build_approved_documents
 from .models import AssemblyResult as AssemblyResult  # noqa: PLC0414
 from .models import InventoryEntry, PublishedFile, SourceContract
@@ -316,6 +316,10 @@ def _copy_contract(
     timestamp: str,
     destination_overrides: dict[str, Path] | None = None,
 ) -> tuple[InventoryEntry, ...]:
+    try:
+        verify_contract_inputs(contract)
+    except ContractError as exc:
+        raise AssemblyError(str(exc)) from exc
     source_root = imported_root / contract.lock.name
     ordinary_files = tuple(item for item in contract.files if item.kind != "pdf")
     destinations = {item.path: source_root / item.path for item in ordinary_files}
@@ -637,4 +641,9 @@ def assemble_site(
     shutil.copyfile(inventory_path, imported_root / "staged-content-inventory.json")
     site = _build_site(website_root, output_root)
     _scan_artifact(site)
+    try:
+        for contract in contracts:
+            verify_contract_inputs(contract)
+    except ContractError as exc:
+        raise AssemblyError(str(exc)) from exc
     return AssemblyResult(output_root, staged_content, site, entries)

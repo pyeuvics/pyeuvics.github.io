@@ -6,11 +6,12 @@ import datetime as dt
 import hashlib
 import json
 import re
-import subprocess
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
+
+from .primitives import FileOperationError, run_text
 
 from .models import NotebookSpec, PublishedFile, SourceContract, SourceLock
 
@@ -162,11 +163,9 @@ def load_locks(path: Path) -> dict[str, SourceLock]:
 
 def _git(root: Path, *arguments: str) -> str:
     try:
-        return subprocess.check_output(
-            ["git", *arguments], cwd=root, text=True, stderr=subprocess.STDOUT
-        ).strip()
-    except subprocess.CalledProcessError as exc:
-        raise ContractError(f"git check failed in {root}: {exc.output.strip()}") from exc
+        return run_text(["git", *arguments], root, "source Git check").strip()
+    except FileOperationError as exc:
+        raise ContractError(str(exc)) from exc
 
 
 def verify_checkout(lock: SourceLock, root: Path) -> None:
@@ -182,7 +181,7 @@ def verify_checkout(lock: SourceLock, root: Path) -> None:
     tracked = _git(root, "ls-tree", "-r", "--name-only", "HEAD", "--", lock.manifest_path)
     if tracked != lock.manifest_path:
         raise ContractError(f"publication manifest is not tracked at locked commit: {lock.name}")
-    _validate_file(root, lock.manifest_path)
+    _validate_file(root, lock.manifest_path, lock.commit)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -195,7 +194,7 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def _validate_file(root: Path, relative: str) -> None:
+def _validate_file(root: Path, relative: str, commit: str) -> None:
     path = root / relative
     current = root
     for part in PurePosixPath(relative).parts:
@@ -206,6 +205,30 @@ def _validate_file(root: Path, relative: str) -> None:
         raise ContractError(f"allowlisted source file is missing, non-regular, or a symlink: {relative}")
     if path.suffix.lower() not in SUPPORTED_SUFFIXES:
         raise ContractError(f"unexpected allowlisted file type: {relative}")
+
+    record = _git(root, "--literal-pathspecs", "ls-tree", "-z", commit, "--", relative)
+    entries = record.rstrip("\0").split("\0")
+    if len(entries) != 1 or "\t" not in entries[0]:
+        raise ContractError(f"source file is absent from locked Git tree: {relative}")
+    metadata, stored_path = entries[0].split("\t", 1)
+    mode, kind, object_id = metadata.split()
+    if stored_path != relative or kind != "blob" or mode not in {"100644", "100755"}:
+        raise ContractError(f"source file is not regular in locked Git tree: {relative}")
+    actual = _git(root, "hash-object", "--no-filters", "--", relative)
+    if actual != object_id:
+        raise ContractError(f"source bytes differ from locked Git tree: {relative}")
+
+
+def verify_contract_inputs(contract: SourceContract) -> None:
+    """Recheck admitted live files before/after consumption; not a hostile-host sandbox."""
+    verify_checkout(contract.lock, contract.root)
+    paths = {entry.path for entry in contract.files}
+    for notebook in contract.notebooks:
+        paths.update((notebook.path, *notebook.dependencies, *notebook.configurations))
+    if contract.lock.name == "pyeuvics":
+        paths.add("CITATION.cff")
+    for relative in sorted(paths):
+        _validate_file(contract.root, relative, contract.lock.commit)
 
 
 def load_contract(lock: SourceLock, root: Path) -> SourceContract:
@@ -284,7 +307,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             if entry["publication_status"] not in ("public-draft", "released"):
                 raise ContractError(f"ambiguous EUVICS publication status: {relative}")
             if manifest["schema_version"] == "1.1":
-                _validate_file(root, relative)
+                _validate_file(root, relative, lock.commit)
                 expected = approval["sha256"]
                 if not isinstance(expected, str) or not SHA256_RE.fullmatch(expected):
                     raise ContractError(f"invalid EUVICS approval.sha256: {relative}")
@@ -342,7 +365,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
         ):
             raise ContractError("invalid pyEUVICS package identity or release metadata")
         _text(package["version"], "pyEUVICS package version")
-        _validate_file(root, "CITATION.cff")
+        _validate_file(root, "CITATION.cff", lock.commit)
         limitations = package["known_scientific_limitations"]
         if (
             not isinstance(limitations, list)
@@ -440,7 +463,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             if len(set(safe_dependencies)) != len(safe_dependencies):
                 raise ContractError("duplicate pyEUVICS candidate dependency")
             for relative in (*safe_files, *safe_dependencies):
-                _validate_file(root, relative)
+                _validate_file(root, relative, lock.commit)
             notebook_paths = tuple(path for path in safe_files if path.endswith(".ipynb"))
             campaign_paths = tuple(path for path in safe_files if not path.endswith(".ipynb"))
             if notebook_paths and campaign_paths:
@@ -594,7 +617,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
     if len({item.path for item in files}) != len(files):
         raise ContractError(f"duplicate allowlist paths in {lock.name}")
     for item in files:
-        _validate_file(root, item.path)
+        _validate_file(root, item.path, lock.commit)
     return SourceContract(
         lock,
         root,
