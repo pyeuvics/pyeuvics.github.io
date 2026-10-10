@@ -1,7 +1,13 @@
 """Suite-wide isolation for synthetic Git repositories."""
 from __future__ import annotations
 
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
+
+from tests.support.paths import ROOT
 
 
 @pytest.fixture(autouse=True)
@@ -17,3 +23,16 @@ def isolated_git(monkeypatch: pytest.MonkeyPatch) -> None:
             "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_CONFIG_PARAMETERS",
         }:
             monkeypatch.delenv(name)
+
+
+@pytest.fixture(scope="session")
+def built_site(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    output = tmp_path_factory.mktemp("readthedocs-site")
+    subprocess.run(
+        [sys.executable, "-m", "mkdocs", "build", "--strict", "--site-dir", str(output)],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return output

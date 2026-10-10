@@ -10,7 +10,7 @@ import yaml
 from tools.ci_source_locks import resolve
 from tools.validate_ci import ValidationError, _source_date_epoch, validate, write_review_manifest
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 WORKFLOW = ROOT / ".github/workflows/site-check.yml"
 CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
 SETUP_PYTHON = "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1"

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 CONFIG = ROOT / "mkdocs.yml"
 CONTENT = ROOT / "content"
 

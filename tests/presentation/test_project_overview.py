@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 OVERVIEW = ROOT / "content/project/overview.md"
 CONFIG = ROOT / "mkdocs.yml"
 
