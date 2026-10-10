@@ -95,11 +95,13 @@ def test_successful_assembly_is_deterministic_and_preserves_sources(
         encoding="utf-8"
     )
     assert "edit/main/content/imported/" not in imported_html
-    assert f"pyEUVICS/edit/{commits['pyeuvics']}/docs/index.md" in imported_html
+    assert "pyEUVICS/issues/new?" in imported_html
+    assert f"pyEUVICS/blob/{commits['pyeuvics']}/docs/index.md" in imported_html
     website_html = (first.site / "software/installation/index.html").read_text(
         encoding="utf-8"
     )
-    assert "edit/main/content/software/installation.md" in website_html
+    assert "edit/main/content/software/installation.md" not in website_html
+    assert "pyeuvics.github.io/issues/new?" in website_html
     overview_html = (first.site / "project/overview/index.html").read_text(
         encoding="utf-8"
     )
