@@ -5,13 +5,9 @@ from pathlib import Path
 import yaml
 
 from tests.support.paths import ROOT
+from tests.support.workflows import CHECKOUT, APP_TOKEN, CONFIGURE_PAGES, UPLOAD_PAGES, DEPLOY_PAGES
 WORKFLOW = ROOT / ".github/workflows/pages.yml"
 CHECKLIST = ROOT / "docs/pages-deployment.md"
-CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
-APP_TOKEN = "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1"
-CONFIGURE_PAGES = "actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d"
-UPLOAD_PAGES = "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9"
-DEPLOY_PAGES = "actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e"
 
 
 def load_workflow() -> dict:

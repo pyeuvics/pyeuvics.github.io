@@ -19,9 +19,8 @@ from tools.source_update import (
 from tests.support.publication import init_repo, write_locks
 
 from tests.support.paths import ROOT
+from tests.support.workflows import CHECKOUT, APP_TOKEN, UPLOAD_ARTIFACT, DOWNLOAD_ARTIFACT
 WORKFLOW = ROOT / ".github/workflows/source-update.yml"
-CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
-APP_TOKEN = "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1"
 
 
 def write_lock(path: Path, euvics: str, pyeuvics: str) -> Path:
@@ -151,9 +150,9 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert all(step["with"]["persist-credentials"] == "false" for step in checkouts)
     assert ".sources/candidate-euvics" in validate_text
     assert "tools.validate_ci" in validate_text
-    assert "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a" in validate_text
+    assert UPLOAD_ARTIFACT in validate_text
     assert ".sources/" not in propose_text
-    assert "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c" in propose_text
+    assert DOWNLOAD_ARTIFACT in propose_text
     assert "tools.source_update verify" in propose_text
     assert "tools.proposal_lifecycle gate" in validate_text
     assert "--allow-write" not in validate_text
