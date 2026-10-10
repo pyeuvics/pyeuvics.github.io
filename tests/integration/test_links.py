@@ -128,7 +128,8 @@ def test_rendered_markdown_link_forms_cannot_bypass_publication_boundary(
     ).strip()
     lock = write_locks(tmp_path / "sources.lock.yml", commits)
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1785628800")
-    with pytest.raises(AssemblyError, match="broken or unpublished link"):
+    message = "unsafe active content" if source.startswith("<form") else "broken or unpublished link"
+    with pytest.raises(AssemblyError, match=message):
         assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "output")
 
 

@@ -14,6 +14,8 @@ from nbclient import NotebookClient
 from nbclient.exceptions import CellExecutionError
 from nbconvert import MarkdownExporter
 
+from .content_policy import ContentPolicyError, parse_fragment
+from .rendering import RenderingError, load_renderer
 from .primitives import FileOperationError, export_locked_tree, sha256_file
 
 from .contracts import ContractError, verify_contract_inputs
@@ -60,6 +62,13 @@ def _scan(value: str, label: str) -> None:
         raise NotebookError(str(exc)) from exc
 
 
+def _validate_markup(text: str, label: str) -> None:
+    try:
+        parse_fragment(load_renderer().render(text))
+    except (ContentPolicyError, RenderingError) as exc:
+        raise NotebookError(f"unsafe active content in {label}: {exc}") from exc
+
+
 def _validate_source(spec: NotebookSpec, source: Path, root: Path) -> Any:
     raw = source.read_bytes()
     if len(raw) > spec.max_source_bytes:
@@ -81,6 +90,8 @@ def _validate_source(spec: NotebookSpec, source: Path, root: Path) -> Any:
                 raise NotebookError(f"approved text dependency is not UTF-8: {dependency}") from exc
             _scan(dependency_text, f"notebook dependency {dependency}")
     for cell in notebook.cells:
+        if cell.cell_type == "markdown":
+            _validate_markup(str(cell.get("source", "")), f"notebook Markdown {spec.path}")
         if cell.cell_type == "code" and (cell.get("outputs") or cell.get("execution_count") is not None):
             raise NotebookError(f"source notebook contains outputs or execution counts: {spec.path}")
         if cell.cell_type == "code" and NETWORK_CODE.search(str(cell.get("source", ""))):
@@ -181,6 +192,7 @@ def _render_once(spec: NotebookSpec, source_root: Path) -> tuple[str, dict[str, 
             raise NotebookError(f"unsafe rendered notebook asset: {name}")
         outputs[pure.as_posix()] = value
     _scan(body, f"rendered notebook {spec.path}")
+    _validate_markup(body, f"rendered notebook {spec.path}")
     if UNSAFE_HTML.search(body):
         raise NotebookError(f"unsafe active content in rendered notebook: {spec.path}")
     total_size = len(body.encode("utf-8")) + sum(len(value) for value in outputs.values())
