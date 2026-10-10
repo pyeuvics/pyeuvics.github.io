@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import hashlib
 import json
 import os
 import re
@@ -17,6 +16,8 @@ from urllib.parse import quote, unquote, urlsplit
 
 import markdown
 import yaml
+
+from .primitives import atomic_write_text, sha256_file
 
 from .contracts import ContractError, load_contract, load_locks
 from .documents import DocumentError, build_approved_documents
@@ -160,12 +161,7 @@ def _srcset_targets(value: str) -> list[str]:
     return targets
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+_sha256 = sha256_file
 
 
 def _build_timestamp() -> str:
@@ -400,7 +396,7 @@ def _write_inventory(
             for item in entries
         ],
     }
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    atomic_write_text(path, json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
 def _relative_markdown_link(source_path: str, destination: Path, imported_root: Path) -> str:

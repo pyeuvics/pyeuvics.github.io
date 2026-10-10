@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-import io
 import os
 import re
 import shutil
-import subprocess
-import tarfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -16,6 +13,8 @@ import nbformat
 from nbclient import NotebookClient
 from nbclient.exceptions import CellExecutionError
 from nbconvert import MarkdownExporter
+
+from .primitives import FileOperationError, export_locked_tree, sha256_file
 
 from .models import InventoryEntry, NotebookSpec, SourceContract
 
@@ -42,28 +41,16 @@ class NotebookError(ValueError):
 
 def _archive_checkout(contract: SourceContract, destination: Path) -> None:
     try:
-        archive = subprocess.check_output(
-            ["git", "archive", "--format=tar", contract.lock.commit],
-            cwd=contract.root,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise NotebookError(f"cannot archive locked pyEUVICS source: {exc.output.decode(errors='replace')}") from exc
-    destination.mkdir(parents=True)
-    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:
-        for member in stream.getmembers():
-            path = PurePosixPath(member.name)
-            if path.is_absolute() or ".." in path.parts or not (member.isfile() or member.isdir()):
-                raise NotebookError(f"unsafe member in locked pyEUVICS archive: {member.name}")
-        stream.extractall(destination, filter="data")
+        export_locked_tree(contract.root, contract.lock.commit, destination)
+    except FileOperationError as exc:
+        raise NotebookError(f"cannot archive locked pyEUVICS source: {exc}") from exc
 
 
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
-def _sha256(path: Path) -> str:
-    return _sha256_bytes(path.read_bytes())
+_sha256 = sha256_file
 
 
 def _scan(value: str, label: str) -> None:
