@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import subprocess
@@ -13,6 +12,8 @@ from pathlib import Path
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tools.site_assembly.primitives import atomic_write_text, sha256_file
 
 from tools.site_assembly import AssemblyError, assemble_site
 from tools.site_assembly.contracts import ContractError, load_locks, verify_checkout
@@ -53,8 +54,7 @@ def _source_date_epoch(website_root: Path) -> str:
     return value
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+_sha256 = sha256_file
 
 
 def write_review_manifest(output_root: Path) -> Path:
@@ -81,9 +81,8 @@ def write_review_manifest(output_root: Path) -> Path:
         }
     )
     manifest_path = output_root / "review-artifact-manifest.json"
-    manifest_path.write_text(
-        json.dumps({"manifest_version": 1, "files": files}, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    atomic_write_text(
+        manifest_path, json.dumps({"manifest_version": 1, "files": files}, indent=2, sort_keys=True) + "\n",
     )
     return manifest_path
 

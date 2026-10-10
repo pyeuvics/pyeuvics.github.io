@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import io
 import re
 import shutil
-import subprocess
-import tarfile
 from pathlib import Path
 from urllib.parse import quote
 
 from pypdf import PdfReader
+
+from .primitives import FileOperationError, export_locked_tree, sha256_file, run_text
 
 from .models import InventoryEntry, PublishedFile, SourceContract
 
@@ -29,49 +28,21 @@ class DocumentError(ValueError):
     """An approved document could not be rebuilt and verified safely."""
 
 
-def _sha256(path: Path) -> str:
-    import hashlib
-
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
+_sha256 = sha256_file
 
 
 def _archive_checkout(contract: SourceContract, destination: Path) -> None:
     try:
-        archive = subprocess.check_output(
-            ["git", "archive", "--format=tar", contract.lock.commit],
-            cwd=contract.root,
-            stderr=subprocess.STDOUT,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise DocumentError(f"cannot archive locked EUVICS source: {exc.output.decode(errors='replace')}") from exc
-    destination.mkdir(parents=True)
-    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as stream:
-        for member in stream.getmembers():
-            path = Path(member.name)
-            if path.is_absolute() or ".." in path.parts or not (member.isfile() or member.isdir()):
-                raise DocumentError(f"unsafe member in locked source archive: {member.name}")
-        stream.extractall(destination, filter="data")
+        export_locked_tree(contract.root, contract.lock.commit, destination)
+    except FileOperationError as exc:
+        raise DocumentError(f"cannot archive locked EUVICS source: {exc}") from exc
 
 
 def _run_make(source_build: Path, target: str) -> str:
     try:
-        result = subprocess.run(
-            ["make", target],
-            cwd=source_build,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except FileNotFoundError as exc:
-        raise DocumentError("make is required to build approved EUVICS documents") from exc
-    except subprocess.CalledProcessError as exc:
-        output = (exc.stdout or "") + (exc.stderr or "")
-        raise DocumentError(f"EUVICS make {target} failed:\n{output[-4000:]}") from exc
-    return result.stdout + result.stderr
+        return run_text(["make", target], source_build, f"EUVICS make {target}")
+    except FileOperationError as exc:
+        raise DocumentError(str(exc)) from exc
 
 
 def _validate_pdf(path: Path) -> None:
