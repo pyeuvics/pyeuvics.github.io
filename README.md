@@ -140,11 +140,10 @@ the local checks:
 ```bash
 python3.13 -m venv .venv-docs-313
 source .venv-docs-313/bin/activate
-python -m pip install -r requirements-docs.txt
+python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
 
 mkdocs serve
-mkdocs build --strict
-python -m pytest
+python -m tools.quality
 ```
 
 The generated site is written to ignored `site/`. Source assembly commands are
@@ -168,8 +167,12 @@ exactly; approved campaign files are staged without recalculation.
 
 Do not hard-code personal source paths into configuration, tests, generated pages, or committed scripts.
 
-The pull-request workflow uses the same complete validation entry point as a
-local review. See [Pull-request site validation](docs/ci-validation.md) for the
+The pull-request workflow and local source-only checks use `python -m tools.quality`,
+which runs the full synthetic test suite, strict typing for all tools and shared
+test support, and a strict scaffold build without private source checkouts or credentials.
+Local checks can run on edited files; `--bind` additionally requires a clean checkout
+and records reusable input/environment evidence. Source-backed validation remains
+`python -m tools.validate_ci` and independently assembles both locked sources. See [Pull-request site validation](docs/ci-validation.md) for the
 Python 3.13 environment and command.
 
 ## Deployment

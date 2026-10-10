@@ -15,6 +15,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from tools.quality import run_command as _run,run_checks,write_receipt,verify_receipt
 from tools.validation_evidence import EvidenceError,ARTIFACT_EVIDENCE,website_identity,environment_identity,lock_identity,write_record
 from tools.review_manifest import ReviewManifest,ReviewFile,ReviewManifestError,write_manifest
 from tools.site_assembly.promotion import promote_directory
@@ -27,16 +28,6 @@ from tools.site_assembly.contracts import ContractError, load_locks, verify_chec
 
 class ValidationError(ValueError):
     """The CI-equivalent validation could not complete safely."""
-
-
-def _run(arguments: list[str], cwd: Path, epoch: str | None = None) -> None:
-    try:
-        environment = dict(os.environ)
-        if epoch is not None:
-            environment["SOURCE_DATE_EPOCH"] = epoch
-        subprocess.run(arguments, cwd=cwd, check=True, env=environment)
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise ValidationError(f"validation command failed: {' '.join(arguments)}") from exc
 
 
 def _source_date_epoch(website_root: Path) -> str:
@@ -93,6 +84,7 @@ def validate(
     euvics_source: Path,
     pyeuvics_source: Path,
     output_root: Path,
+    quality_receipt: Path | None = None,
 ) -> Path:
     """Run source contracts, tests, strict build, assembly, scan, and hashing."""
 
@@ -119,7 +111,6 @@ def validate(
     epoch = _source_date_epoch(website_root)
     output_root.parent.mkdir(parents=True, exist_ok=True)
     workspace = Path(tempfile.mkdtemp(prefix=f".{output_root.name}.validation-", dir=output_root.parent))
-    strict_site = workspace / "strict-site"
     assembly = workspace / "assembly"
     try:
         _run(
@@ -148,28 +139,16 @@ def validate(
             website_root,
             epoch,
         )
-        _run([sys.executable, "-m", "pytest"], website_root, epoch)
-        _run(
-            [
-                sys.executable,
-                "-m",
-                "mypy",
-                "--strict",
-                "tools/site_assembly",
-                "tools/assemble_site.py",
-                "tools/ci_source_locks.py",
-                "tools/source_update.py",
-                "tools/validate_ci.py",
-            ],
-            website_root,
-            epoch,
-        )
-        _run(
-            [sys.executable, "-m", "mkdocs", "build", "--strict", "--site-dir", str(strict_site)],
-            website_root,
-            epoch,
-        )
+        if quality_receipt is None:
+            run_checks(website_root,workspace/'website-quality',epoch,_run)
+            quality_record=workspace/'quality-record.json'
+            write_receipt(quality_record,website_before,environment_before,epoch)
+        else:
+            verify_receipt(quality_receipt,website_before,environment_before,epoch)
+            quality_record=quality_receipt
         assemble_site(website_root, lock_path, euvics_source, pyeuvics_source, assembly, source_date_epoch=epoch)
+        shutil.copyfile(quality_record,assembly/"quality-record.json")
+        verify_receipt(assembly/"quality-record.json",website_before,environment_before,epoch)
         write_review_manifest(assembly)
         if website_identity(website_root)!=website_before or environment_identity(website_root)!=environment_before or lock_identity(lock_path)!=lock_before:
             raise EvidenceError('validated website, environment or lock changed during execution')
@@ -189,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--euvics-source", type=Path, required=True)
     parser.add_argument("--pyeuvics-source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--quality-receipt",type=Path)
     args = parser.parse_args(argv)
     try:
         manifest = validate(
@@ -197,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
             args.euvics_source,
             args.pyeuvics_source,
             args.output,
+            args.quality_receipt,
         )
     except ValidationError as exc:
         print(f"CI validation error: {exc}", file=sys.stderr)

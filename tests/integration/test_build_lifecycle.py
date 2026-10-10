@@ -119,6 +119,10 @@ def test_ci_review_manifest_failure_is_retryable_without_environment_mutation(tm
     result=validate_ci.validate(ROOT,lock,euvics,pyeuvics,output)
     assert result==output/'review-artifact-manifest.json'
     assert result.is_file()
+    before_count=len(commands)
+    reused=validate_ci.validate(ROOT,lock,euvics,pyeuvics,tmp_path/'reused',quality_receipt=output/'quality-record.json')
+    assert reused.is_file()
+    assert len(commands)-before_count==2  # Both source-contract validators still execute.
     assert 'SOURCE_DATE_EPOCH' not in os.environ
     assert all(command[2].isdigit() for command in commands)
 
