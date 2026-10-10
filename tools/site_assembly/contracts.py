@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import datetime as dt
 import hashlib
-import json
 import re
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-import yaml
+
+from .structured import StructuredInputError, iso_date, read_json, read_yaml
 
 from .primitives import FileOperationError, run_text
 
@@ -123,8 +122,8 @@ def _strict_object(
     fields: set[str],
     required: set[str] | None = None,
 ) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise ContractError(f"{label} must be an object")
+    if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
+        raise ContractError(f"{label} must be an object with string keys")
     unknown = set(value) - fields
     missing = (fields if required is None else required) - set(value)
     if unknown or missing:
@@ -138,11 +137,11 @@ def load_locks(path: Path) -> dict[str, SourceLock]:
     """Load exactly two resolved source locks from YAML."""
 
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as exc:
+        raw = read_yaml(path)
+    except StructuredInputError as exc:
         raise ContractError(f"cannot read source lock file: {exc}") from exc
     root = _strict_object(raw, "source lock", {"schema_version", "sources"})
-    if root["schema_version"] != 1 or not isinstance(root["sources"], dict):
+    if type(root["schema_version"]) is not int or root["schema_version"] != 1 or not isinstance(root["sources"], dict):
         raise ContractError("unsupported source lock schema")
     if set(root["sources"]) != {"euvics", "pyeuvics"}:
         raise ContractError("source lock must contain exactly euvics and pyeuvics")
@@ -186,12 +185,19 @@ def verify_checkout(lock: SourceLock, root: Path) -> None:
 
 def _load_json(path: Path) -> dict[str, Any]:
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ContractError(f"cannot read publication manifest {path}: {exc}") from exc
+        value = read_json(path)
+    except StructuredInputError as exc:
+        raise ContractError(f"cannot read publication manifest: {exc}") from exc
     if not isinstance(value, dict):
         raise ContractError("publication manifest must be an object")
     return value
+
+
+def _iso_date(value: object, label: str) -> str:
+    try:
+        return iso_date(value, label)
+    except StructuredInputError as exc:
+        raise ContractError(str(exc)) from exc
 
 
 def _validate_file(root: Path, relative: str, commit: str) -> None:
@@ -295,13 +301,9 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             if approval["status"] != "approved":
                 raise ContractError(f"missing explicit publication approval: {relative}")
             _text(approval["approved_by"], "EUVICS approval.approved_by")
-            approved_on = _text(approval["approved_on"], "EUVICS approval.approved_on")
-            try:
-                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", approved_on):
-                    raise ValueError
-                dt.date.fromisoformat(approved_on)
-            except ValueError as exc:
-                raise ContractError("EUVICS approved_on must be a valid ISO date") from exc
+            _iso_date(approval["approved_on"], "EUVICS approved_on")
+            if "document_date" in entry:
+                _iso_date(entry["document_date"], "EUVICS document_date")
             for field in ("title", "version", "license", "attribution"):
                 _text(entry[field], f"EUVICS {relative}.{field}")
             if entry["publication_status"] not in ("public-draft", "released"):
@@ -315,7 +317,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
                 if actual != expected:
                     raise ContractError(f"approved SHA-256 mismatch; repeat publication review: {relative}")
             limitations = entry["known_limitations"]
-            if not isinstance(limitations, list) or any(not isinstance(v, str) or not v for v in limitations):
+            if not isinstance(limitations, list) or any(not isinstance(v, str) or not v.strip() for v in limitations):
                 raise ContractError(f"invalid known limitations: {relative}")
             files.append(
                 PublishedFile(
@@ -412,7 +414,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
         for set_index, raw_set in enumerate(candidate_sets):
             if not isinstance(raw_set, dict):
                 raise ContractError(f"pyEUVICS candidate_sets[{set_index}] must be an object")
-            status = raw_set.get("status")
+            status = _text(raw_set.get("status"), "pyEUVICS candidate status")
             fields = PYEUVICS_SET_APPROVAL_FIELDS if status == "approved" else PYEUVICS_SET_BASE_FIELDS
             required = (
                 PYEUVICS_SET_APPROVAL_REQUIRED
@@ -528,13 +530,7 @@ def load_contract(lock: SourceLock, root: Path) -> SourceContract:
             if approval["status"] != "approved":
                 raise ContractError("approved pyEUVICS set lacks explicit approval")
             _text(approval["approved_by"], "pyEUVICS approval.approved_by")
-            approved_on = _text(
-                approval["approved_on"], "pyEUVICS approval.approved_on"
-            )
-            try:
-                dt.date.fromisoformat(approved_on)
-            except ValueError as exc:
-                raise ContractError("pyEUVICS approved_on must be a valid ISO date") from exc
+            _iso_date(approval["approved_on"], "pyEUVICS approved_on")
             for field in ("publication_status", "validation_status"):
                 _text(
                     publication_set[field],

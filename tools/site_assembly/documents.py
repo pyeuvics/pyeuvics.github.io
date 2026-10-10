@@ -11,6 +11,8 @@ from pypdf import PdfReader
 
 from .primitives import FileOperationError, export_locked_tree, sha256_file, run_text
 
+from .structured import StructuredInputError, iso_date
+
 from .contracts import ContractError, verify_contract_inputs
 
 from .models import InventoryEntry, PublishedFile, SourceContract
@@ -66,8 +68,10 @@ def _validate_document_entry(entry: PublishedFile) -> tuple[str, str, str]:
         raise DocumentError(f"unrecognized approved document path: {entry.path}")
     if entry.kind != "pdf" or entry.publication_status != "released":
         raise DocumentError(f"document must be an explicitly released PDF: {entry.path}")
-    if entry.document_date is None or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", entry.document_date):
-        raise DocumentError(f"document date is missing or invalid: {entry.path}")
+    try:
+        iso_date(entry.document_date, "document date")
+    except StructuredInputError as exc:
+        raise DocumentError(f"document date is missing or invalid: {entry.path}") from exc
     if not all((entry.title.strip(), entry.version.strip(), entry.license.strip(), entry.attribution.strip())):
         raise DocumentError(f"document publication metadata is incomplete: {entry.path}")
     if not entry.known_limitations:

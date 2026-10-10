@@ -4,14 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from tools.site_assembly.contracts import ContractError, load_locks, verify_checkout
+from tools.site_assembly.contracts import ContractError, _load_json, load_locks, verify_checkout
 
 
 def _slug(repository: str) -> str:
@@ -40,10 +39,7 @@ def inspect_euvics(lock_path: Path, source: Path) -> tuple[str, ...]:
 
     lock = load_locks(lock_path)["euvics"]
     verify_checkout(lock, source)
-    try:
-        manifest = json.loads((source / lock.manifest_path).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ContractError(f"cannot inspect locked EUVICS manifest: {exc}") from exc
+    manifest = _load_json(source / lock.manifest_path)
     allowlist = manifest.get("allowlist")
     if not isinstance(allowlist, list):
         raise ContractError("locked EUVICS manifest allowlist must be an array")
