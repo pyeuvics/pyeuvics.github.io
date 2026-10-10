@@ -14,9 +14,9 @@ from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlsplit
 
-import markdown
 import yaml
 
+from .rendering import MarkdownRenderer, RenderingError, load_renderer
 from .primitives import atomic_write_text, sha256_file
 
 from tools.privacy import PrivacyError, ScanProfile, scan_text, scan_file
@@ -58,15 +58,6 @@ TEXT_SUFFIXES = {
     ".bib",
 }
 ARTIFACT_SUFFIXES = TEXT_SUFFIXES | {".png", ".jpg", ".jpeg", ".gif", ".gz", ".map", ".ico", ".pdf"}
-MARKDOWN_EXTENSIONS = [
-    "admonition",
-    "attr_list",
-    "md_in_html",
-    "tables",
-    "pymdownx.arithmatex",
-    "pymdownx.details",
-    "pymdownx.superfences",
-]
 
 
 class AssemblyError(ValueError):
@@ -89,11 +80,9 @@ class _RenderedLinkParser(HTMLParser):
         if tag in {"iframe", "object", "embed"}:
             self.unsafe_active_content = True
         elif tag == "script":
-            # pymdownx.arithmatex (generic mode) renders every equation as an
-            # inert `<script type="math/tex">` data island for MathJax to read
-            # client-side; it is not executable and must not be rejected as
-            # active content. Any other script tag (no type, a JS MIME type,
-            # or one carrying `src`) is still unsafe.
+            # Reviewed legacy math/tex data islands are inert. The current
+            # generic arithmatex renderer uses spans/divs; neither form permits
+            # an executable script or a script carrying a source URL.
             script_type = (attributes.get("type") or "").strip()
             if "src" in attributes or not SAFE_MATH_SCRIPT_TYPE_RE.match(script_type):
                 self.unsafe_active_content = True
@@ -222,9 +211,13 @@ def _validate_rendered_links(
     text: str,
     published: PublishedFile,
     destinations: dict[str, Path],
+    renderer: MarkdownRenderer | None = None,
 ) -> set[str]:
     """Validate every link form rendered by the configured Markdown engine."""
-    rendered = markdown.markdown(text, extensions=MARKDOWN_EXTENSIONS)
+    try:
+        rendered = (renderer or load_renderer()).render(text)
+    except RenderingError as exc:
+        raise AssemblyError(str(exc)) from exc
     if UNSAFE_ACTIVE_ELEMENT_RE.search(rendered):
         raise AssemblyError(
             f"unsafe active content detected in source Markdown {published.path}"
@@ -255,9 +248,10 @@ def _rewrite_markdown(
     destination: Path,
     timestamp: str,
     source_sha256: str,
+    renderer: MarkdownRenderer | None = None,
 ) -> str:
     _scan_text(text, f"source Markdown {contract.lock.name}:{published.path}")
-    rendered_targets = _validate_rendered_links(text, published, destinations)
+    rendered_targets = _validate_rendered_links(text, published, destinations, renderer)
 
     def replace(match: re.Match[str]) -> str:
         target = match.group("target")
@@ -308,6 +302,7 @@ def _copy_contract(
     imported_root: Path,
     timestamp: str,
     destination_overrides: dict[str, Path] | None = None,
+    renderer: MarkdownRenderer | None = None,
 ) -> tuple[InventoryEntry, ...]:
     try:
         verify_contract_inputs(contract)
@@ -336,6 +331,7 @@ def _copy_contract(
                 destination,
                 timestamp,
                 source_sha256,
+                renderer,
             )
             destination.write_text(rewritten, encoding="utf-8")
         else:
@@ -578,6 +574,10 @@ def assemble_site(
         raise AssemblyError("output path must not be a repository or lie inside a source checkout")
     timestamp = _build_timestamp()
     try:
+        renderer = load_renderer(website_root)
+    except RenderingError as exc:
+        raise AssemblyError(str(exc)) from exc
+    try:
         locks = load_locks(lock_path)
         contracts = tuple(
             load_contract(locks[name], source_roots[name]) for name in ("euvics", "pyeuvics")
@@ -609,6 +609,7 @@ def assemble_site(
                     imported_root,
                     timestamp,
                     document_destinations if contract.lock.name == "euvics" else None,
+                    renderer,
                 )
             ),
             key=lambda item: (item.source, item.source_path),
