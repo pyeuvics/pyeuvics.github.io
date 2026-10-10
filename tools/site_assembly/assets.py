@@ -206,3 +206,13 @@ def validate_asset(path: Path, *, origin: Origin = 'source', relative: str | Non
             _inspect(data, path.suffix.lower(), origin, relative or path.name, approved)
     except Exception as exc:
         raise AssetError('asset fails bounded format/privacy validation') from exc
+
+
+def validate_raster_bytes(data: bytes, suffix: str) -> None:
+    """Inspect generated raster resources before they enter the staging tree."""
+    try:
+        if len(data) > MAX_FILE: raise AssetError('raster exceeds file size limit')
+        scan_bytes(data,'raster bytes',ScanProfile.PUBLIC)
+        _raster(data,suffix)
+    except Exception as exc:
+        raise AssetError('raster fails bounded format/privacy validation') from exc

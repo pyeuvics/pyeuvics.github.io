@@ -58,7 +58,9 @@ def test_approved_notebook_is_executed_deterministically_and_source_is_immutable
         (first.staged_content / "software/notebooks/00_environment_check_files").glob("*.png")
     )
     assert len(assets) == 1
-    assert (first.site / "software/notebooks/00_environment_check/index.html").is_file()
+    final_page = first.site / "software/notebooks/00_environment_check/index.html"
+    assert final_page.is_file()
+    assert final_page.read_text(encoding="utf-8").count("<h1") == 1
     assert (first.output_root / "staged-content-inventory.json").read_bytes() == (
         second.output_root / "staged-content-inventory.json"
     ).read_bytes()

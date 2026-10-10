@@ -1,50 +1,17 @@
-"""Execute and render explicitly approved pyEUVICS notebooks."""
-
+"""Coordinate two independent executions and stage deterministic notebooks."""
 from __future__ import annotations
-
 import hashlib
-import os
-import re
-import shutil
-from pathlib import Path, PurePosixPath
-from typing import Any
-
-import nbformat
-from nbclient import NotebookClient
-from nbclient.exceptions import CellExecutionError
-from nbconvert import MarkdownExporter
-
-from .content_policy import ContentPolicyError, parse_fragment
-from .rendering import RenderingError, load_renderer
+from pathlib import Path
 from .primitives import FileOperationError, export_locked_tree, sha256_file
-
 from .contracts import ContractError, verify_contract_inputs
-
-from tools.privacy import PrivacyError, ScanProfile, scan_text
-
-from .presentation import (
-    Code, Link, MetadataRow, NotebookPage, markdown_text, render_link,
-    render_notebook, render_table, render_limitations, source_url,
-)
-from .staging import StagingPlan, notebook_page
 from .models import InventoryEntry, NotebookSpec, SourceContract
-
-DATA_LITERAL = re.compile(
-    r"[\"']([^\"']+\.(?:csv|json|ya?ml|npy|npz|h5|hdf5|parquet|dat|txt))[\"']",
-    re.IGNORECASE,
-)
-NETWORK_CODE = re.compile(r"\b(?:requests\.|httpx\.|urlopen\s*\(|socket\.|wget\b|curl\b)")
-UNSAFE_HTML = re.compile(r"<(?:script|iframe)\b|javascript:", re.IGNORECASE)
-SAFE_OUTPUT_MIMES = {"text/plain", "text/markdown", "image/png", "image/jpeg"}
-INHERITED_ENVIRONMENT = {
-    "CONDA_PREFIX", "PATH", "SYSTEMROOT", "TEMP", "TMP", "TMPDIR",
-    "VIRTUAL_ENV", "WINDIR",
-}
-
-
-class NotebookError(ValueError):
-    """An approved notebook cannot be safely rendered."""
-
+from .staging import StagingPlan, notebook_page
+from .presentation import Link, render_link
+from .notebook_policy import NotebookError as NotebookError, _scan as _scan
+from .notebook_admission import admit_notebook, _validate_source as _validate_source
+from .notebook_execution import execute_notebook
+from .notebook_rendering import render_executed, _page_header as _page_header
+from .campaign_pages import stage_campaign_overviews as stage_campaign_overviews
 
 def _archive_checkout(contract: SourceContract, destination: Path) -> None:
     try:
@@ -60,172 +27,10 @@ def _sha256_bytes(value: bytes) -> str:
 _sha256 = sha256_file
 
 
-def _scan(value: str, label: str) -> None:
-    try:
-        scan_text(value, label, ScanProfile.NOTEBOOK)
-    except PrivacyError as exc:
-        raise NotebookError(str(exc)) from exc
-
-
-def _validate_markup(text: str, label: str) -> None:
-    try:
-        parse_fragment(load_renderer().render(text))
-    except (ContentPolicyError, RenderingError) as exc:
-        raise NotebookError(f"unsafe active content in {label}: {exc}") from exc
-
-
-def _validate_source(spec: NotebookSpec, source: Path, root: Path) -> Any:
-    raw = source.read_bytes()
-    if len(raw) > spec.max_source_bytes:
-        raise NotebookError(f"notebook exceeds source size limit: {spec.path}")
-    try:
-        text = raw.decode("utf-8")
-        notebook = nbformat.reads(text, as_version=4)  # type: ignore[no-untyped-call]
-    except (UnicodeDecodeError, ValueError) as exc:
-        raise NotebookError(f"invalid UTF-8 notebook: {spec.path}") from exc
-    _scan(text, f"source notebook {spec.path}")
-    if UNSAFE_HTML.search(text):
-        raise NotebookError(f"unsafe active content in source notebook: {spec.path}")
-    for dependency in spec.dependencies:
-        dependency_path = root / dependency
-        if dependency_path.suffix.lower() in {".csv", ".json", ".yaml", ".yml", ".txt"}:
-            try:
-                dependency_text = dependency_path.read_text(encoding="utf-8")
-            except UnicodeDecodeError as exc:
-                raise NotebookError(f"approved text dependency is not UTF-8: {dependency}") from exc
-            _scan(dependency_text, f"notebook dependency {dependency}")
-    for cell in notebook.cells:
-        if cell.cell_type == "markdown":
-            _validate_markup(str(cell.get("source", "")), f"notebook Markdown {spec.path}")
-        if cell.cell_type == "code" and (cell.get("outputs") or cell.get("execution_count") is not None):
-            raise NotebookError(f"source notebook contains outputs or execution counts: {spec.path}")
-        if cell.cell_type == "code" and NETWORK_CODE.search(str(cell.get("source", ""))):
-            raise NotebookError(f"network-dependent code is not approved for static execution: {spec.path}")
-    approved = set(spec.dependencies)
-    for raw_path in DATA_LITERAL.findall(text):
-        candidate = PurePosixPath(raw_path)
-        if candidate.is_absolute() or ".." in candidate.parts:
-            raise NotebookError(f"unsafe data dependency in notebook {spec.path}: {raw_path}")
-        root_relative = candidate.as_posix()
-        notebook_relative = (PurePosixPath(spec.path).parent / candidate).as_posix()
-        relative = root_relative if (root / root_relative).exists() else notebook_relative
-        if (root / relative).exists() and relative not in approved:
-            raise NotebookError(f"unapproved data dependency in notebook {spec.path}: {relative}")
-    return notebook
-
-
-def _tree_snapshot(root: Path) -> dict[str, str]:
-    return {
-        path.relative_to(root).as_posix(): _sha256(path)
-        for path in root.rglob("*")
-        if path.is_file()
-    }
-
 
 def _render_once(spec: NotebookSpec, source_root: Path) -> tuple[str, dict[str, bytes]]:
-    source = source_root / spec.path
-    notebook = _validate_source(spec, source, source_root)
-    before = _tree_snapshot(source_root)
-    runtime_parent = source_root.parent / "notebook-runtime-output"
-    runtime_output = runtime_parent / Path(spec.path).stem
-    if runtime_output.exists():
-        shutil.rmtree(runtime_output)
-    runtime_output.mkdir(parents=True)
-    runtime_home = source_root.parent / "notebook-runtime-home"
-    if runtime_home.exists():
-        shutil.rmtree(runtime_home)
-    runtime_home.mkdir()
-    environment = {
-        name: value
-        for name in INHERITED_ENVIRONMENT
-        if (value := os.environ.get(name)) is not None
-    }
-    environment.update(
-        {
-            "HOME": str(runtime_home),
-            "LANG": "C.UTF-8",
-            "LC_ALL": "C.UTF-8",
-            "MPLBACKEND": "Agg",
-            "PYEUVICS_NOTEBOOK_OUTPUT": (
-                f"../notebook-runtime-output/{Path(spec.path).stem}"
-            ),
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "PYTHONHASHSEED": spec.random_seed,
-            "TZ": "UTC",
-        }
-    )
-    source_path = source_root / "src"
-    if source_path.is_dir():
-        environment["PYTHONPATH"] = str(source_path)
-    client = NotebookClient(
-        notebook,
-        timeout=120,
-        kernel_name="python3",
-        allow_errors=False,
-        record_timing=False,
-    )
-    try:
-        executed = client.execute(cwd=str(source_root), env=environment)
-    except (CellExecutionError, TimeoutError, RuntimeError, OSError) as exc:
-        raise NotebookError(f"notebook execution failed: {spec.path}: {exc}") from exc
-    after = _tree_snapshot(source_root)
-    if after != before:
-        raise NotebookError(f"notebook execution modified its temporary source tree: {spec.path}")
-    for cell in executed.cells:
-        for output in cell.get("outputs", []):
-            data = output.get("data", {})
-            if isinstance(data, dict):
-                unexpected_mimes = set(data) - SAFE_OUTPUT_MIMES
-                if unexpected_mimes:
-                    raise NotebookError(
-                        f"unsafe or unsupported notebook output MIME types in {spec.path}: "
-                        f"{sorted(unexpected_mimes)}"
-                    )
-    exporter = MarkdownExporter()  # type: ignore[no-untyped-call]
-    asset_directory = f"{Path(spec.path).stem}_files"
-    body, resources = exporter.from_notebook_node(
-        executed,
-        resources={"output_files_dir": asset_directory},
-    )
-    raw_outputs = resources.get("outputs", {})
-    if not isinstance(raw_outputs, dict):
-        raise NotebookError(f"invalid rendered output resources: {spec.path}")
-    outputs: dict[str, bytes] = {}
-    for name, value in raw_outputs.items():
-        pure = PurePosixPath(str(name))
-        if pure.is_absolute() or ".." in pure.parts or not isinstance(value, bytes):
-            raise NotebookError(f"unsafe rendered notebook asset: {name}")
-        outputs[pure.as_posix()] = value
-    _scan(body, f"rendered notebook {spec.path}")
-    _validate_markup(body, f"rendered notebook {spec.path}")
-    if UNSAFE_HTML.search(body):
-        raise NotebookError(f"unsafe active content in rendered notebook: {spec.path}")
-    total_size = len(body.encode("utf-8")) + sum(len(value) for value in outputs.values())
-    if total_size > spec.max_rendered_bytes:
-        raise NotebookError(f"rendered notebook exceeds size limit: {spec.path}")
-    return body, outputs
-
-
-def _page_header(spec: NotebookSpec, contract: SourceContract, timestamp: str) -> str:
-    page = NotebookPage(
-        spec.title,
-        (
-            MetadataRow("pyEUVICS version", spec.package_version),
-            MetadataRow("Source commit", Code(contract.lock.commit)),
-            MetadataRow("Notebook source", Link(spec.path, source_url(contract.lock, spec.path))),
-            MetadataRow("Build execution policy", "Executed during this website build"),
-            MetadataRow("Random seed", spec.random_seed),
-            MetadataRow("Configuration", Code(", ".join(spec.configurations)) if spec.configurations else "None"),
-            MetadataRow("Scientific validation status", spec.validation_status),
-            MetadataRow("Publication status", spec.publication_status),
-            MetadataRow("License", spec.license),
-            MetadataRow("Attribution", spec.attribution),
-            MetadataRow("Website build timestamp", timestamp),
-        ),
-        spec.local_requirements,
-        spec.known_limitations,
-    )
-    return render_notebook(page)
+    result = render_executed(execute_notebook(admit_notebook(spec,source_root)))
+    return result.body,result.assets
 
 
 def render_approved_notebooks(
@@ -302,49 +107,3 @@ def render_approved_notebooks(
         encoding="utf-8",
     )
     return tuple(inventory)
-
-
-def stage_campaign_overviews(contract: SourceContract, staged_content: Path, timestamp: str) -> None:
-    """Replace campaign placeholders only when exact campaign files are approved."""
-
-    campaigns = {
-        "reference_6p7nm": ("6.7 nm reference campaign", Path("campaigns/6-7-nm.md")),
-        "reference_13p5nm": ("13.5 nm reference campaign", Path("campaigns/13-5-nm.md")),
-    }
-    for campaign, (title, overview_relative) in campaigns.items():
-        approved = tuple(
-            item for item in contract.files if item.path.startswith(f"campaigns/{campaign}/")
-        )
-        if not approved:
-            continue
-        status = {item.publication_status for item in approved}
-        validation = {item.validation_status for item in approved}
-        limitations = sorted({value for item in approved for value in item.known_limitations})
-        if len(status) != 1 or len(validation) != 1 or None in validation:
-            raise NotebookError(f"inconsistent approved campaign metadata: {campaign}")
-        links = "\n".join(
-            "- " + render_link(Link(item.title, f"../imported/pyeuvics/{item.path}")) for item in approved
-        )
-        limitation_text = render_limitations(tuple(limitations))
-        fields = render_table((
-            MetadataRow("pyEUVICS version", approved[0].version),
-            MetadataRow("Source commit", Code(contract.lock.commit)),
-            MetadataRow("Publication status", next(iter(status))),
-            MetadataRow("Scientific validation status", next(iter(validation)) or ""),
-            MetadataRow("Website build timestamp", timestamp),
-        ))
-        (staged_content / overview_relative).write_text(
-            f"""# {title}
-
-{fields}
-
-## Approved campaign material
-
-{links}
-
-## Known limitations
-
-{limitation_text}
-""",
-            encoding="utf-8",
-        )
