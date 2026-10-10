@@ -2,6 +2,7 @@
 from __future__ import annotations
 import hashlib
 import json
+import shutil
 from pathlib import Path
 from .primitives import FileOperationError, atomic_write_text, export_locked_tree, sha256_file
 from .contracts import ContractError, verify_contract_inputs
@@ -10,7 +11,7 @@ from .staging import StagingPlan, notebook_page
 from .presentation import Link, render_link
 from .notebook_policy import NotebookError as NotebookError, RenderedNotebook, _scan as _scan
 from .notebook_admission import admit_notebook, _validate_source as _validate_source
-from .notebook_execution import execute_notebook
+from .notebook_execution import execute_notebook, _tree_snapshot
 from .notebook_rendering import render_executed, _page_header as _page_header
 from .campaign_pages import stage_campaign_overviews as stage_campaign_overviews
 
@@ -52,13 +53,19 @@ def render_approved_notebooks(
         raise NotebookError(str(exc)) from exc
     source_build = output_root / "source-build/pyeuvics-notebooks"
     _archive_checkout(contract, source_build)
+    pristine = _tree_snapshot(source_build)
     index_links: list[str] = []
     provenance: list[dict[str, object]] = []
     for spec in contract.notebooks:
         source = contract.root / spec.path
         source_before = source.read_bytes()
-        first = _render_once(spec, source_build)
-        second = _render_once(spec, source_build)
+        runs: list[RenderedNotebook] = []
+        for number in (1,2):
+            run_source=output_root/'source-build/notebook-runs'/Path(spec.path).stem/f'run-{number}'/'source'
+            shutil.copytree(source_build,run_source)
+            runs.append(_render_once(spec,run_source))
+            if _tree_snapshot(source_build)!=pristine:raise NotebookError('notebook modified the pristine build source')
+        first,second=runs
         first_body, first_assets = first.body, first.assets
         if first.body != second.body or first.assets != second.assets or first.environment != second.environment:
             raise NotebookError(f"notebook rendering is nondeterministic: {spec.path}")

@@ -33,6 +33,7 @@ class EnvironmentIdentity:
     source_tree_sha256: str
     source_policies: tuple[tuple[str,str], ...]
     python_hash_seed: str
+    execution_policy: tuple[tuple[str,str], ...] = ()
 
     def to_dict(self) -> dict[str,Any]:
         return asdict(self)
@@ -102,9 +103,10 @@ def capture_environment(spec: NotebookSpec, source_root: Path, source_files: dic
         raise NotebookError('cannot validate notebook execution environment') from exc
 
 
-def owned_kernel(runtime_home: Path) -> AsyncKernelManager:
+def owned_kernel(runtime_home: Path, launcher: Path | None = None, policy: Path | None = None) -> AsyncKernelManager:
     kernels=runtime_home/'kernels';folder=kernels/'publication';folder.mkdir(parents=True)
-    spec={'argv':[sys.executable,'-m','ipykernel_launcher','-f','{connection_file}'],'display_name':'Publication Python','language':'python'}
+    argv=[sys.executable,'-m','ipykernel_launcher','-f','{connection_file}'] if launcher is None else [sys.executable,str(launcher),str(policy),'-f','{connection_file}']
+    spec={'argv':argv,'display_name':'Publication Python','language':'python'}
     atomic_write_text(folder/'kernel.json',json.dumps(spec,sort_keys=True)+'\n')
     manager=KernelSpecManager(kernel_dirs=[str(kernels)],ensure_native_kernel=False)
     if manager.get_kernel_spec('publication').argv!=spec['argv']:
