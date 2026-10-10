@@ -39,6 +39,7 @@ from .notebooks import (
     render_approved_notebooks,
     stage_campaign_overviews,
 )
+from .staging import StagingError, create_staging_plan
 from .overview_figures import OverviewFigureError, stage_overview_figure
 
 TEXT_SUFFIXES = {
@@ -496,16 +497,22 @@ def assemble_site(
         )
     except ContractError as exc:
         raise AssemblyError(str(exc)) from exc
+    try:
+        plan = create_staging_plan(website_root, contracts)
+    except StagingError as exc:
+        raise AssemblyError(str(exc)) from exc
     output_root.mkdir(parents=True)
+    atomic_write_text(output_root / "staging-plan.json", json.dumps(plan.to_dict(), indent=2, sort_keys=True) + "\n")
     staged_content = output_root / "content"
     shutil.copytree(website_root / "content", staged_content)
     euvics_contract = next(contract for contract in contracts if contract.lock.name == "euvics")
     try:
-        document_entries, document_destinations = build_approved_documents(
+        document_entries, _ = build_approved_documents(
             euvics_contract,
             output_root,
             staged_content,
             timestamp,
+            plan,
         )
     except DocumentError as exc:
         raise AssemblyError(str(exc)) from exc
@@ -520,10 +527,7 @@ def assemble_site(
                     contract,
                     imported_root,
                     timestamp,
-                    document_destinations if contract.lock.name == "euvics" else {
-                        spec.path: staged_content / "software/notebooks" / f"{Path(spec.path).stem}.md"
-                        for spec in contract.notebooks
-                    },
+                    plan.source_destinations(contract.lock.name, staged_content),
                     renderer,
                 )
             ),
@@ -539,10 +543,11 @@ def assemble_site(
             output_root,
             staged_content,
             timestamp,
+            plan,
         )
         stage_campaign_overviews(pyeuvics_contract, staged_content, timestamp)
         stage_overview_figure(pyeuvics_contract, staged_content)
-    except (NotebookError, OverviewFigureError) as exc:
+    except (NotebookError, OverviewFigureError, StagingError) as exc:
         raise AssemblyError(str(exc)) from exc
     _stage_source_entry_pages(contracts, staged_content, imported_root, timestamp)
     entries = tuple(
