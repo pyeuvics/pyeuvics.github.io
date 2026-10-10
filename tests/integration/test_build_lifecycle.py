@@ -70,7 +70,7 @@ def test_each_phase_failure_retains_labelled_owned_workspace(tmp_path: Path, mon
     inputs=BuildInputs(ROOT,target,parse_timestamp('1785628800'),(),StagingPlan((),(),(),()),load_renderer())
     monkeypatch.setattr(pipeline,'_prepare_build',lambda *args:inputs)
     def materialize(context):context.content.mkdir();return ()
-    def render(context):
+    def render(context, entries):
         site=context.workspace/'site';site.mkdir();(site/'index.html').write_text('fixture',encoding='utf-8');return site
     monkeypatch.setattr(pipeline,'_materialize_build',materialize)
     monkeypatch.setattr(pipeline,'_render_build',render)

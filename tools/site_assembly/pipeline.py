@@ -22,6 +22,7 @@ from .content_policy import (
 )
 from .links import LinkRewriteError, RenderedLinks, rewrite_destinations
 from .rendering import MarkdownRenderer, RenderingError, load_renderer, final_relative_url
+from .ownership import RenderedBuild, plan_artifact, stage_receipt, verify_ownership
 from .context import BuildContext, BuildInputs
 from .timestamps import TimestampError, parse_timestamp
 from .promotion import promote_directory
@@ -431,7 +432,7 @@ def _stage_source_entry_pages(
         )
 
 
-def _build_site(website_root: Path, output_root: Path, source_date_epoch: str | None = None) -> Path:
+def _configure_site(website_root: Path, output_root: Path) -> Path:
     config = yaml.safe_load((website_root / "mkdocs.yml").read_text(encoding="utf-8"))
     shutil.copytree(website_root / "overrides", output_root / "overrides")
     config["docs_dir"] = "content"
@@ -440,6 +441,13 @@ def _build_site(website_root: Path, output_root: Path, source_date_epoch: str | 
     config["theme"]["custom_dir"] = "overrides"
     config_path = output_root / "mkdocs.yml"
     config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    return config_path
+
+
+def _build_site(website_root: Path, output_root: Path, source_date_epoch: str | None = None) -> Path:
+    config_path = output_root / "mkdocs.yml"
+    if not config_path.exists():
+        _configure_site(website_root, output_root)
     environment = dict(os.environ)
     if source_date_epoch is not None:
         environment["SOURCE_DATE_EPOCH"] = source_date_epoch
@@ -575,12 +583,17 @@ def _materialize_build(context: BuildContext) -> tuple[InventoryEntry, ...]:
     return entries
 
 
-def _render_build(context: BuildContext) -> Path:
-    return _build_site(context.inputs.website_root, context.workspace, context.inputs.timestamp.epoch)
+def _render_build(context: BuildContext, entries: tuple[InventoryEntry, ...]) -> RenderedBuild:
+    staged = stage_receipt(context, entries)
+    _configure_site(context.inputs.website_root, context.workspace)
+    artifact = plan_artifact(context, staged)
+    site = _build_site(context.inputs.website_root, context.workspace, context.inputs.timestamp.epoch)
+    return RenderedBuild(site, artifact)
 
 
-def _verify_build(context: BuildContext, site: Path) -> None:
-    _scan_artifact(site)
+def _verify_build(context: BuildContext, rendered: RenderedBuild) -> None:
+    verify_ownership(context, rendered)
+    _scan_artifact(rendered.site)
     for contract in context.inputs.contracts:
         verify_contract_inputs(contract)
 
@@ -612,9 +625,9 @@ def assemble_site(
     try:
         entries = _materialize_build(context)
         phase = "render"
-        site = _render_build(context)
+        rendered = _render_build(context, entries)
         phase = "verify"
-        _verify_build(context, site)
+        _verify_build(context, rendered)
         phase = "finalize"
         return _finalize_build(context, entries)
     except BaseException as exc:
