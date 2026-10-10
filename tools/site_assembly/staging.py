@@ -7,7 +7,7 @@ from pathlib import Path, PurePosixPath
 import re
 import unicodedata
 
-from .documents import DocumentError, _validate_document_entry
+from .document_policy import DocumentError, validate_document_entry as _validate_document_entry
 from .models import SourceContract
 from .primitives import FileOperationError, sha256_file
 from .website_inputs import website_inputs

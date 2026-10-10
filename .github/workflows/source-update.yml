@@ -177,8 +177,8 @@ jobs:
       - name: Install EUVICS document toolchain when required
         if: >-
           steps.candidates.outputs.has_updates == 'true' &&
-          (steps.current_publication.outputs.approved_pdf == 'true' ||
-           steps.candidate_publication.outputs.approved_pdf == 'true')
+          (steps.current_publication.outputs.pdf_candidate == 'true' ||
+           steps.candidate_publication.outputs.pdf_candidate == 'true')
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends latexmk texlive-latex-base texlive-latex-extra

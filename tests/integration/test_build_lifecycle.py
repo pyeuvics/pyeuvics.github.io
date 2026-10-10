@@ -125,7 +125,7 @@ def test_subprocess_timestamp_is_explicit_without_changing_parent(tmp_path: Path
     seen=[]
     monkeypatch.setattr(validate_ci.subprocess,'run',lambda args,**kwargs:seen.append(kwargs['env']['SOURCE_DATE_EPOCH']))
     validate_ci._run(['fixture'],tmp_path,'1785628800')
-    monkeypatch.setattr(documents,'run_text',lambda *args,**kwargs:seen.append(kwargs['environment']['SOURCE_DATE_EPOCH']) or '')
+    monkeypatch.setattr('tools.site_assembly.document_build.run_text',lambda *args,**kwargs:seen.append(kwargs['environment']['SOURCE_DATE_EPOCH']) or '')
     documents._run_make(tmp_path,'check','1785628800')
     assert seen==['1785628800','1785628800']
     assert 'SOURCE_DATE_EPOCH' not in os.environ

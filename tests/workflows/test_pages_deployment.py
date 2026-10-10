@@ -68,7 +68,7 @@ def test_build_is_read_only_locked_and_uploads_only_validated_site() -> None:
     names = [step["name"] for step in build["steps"]]
     scrub = names.index("Verify checkout credentials were removed")
     assert scrub > names.index("Check out locked pyEUVICS source")
-    assert scrub < names.index("Inspect approved document requirements")
+    assert scrub < names.index("Inspect document toolchain candidates")
     assert "tools.verify_runner_credentials" in build["steps"][scrub]["run"]
 
 
