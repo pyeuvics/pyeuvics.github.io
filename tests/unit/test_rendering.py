@@ -59,3 +59,11 @@ def test_renderer_does_not_leak_state_between_pages() -> None:
     renderer = load_renderer(ROOT)
     renderer.render('[ref]: https://example.org\n\n[ref]')
     assert 'href=' not in renderer.render('[ref]')
+
+
+def test_directory_url_policy_changes_require_review(tmp_path: Path) -> None:
+    config = yaml.safe_load((ROOT/'mkdocs.yml').read_text(encoding='utf-8'))
+    config['use_directory_urls'] = False
+    (tmp_path/'mkdocs.yml').write_text(yaml.safe_dump(config),encoding='utf-8')
+    with pytest.raises(RenderingError, match='directory URL policy'):
+        load_renderer(tmp_path)

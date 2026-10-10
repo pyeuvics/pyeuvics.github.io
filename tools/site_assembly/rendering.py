@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 
 import markdown
+from markdown.treeprocessors import Treeprocessor
+from xml.etree.ElementTree import Element
+from mkdocs.structure.files import File
 from mkdocs.config import load_config
 from mkdocs.exceptions import ConfigurationError
 
@@ -35,11 +38,38 @@ class MarkdownRenderer:
     extensions: tuple[str, ...]
     options: tuple[tuple[str, tuple[tuple[str, bool], ...]], ...]
 
-    def render(self, text: str) -> str:
-        return markdown.Markdown(
+    def inspect(self, text: str) -> tuple[str, frozenset[str]]:
+        engine = markdown.Markdown(
             extensions=list(self.extensions),
             extension_configs={name: dict(options) for name, options in self.options},
-        ).convert(text)
+        )
+        collector = _ManagedLinks(engine)
+        engine.treeprocessors.register(collector, "publication_destinations", 0)
+        return engine.convert(text), frozenset(collector.targets)
+
+    def render(self, text: str) -> str:
+        return self.inspect(text)[0]
+
+
+class _ManagedLinks(Treeprocessor):
+    """Record precisely the tree attributes MkDocs' relative-path pass rewrites."""
+
+    def __init__(self, md: markdown.Markdown) -> None:
+        super().__init__(md)
+        self.targets: set[str] = set()
+
+    def run(self, root: Element) -> None:
+        for element in root.iter():
+            key = {"a": "href", "img": "src"}.get(element.tag)
+            if key is not None and (target := element.get(key)) is not None:
+                self.targets.add(target)
+
+
+def final_relative_url(target: Path, current: Path) -> str:
+    """Use MkDocs' actual file-to-URL rules for attributes it does not rewrite."""
+    target_file = File(target.as_posix().lstrip("/"), "", "", use_directory_urls=True)
+    current_file = File(current.as_posix().lstrip("/"), "", "", use_directory_urls=True)
+    return target_file.url_relative_to(current_file)
 
 
 def load_renderer(website_root: Path | None = None) -> MarkdownRenderer:
@@ -53,6 +83,8 @@ def load_renderer(website_root: Path | None = None) -> MarkdownRenderer:
     # intentionally distinguishes true from 1 as well as preserving list order.
     if not isinstance(raw, dict) or json.dumps(raw.get("markdown_extensions"), sort_keys=True) != json.dumps(REVIEWED_SITE_EXTENSIONS, sort_keys=True):
         raise RenderingError("website Markdown settings require compatibility review")
+    if raw.get("use_directory_urls") is not True:
+        raise RenderingError("directory URL policy requires compatibility review")
     try:
         config = load_config(config_file=str(path))
     except ConfigurationError as exc:

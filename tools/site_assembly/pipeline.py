@@ -9,14 +9,14 @@ import re
 import shutil
 import subprocess
 import sys
-from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlsplit
 
 import yaml
 
-from .rendering import MarkdownRenderer, RenderingError, load_renderer
+from .links import LinkRewriteError, RenderedLinks, rewrite_destinations
+from .rendering import MarkdownRenderer, RenderingError, load_renderer, final_relative_url
 from .primitives import atomic_write_text, sha256_file
 
 from tools.privacy import PrivacyError, ScanProfile, scan_text, scan_file
@@ -34,7 +34,6 @@ from .overview_figures import OverviewFigureError, stage_overview_figure
 
 UNSAFE_ACTIVE_ELEMENT_RE = re.compile(r"<iframe\b", re.IGNORECASE)
 SAFE_MATH_SCRIPT_TYPE_RE = re.compile(r"^math/tex(?:\s*;\s*mode\s*=\s*display\s*)?$", re.IGNORECASE)
-LINK_RE = re.compile(r"(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>[^)]*\))")
 CSS_URL_RE = re.compile(
     r"url\(\s*(?:([\"'])(.*?)\1|([^\s)]+))\s*\)", re.IGNORECASE | re.DOTALL
 )
@@ -207,37 +206,33 @@ def _resolve_source_target(source_path: str, target: str) -> tuple[str, str]:
     return "/".join(normalized), suffix
 
 
+def _inspect_links(text: str, renderer: MarkdownRenderer) -> RenderedLinks:
+    rendered, managed = renderer.inspect(text)
+    parser = _RenderedLinkParser()
+    parser.feed(rendered)
+    if parser.unsafe_active_content or UNSAFE_ACTIVE_ELEMENT_RE.search(rendered):
+        raise AssemblyError("unsafe active content detected in source Markdown")
+    return RenderedLinks(tuple(parser.targets), managed)
+
+
 def _validate_rendered_links(
     text: str,
     published: PublishedFile,
     destinations: dict[str, Path],
     renderer: MarkdownRenderer | None = None,
-) -> set[str]:
-    """Validate every link form rendered by the configured Markdown engine."""
+) -> RenderedLinks:
+    """Validate the parsed destinations used by source-span transformation."""
     try:
-        rendered = (renderer or load_renderer()).render(text)
+        document = _inspect_links(text, renderer or load_renderer())
     except RenderingError as exc:
         raise AssemblyError(str(exc)) from exc
-    if UNSAFE_ACTIVE_ELEMENT_RE.search(rendered):
-        raise AssemblyError(
-            f"unsafe active content detected in source Markdown {published.path}"
-        )
-    parser = _RenderedLinkParser()
-    parser.feed(rendered)
-    if parser.unsafe_active_content:
-        raise AssemblyError(
-            f"unsafe active content detected in source Markdown {published.path}"
-        )
-    for target in parser.targets:
-        parts = _local_link_parts(target)
-        if parts is None:
+    for target in document.targets:
+        if _local_link_parts(target) is None:
             continue
         resolved, _ = _resolve_source_target(published.path, target)
         if resolved not in destinations:
-            raise AssemblyError(
-                f"broken or unpublished link in {published.path}: {target}"
-            )
-    return set(parser.targets)
+            raise AssemblyError(f"broken or unpublished link in {published.path}: {target}")
+    return document
 
 
 def _rewrite_markdown(
@@ -251,25 +246,28 @@ def _rewrite_markdown(
     renderer: MarkdownRenderer | None = None,
 ) -> str:
     _scan_text(text, f"source Markdown {contract.lock.name}:{published.path}")
-    rendered_targets = _validate_rendered_links(text, published, destinations, renderer)
-
-    def replace(match: re.Match[str]) -> str:
-        target = match.group("target")
-        # Link-shaped examples in code are not published hyperlinks. The
-        # rendered validation above remains authoritative for actual targets.
-        if unescape(target) not in rendered_targets:
-            return match.group(0)
+    renderer = renderer or load_renderer()
+    document = _validate_rendered_links(text, published, destinations, renderer)
+    replacements: dict[str, tuple[str, str]] = {}
+    for target in document.targets:
         if _local_link_parts(target) is None:
-            return match.group(0)
-        resolved, fragment = _resolve_source_target(published.path, target)
-        if resolved in destinations:
-            relative = os.path.relpath(destinations[resolved], destination.parent).replace(os.sep, "/")
-            rewritten = quote(relative, safe="/._-") + fragment
-        else:
-            raise AssemblyError(f"broken or unpublished link in {published.path}: {target}")
-        return f"{match.group('prefix')}{rewritten}{match.group('suffix')}"
-
-    rewritten = LINK_RE.sub(replace, text).rstrip() + "\n"
+            continue
+        resolved, suffix = _resolve_source_target(published.path, target)
+        # Encode delimiter characters before inserting into either Markdown or
+        # HTML; entity escaping is handled by the source-span transformer.
+        suffix = quote(suffix, safe="/?#:@-._~!$&*+,;=%")
+        mapped = destinations[resolved]
+        relative = os.path.relpath(mapped, destination.parent).replace(os.sep, "/")
+        replacements[target] = (
+            quote(relative, safe="/._-") + suffix,
+            final_relative_url(mapped, destination) + suffix,
+        )
+    try:
+        rewritten = rewrite_destinations(
+            text, document, replacements, lambda value: _inspect_links(value, renderer)
+        ).rstrip() + "\n"
+    except LinkRewriteError as exc:
+        raise AssemblyError(f"cannot rewrite links in {published.path}: {exc}") from exc
     limitations = (
         "\n".join(f"- {item}" for item in published.known_limitations)
         if published.known_limitations
@@ -608,7 +606,10 @@ def assemble_site(
                     contract,
                     imported_root,
                     timestamp,
-                    document_destinations if contract.lock.name == "euvics" else None,
+                    document_destinations if contract.lock.name == "euvics" else {
+                        spec.path: staged_content / "software/notebooks" / f"{Path(spec.path).stem}.md"
+                        for spec in contract.notebooks
+                    },
                     renderer,
                 )
             ),
