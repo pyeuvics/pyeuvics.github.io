@@ -46,6 +46,7 @@ def test_document_requirements_build_and_evidence_matrix(tmp_path: Path,roles: t
     if roles:
         evidence=json.loads((tmp_path/'output/source-build/document-build-evidence.json').read_text(encoding='utf-8'))
         assert evidence['source_commit']==contract.lock.commit
+        assert any(item['name']=='make' and item['status']=='available' for item in evidence['toolchain'])
         assert len(evidence['logs'])==len(roles)
         assert {item['sha256'] for item in evidence['documents']}=={item.sha256 for item in result.documents}
         for item in result.documents:assert item.rebuilt.read_bytes()==(source/item.entry.path).read_bytes()
@@ -76,3 +77,13 @@ def test_missing_document_toolchain_is_reported_before_build(tmp_path: Path,monk
     _,_,contract=candidate(tmp_path,('proposal',))
     monkeypatch.setattr('tools.site_assembly.document_policy.shutil.which',lambda _:None)
     with pytest.raises(DocumentError,match='toolchain'):document_requirements(contract)
+
+
+def test_document_toolchain_change_prevents_publication(tmp_path: Path,monkeypatch) -> None:
+    from tools.site_assembly import document_build
+    from tools.site_assembly.document_toolchain import ToolVersion
+    _,_,contract=candidate(tmp_path,('proposal',))
+    observations=iter([(ToolVersion('make','available','one','a'*64,'b'*64),),(ToolVersion('make','available','two','c'*64,'d'*64),)])
+    monkeypatch.setattr(document_build,'capture_toolchain',lambda:next(observations))
+    with pytest.raises(DocumentError,match='toolchain changed'):
+        build_documents(contract,document_requirements(contract),tmp_path/'output','1785628800')

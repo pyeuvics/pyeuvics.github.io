@@ -1,0 +1,37 @@
+{
+  "groups": {
+    "notebook-runtime": [
+      "nbclient",
+      "nbconvert",
+      "nbformat",
+      "ipykernel",
+      "jupyter_client"
+    ],
+    "numerical-notebooks": [
+      "ipywidgets",
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "scipy"
+    ],
+    "site-runtime": [
+      "Markdown",
+      "mkdocs",
+      "mkdocs-material",
+      "PyYAML",
+      "tinycss2",
+      "Pillow",
+      "defusedxml",
+      "pypdf",
+      "packaging"
+    ],
+    "test-tools": [
+      "pytest",
+      "mypy",
+      "types-Markdown",
+      "types-PyYAML",
+      "reportlab"
+    ]
+  },
+  "schema_version": 1
+}

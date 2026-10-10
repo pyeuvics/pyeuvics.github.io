@@ -9,9 +9,9 @@ def test_shared_action_contains_only_python_cache_and_dependency_setup():
     assert action['runs']['using']=='composite'
     steps=action['runs']['steps'];assert len(steps)==2
     assert steps[0]['uses']==SETUP_PYTHON
-    assert steps[0]['with']=={'python-version':'3.13','cache':'pip','cache-dependency-path':'requirements-docs.txt\nrequirements-notebooks.txt\nsources.lock.yml\n'}
+    assert steps[0]['with']=={'python-version':'3.13','cache':'pip','cache-dependency-path':'constraints-validation.txt\nrequirements-validation.txt\nrequirements-docs.txt\nrequirements-notebooks.txt\nsources.lock.yml\n'}
     assert steps[1]['shell']=='bash'
-    assert steps[1]['run']=='python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt'
+    assert steps[1]['run']=='python -m pip install -r requirements-validation.txt'
     assert all(set(step)<= {'name','uses','with','run','shell'} for step in steps)
 
 

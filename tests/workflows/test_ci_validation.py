@@ -54,6 +54,8 @@ def test_workflow_cache_is_bounded() -> None:
     setup = next(step for step in load_setup_action()["runs"]["steps"] if step.get("uses") == SETUP_PYTHON)
     dependencies = setup["with"]["cache-dependency-path"]
     assert set(dependencies.splitlines()) == {
+        "constraints-validation.txt",
+        "requirements-validation.txt",
         "requirements-docs.txt",
         "requirements-notebooks.txt",
         "sources.lock.yml",

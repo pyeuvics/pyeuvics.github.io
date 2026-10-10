@@ -11,6 +11,7 @@ import re
 from .assets import AssetError, validate_asset
 from .contracts import ContractError, verify_contract_inputs
 from .document_policy import DocumentError, DocumentRequirements
+from .document_toolchain import ToolVersion,capture_toolchain
 from .models import PublishedFile, SourceContract
 from .primitives import FileOperationError, atomic_write_text, export_locked_tree, sha256_file, run_text
 
@@ -65,6 +66,7 @@ class DocumentBuildResult:
     logs: tuple[LogEvidence, ...]
     command_sha256: str
     make_executable: str
+    toolchain: tuple[ToolVersion,...] = ()
 
 
 def inspect_logs(source_build: Path) -> tuple[LogEvidence, ...]:
@@ -97,6 +99,7 @@ def build_documents(contract: SourceContract, requirements: DocumentRequirements
     _archive_checkout(contract,source_build)
     for entry in requirements.documents:
         (source_build / entry.path).unlink(missing_ok=True)
+    toolchain=capture_toolchain()
     command_log = run_make(source_build,'verify-archive',epoch)
     command_log += run_make(source_build,'check',epoch)
     if len(command_log.encode('utf-8')) > 16_777_216:
@@ -118,9 +121,11 @@ def build_documents(contract: SourceContract, requirements: DocumentRequirements
         documents.append(VerifiedDocument(entry,rebuilt,checksum))
     try: verify_contract_inputs(contract)
     except ContractError as exc: raise DocumentError(str(exc)) from exc
-    result=DocumentBuildResult(tuple(documents),logs,sha256_file(command_path),requirements.make_executable or '')
+    if capture_toolchain()!=toolchain:raise DocumentError('document toolchain changed during build')
+    result=DocumentBuildResult(tuple(documents),logs,sha256_file(command_path),requirements.make_executable or '',toolchain)
     evidence={'document_build_version':1,'make_executable':result.make_executable,'source_commit':contract.lock.commit,
               'commands':['verify-archive','check'],'command_sha256':result.command_sha256,
+              'toolchain':[asdict(item) for item in result.toolchain],
               'logs':[asdict(log) for log in result.logs],
               'documents':[{'path':item.entry.path,'sha256':item.sha256} for item in result.documents]}
     atomic_write_text(output_root/'source-build/document-build-evidence.json',json.dumps(evidence,indent=2,sort_keys=True)+'\n')

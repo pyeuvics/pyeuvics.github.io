@@ -1,4 +1,6 @@
-# Direct documentation and test dependencies, reviewed 2026-09-04.
+# Direct site, notebook-rendering and test dependencies, reviewed 2026-10-10.
+# Roles are explicit in tools/dependency-policy.json; use requirements-validation.txt for quality checks.
+PyYAML==6.0.3
 Markdown==3.10.3
 mkdocs==1.6.1
 mkdocs-material==9.7.7

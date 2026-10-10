@@ -140,7 +140,7 @@ the local checks:
 ```bash
 python3.13 -m venv .venv-docs-313
 source .venv-docs-313/bin/activate
-python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
+python -m pip install -r requirements-validation.txt
 
 mkdocs serve
 python -m tools.quality
