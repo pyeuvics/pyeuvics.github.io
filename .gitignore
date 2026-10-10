@@ -76,3 +76,6 @@ tmp
 CODEX_TASK_READTHEDOCS_STYLE.md
 archive/
 euvics_project_physics_tasks_20260803
+
+# Pinned frontend test dependencies (results live under .staging/)
+/node_modules/

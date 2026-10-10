@@ -28,3 +28,16 @@ jobs:
 
       - name: Validate website source without private credentials
         run: python -m tools.quality --output .staging/source-check --bind
+
+      - name: Set up browser test runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+
+      - name: Install pinned browser test tools
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+
+      - name: Verify public synthetic pages in Chromium
+        run: npm run test:browser
