@@ -9,12 +9,17 @@ import re
 import shutil
 import subprocess
 import sys
-from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlsplit
 
 import yaml
 
+from .content_policy import (
+    ContentPolicyError, parse_fragment,
+    RenderedLinkParser as _RenderedLinkParser,
+    css_targets as _css_targets,
+    srcset_targets as _srcset_targets,
+)
 from .links import LinkRewriteError, RenderedLinks, rewrite_destinations
 from .rendering import MarkdownRenderer, RenderingError, load_renderer, final_relative_url
 from .primitives import atomic_write_text, sha256_file
@@ -32,13 +37,6 @@ from .notebooks import (
 )
 from .overview_figures import OverviewFigureError, stage_overview_figure
 
-UNSAFE_ACTIVE_ELEMENT_RE = re.compile(r"<iframe\b", re.IGNORECASE)
-SAFE_MATH_SCRIPT_TYPE_RE = re.compile(r"^math/tex(?:\s*;\s*mode\s*=\s*display\s*)?$", re.IGNORECASE)
-CSS_URL_RE = re.compile(
-    r"url\(\s*(?:([\"'])(.*?)\1|([^\s)]+))\s*\)", re.IGNORECASE | re.DOTALL
-)
-CSS_IMPORT_RE = re.compile(r"@import\s+([\"'])(.*?)\1", re.IGNORECASE | re.DOTALL)
-CSS_COMMENT_RE = re.compile(r"/\*.*?(?:\*/|$)", re.DOTALL)
 TEXT_SUFFIXES = {
     "",
     ".md",
@@ -61,86 +59,6 @@ ARTIFACT_SUFFIXES = TEXT_SUFFIXES | {".png", ".jpg", ".jpeg", ".gif", ".gz", ".m
 
 class AssemblyError(ValueError):
     """The website assembly could not be completed safely."""
-
-
-class _RenderedLinkParser(HTMLParser):
-    """Collect destinations that Python-Markdown will render as links or images."""
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.targets: list[str] = []
-        self.unsafe_active_content = False
-
-    def handle_starttag(
-        self, tag: str, attrs: list[tuple[str, str | None]]
-    ) -> None:
-        tag = tag.lower()
-        attributes = {name.lower(): value for name, value in attrs}
-        if tag in {"iframe", "object", "embed"}:
-            self.unsafe_active_content = True
-        elif tag == "script":
-            # Reviewed legacy math/tex data islands are inert. The current
-            # generic arithmatex renderer uses spans/divs; neither form permits
-            # an executable script or a script carrying a source URL.
-            script_type = (attributes.get("type") or "").strip()
-            if "src" in attributes or not SAFE_MATH_SCRIPT_TYPE_RE.match(script_type):
-                self.unsafe_active_content = True
-        for name, value in attrs:
-            name = name.lower()
-            if name.startswith("on"):
-                self.unsafe_active_content = True
-            is_target = (
-                name in {"href", "src", "xlink:href"}
-                or (name == "action" and tag == "form")
-                or (name == "formaction" and tag in {"button", "input"})
-                or (name == "poster" and tag == "video")
-                or (name == "data" and tag == "object")
-                or (name == "cite" and tag in {"blockquote", "del", "ins", "q"})
-                or (name == "background" and tag in {"body", "table", "td", "th"})
-            )
-            if is_target and value is not None:
-                self.targets.append(value)
-            elif name == "srcset" and tag in {"img", "source"} and value is not None:
-                self.targets.extend(_srcset_targets(value))
-            elif name == "style" and value is not None:
-                self.targets.extend(_css_targets(value))
-        if tag == "meta" and (attributes.get("http-equiv") or "").lower() == "refresh":
-            content = attributes.get("content") or ""
-            refresh = re.search(
-                r"(?:^|;)\s*url\s*=\s*(.+)\s*$", content, re.IGNORECASE
-            )
-            if refresh is not None:
-                self.targets.append(refresh.group(1).strip(" \t\"'"))
-
-
-def _css_targets(value: str) -> list[str]:
-    active_css = CSS_COMMENT_RE.sub("", value)
-    targets = [
-        match.group(2) or match.group(3) for match in CSS_URL_RE.finditer(active_css)
-    ]
-    targets.extend(match.group(2) for match in CSS_IMPORT_RE.finditer(active_css))
-    return targets
-
-
-def _srcset_targets(value: str) -> list[str]:
-    targets: list[str] = []
-    offset = 0
-    while offset < len(value):
-        while offset < len(value) and value[offset] in " \t\r\n,":
-            offset += 1
-        start = offset
-        while offset < len(value) and not value[offset].isspace():
-            offset += 1
-        raw_target = value[start:offset]
-        target = raw_target.rstrip(",")
-        if target:
-            targets.append(target)
-        if raw_target.endswith(","):
-            continue
-        while offset < len(value) and value[offset] != ",":
-            offset += 1
-        offset += offset < len(value)
-    return targets
 
 
 _sha256 = sha256_file
@@ -208,10 +126,10 @@ def _resolve_source_target(source_path: str, target: str) -> tuple[str, str]:
 
 def _inspect_links(text: str, renderer: MarkdownRenderer) -> RenderedLinks:
     rendered, managed = renderer.inspect(text)
-    parser = _RenderedLinkParser()
-    parser.feed(rendered)
-    if parser.unsafe_active_content or UNSAFE_ACTIVE_ELEMENT_RE.search(rendered):
-        raise AssemblyError("unsafe active content detected in source Markdown")
+    try:
+        parser = parse_fragment(rendered)
+    except ContentPolicyError as exc:
+        raise AssemblyError(str(exc)) from exc
     return RenderedLinks(tuple(parser.targets), managed)
 
 

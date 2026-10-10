@@ -27,11 +27,11 @@ class RenderedLinks:
     managed_targets: frozenset[str]
 
 
-ESCAPE = re.compile(r"&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]+);|\\[!\"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~]")
+ESCAPE = re.compile(r"&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]+);|\\[0-9a-fA-F]{1,6}[ \t\r\n\f]?|\\[!\"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~]")
 
 
 def _normalized_source(text: str) -> tuple[str, list[tuple[int, int]]]:
-    """Map decoded entity/Markdown punctuation characters back to source spans."""
+    """Map decoded entity, CSS escape and Markdown punctuation characters back to source spans."""
     result: list[str] = []
     spans: list[tuple[int, int]] = []
     cursor = 0
@@ -39,7 +39,11 @@ def _normalized_source(text: str) -> tuple[str, list[tuple[int, int]]]:
         for index in range(cursor, match.start()):
             result.append(text[index]); spans.append((index, index + 1))
         raw = match.group()
-        decoded = raw[1:] if raw.startswith('\\') else unescape(raw)
+        if raw.startswith('\\') and re.fullmatch(r'[0-9a-fA-F]{1,6}\s?', raw[1:]):
+            codepoint = int(raw[1:].strip(), 16)
+            decoded = chr(codepoint) if 0 < codepoint <= 0x10ffff and not 0xd800 <= codepoint <= 0xdfff else '\ufffd'
+        else:
+            decoded = raw[1:] if raw.startswith('\\') else unescape(raw)
         result.extend(decoded)
         spans.extend([(match.start(), match.end())] * len(decoded))
         cursor = match.end()
