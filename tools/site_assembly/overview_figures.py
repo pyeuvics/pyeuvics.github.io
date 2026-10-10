@@ -10,6 +10,7 @@ from itertools import pairwise
 from pathlib import Path
 
 from .models import SourceContract
+from .presentation import markdown_text
 
 FIGURE_ROOT = "docs/generated/overview-figures"
 SVG_PATH = f"{FIGURE_ROOT}/kinetic-energy-scan.svg"
@@ -116,7 +117,7 @@ def stage_overview_figure(contract: SourceContract, staged_content: Path) -> Non
     and [complete settings and limitations](../imported/pyeuvics/{JSON_PATH}).
     The generator is
     [`examples/generate_overview_energy_scan.py`]({contract.lock.repository}/blob/{generator_commit}/examples/generate_overview_energy_scan.py)
-    from pyEUVICS {package['version']}; the published artifacts are locked by
+    from pyEUVICS {markdown_text(str(package['version']))}; the published artifacts are locked by
     this site to pyEUVICS commit `{contract.lock.commit}`.
 
 '''
