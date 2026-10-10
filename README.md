@@ -40,24 +40,23 @@ approved source commits
 → deploy through GitHub Actions
 ```
 
-Every public build should record exact source commits. Files not included in a reviewed publication manifest remain excluded.
+Every assembled public build records exact source commits. Files not included in a reviewed publication manifest remain excluded.
 
-## Planned information architecture
+## Website sections
 
 ```text
 Home
 ├── Project
 │   ├── Overview
-│   ├── EUVICS concept
-│   ├── Reference cases
-│   └── Status and roadmap
+│   └── Design status
 ├── Documents
 │   ├── EUVICS Proposal
 │   └── Conceptual Design Report
 ├── Software
-│   ├── Installation and quickstart
-│   ├── Physics and conventions
-│   ├── Tutorials and API
+│   ├── Installation
+│   ├── Science and conventions
+│   ├── API reference
+│   ├── Tutorials
 │   ├── Workflows
 │   ├── Validation
 │   └── Selected static notebooks
@@ -70,7 +69,7 @@ Home
 
 ## Technology
 
-The planned site uses:
+The site uses:
 
 - [MkDocs](https://www.mkdocs.org/)
 - [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/)
@@ -80,37 +79,25 @@ The planned site uses:
 
 GitHub Pages serves static content. It does not run pyEUVICS, Python, or JupyterLab on the server. Website notebooks are readable static renderings; users run actual simulations from the pyEUVICS package or local JupyterLab environment.
 
-## Current status
+## Current implementation and approval state
 
-Tasks 0–11 established the repository, information architecture, source
-publication contracts, local MkDocs scaffold, deterministic assembly, and the
-Proposal/CDR and static pyEUVICS notebook/campaign publication pipelines, plus
-non-deploying pull-request validation, and the protected GitHub Pages
-deployment workflow, scoped first public deployment, and proposal-only source
-lock update automation. The
-current locked EUVICS manifest approves no PDFs, while pyEUVICS notebook sets
-remain approval-pending and campaign sets remain blocked. The approved
-pyEUVICS exact-linear kinetic-energy overview figure is assembled with its data,
-settings, limitations, and immutable provenance. The document and campaign
-production pages remain placeholders. Before further scientific content is
-published, the project will:
+The website supports exact-lock source assembly, approved PDF rebuilds, dual
+notebook execution, campaign imports, typed publication indexes, artifact
+ownership checks and separate validation/proposal/deployment workflows.
 
-1. Approve complete Proposal/CDR release metadata and artifacts in EUVICS.
-2. Approve exact notebook and campaign sets with complete execution and
-   validation metadata in pyEUVICS.
-3. Complete the browser-based signed-out accessibility review when a browser
-   connection is available.
+For the source approval snapshot reviewed **2026-10-10**, see the
+[development and validation runbook](docs/development.md#approval-snapshot-not-an-evergreen-claim).
+That dated snapshot is not an approval of later source heads. The authoritative
+manifests at `sources.lock.yml` determine what can enter each build.
 
-See [Codex website tasks](docs/codex_tasks.md) for the sequenced implementation prompts.
-See [pull-request site validation](docs/ci-validation.md) for the local/CI
-equivalent check and credential policy.
-See [GitHub Pages deployment](docs/pages-deployment.md) for the production
-workflow, administrator checklist, and rollback procedure.
-See [automated source-lock pull requests](docs/source-update-automation.md) for
-candidate validation, credential boundaries, artifact comparison, review, and
-rollback policy.
+Start with the [current runbook](docs/development.md), then consult
+[CI boundaries](docs/ci-validation.md),
+[Pages deployment](docs/pages-deployment.md), and
+[source-update proposals](docs/source-update-automation.md) for their respective
+review and authorization requirements. The historical foundation prompts are
+retained in [docs/codex_tasks.md](docs/codex_tasks.md).
 
-## Intended repository structure
+## Repository structure
 
 ```text
 pyeuvics.github.io/
@@ -134,46 +121,11 @@ Temporary source checkouts, staging files, rendered notebook intermediates, and 
 
 ## Local development
 
-Create an isolated Python 3.13 documentation environment, matching CI, and run
-the local checks:
-
-```bash
-python3.13 -m venv .venv-docs-313
-source .venv-docs-313/bin/activate
-python -m pip install -r requirements-validation.txt
-
-mkdocs serve
-python -m tools.quality
-```
-
-The generated site is written to ignored `site/`. Source assembly commands are
-deferred until the source locks and publication contracts are integrated.
-
-With both reviewed source-contract commits recorded in `sources.lock.yml`,
-assemble a clean local review artifact with:
-
-```bash
-SOURCE_DATE_EPOCH=1785628800 python tools/assemble_site.py \
-  --euvics-source /path/to/clean/euvics \
-  --pyeuvics-source /path/to/clean/pyEUVICS \
-  --output .staging/review-build
-```
-
-Assembly refuses unresolved locks, dirty or mismatched source checkouts, and an
-existing output path. Approved Proposal/CDR PDFs are rebuilt and checksum-
-verified in disposable source exports. Approved notebooks execute twice in a
-disposable source export and are published only when their static renders match
-exactly; approved campaign files are staged without recalculation.
-
-Do not hard-code personal source paths into configuration, tests, generated pages, or committed scripts.
-
-The pull-request workflow and local source-only checks use `python -m tools.quality`,
-which runs the full synthetic test suite, strict typing for all tools and shared
-test support, and a strict scaffold build without private source checkouts or credentials.
-Local checks can run on edited files; `--bind` additionally requires a clean checkout
-and records reusable input/environment evidence. Source-backed validation remains
-`python -m tools.validate_ci` and independently assembles both locked sources. See [Pull-request site validation](docs/ci-validation.md) for the
-Python 3.13 environment and command.
+Use the [development and validation runbook](docs/development.md) for the
+maintained installation and commands. It distinguishes a shell preview,
+secret-free synthetic quality checks, local browser tests, exact-lock assembly,
+trusted source validation, proposal evidence and deployment. Generated output
+stays untracked. Never commit local source paths or credentials.
 
 ## Deployment
 
@@ -204,7 +156,7 @@ Every published document should identify its status and provenance. Design targe
 
 ## Contributing with Codex
 
-Read [AGENTS.md](AGENTS.md) before making changes. Work through the tasks in [docs/codex_tasks.md](docs/codex_tasks.md) sequentially and keep an execution record under `docs/exec-plans/`.
+Read [AGENTS.md](AGENTS.md) and the [current runbook](docs/development.md) before making changes. Keep a bounded execution record under `docs/exec-plans/`; historical foundation prompts are not a current work queue.
 
 Codex may scaffold, transform, test, and document the site. Scientific conclusions, publication approvals, repository visibility, credentials, Pages activation, custom domains, and public release remain owner-controlled decisions.
 
