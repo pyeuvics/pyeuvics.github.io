@@ -28,4 +28,6 @@ def test_real_owned_kernel_and_environment_provenance(tmp_path: Path,monkeypatch
     assert 'kernel-sha '+expected in page
     assert provenance['environment_sha256'] in page
     assert 'Python hash seed' in page and 'no RNG seed is injected' in page
-    assert not (result.output_root/'source-build/notebook-runtime-home/runtime/connection.json').exists()
+    assert not list((result.output_root/'source-build').rglob('connection.json'))
+    assert not list((result.output_root/'source-build').rglob('kernel-process.json'))
+    assert len(list((result.output_root/'source-build/notebook-runs').glob('*/run-*/source')))==2

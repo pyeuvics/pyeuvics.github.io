@@ -31,6 +31,8 @@ def _validate_source(spec: NotebookSpec, source: Path, root: Path) -> Any:
                 raise NotebookError(f"approved text dependency is not UTF-8: {dependency}") from exc
             _scan(dependency_text, f"notebook dependency {dependency}")
     for cell in notebook.cells:
+        if "skip-execution" in cell.get("metadata",{}).get("tags",[]):
+            raise NotebookError("approved notebooks cannot silently skip execution")
         if cell.cell_type == "markdown":
             _validate_markup(str(cell.get("source", "")), f"notebook Markdown {spec.path}")
         if cell.cell_type == "code" and (cell.get("outputs") or cell.get("execution_count") is not None):
