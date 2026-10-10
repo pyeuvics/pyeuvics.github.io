@@ -16,6 +16,8 @@ from nbconvert import MarkdownExporter
 
 from .primitives import FileOperationError, export_locked_tree, sha256_file
 
+from .contracts import ContractError, verify_contract_inputs
+
 from .models import InventoryEntry, NotebookSpec, SourceContract
 
 LOCAL_PATH = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\)")
@@ -235,6 +237,10 @@ def render_approved_notebooks(
     inventory: list[InventoryEntry] = []
     if not contract.notebooks:
         return ()
+    try:
+        verify_contract_inputs(contract)
+    except ContractError as exc:
+        raise NotebookError(str(exc)) from exc
     source_build = output_root / "source-build/pyeuvics-notebooks"
     _archive_checkout(contract, source_build)
     index_links: list[str] = []

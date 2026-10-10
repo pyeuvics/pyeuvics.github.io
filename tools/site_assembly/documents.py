@@ -11,6 +11,8 @@ from pypdf import PdfReader
 
 from .primitives import FileOperationError, export_locked_tree, sha256_file, run_text
 
+from .contracts import ContractError, verify_contract_inputs
+
 from .models import InventoryEntry, PublishedFile, SourceContract
 
 DOCUMENT_ROLES = {
@@ -125,6 +127,10 @@ def build_approved_documents(
     documents = tuple(item for item in contract.files if item.kind == "pdf")
     if not documents:
         return (), {}
+    try:
+        verify_contract_inputs(contract)
+    except ContractError as exc:
+        raise DocumentError(str(exc)) from exc
     roles = [_validate_document_entry(item)[0] for item in documents]
     if len(roles) != len(set(roles)):
         raise DocumentError("document publication contract contains duplicate roles")
