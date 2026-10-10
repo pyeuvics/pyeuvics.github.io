@@ -70,12 +70,16 @@ def website_identity(root: Path) -> WebsiteIdentity:
     commit=run_text(['git','rev-parse','HEAD'],root,'website revision').strip()
     if re.fullmatch('[0-9a-f]{40}',commit) is None:raise EvidenceError('invalid website revision')
     records=[]
-    for record in run_text(['git','ls-tree','-rz',commit],root,'website input tree').split('\0'):
+    tree=run_text(['git','ls-tree','-rz',commit],root,'website input tree').split('\0')
+    tracked={record.split('\t',1)[1] for record in tree if record}
+    aliases={'CLAUDE.md':'AGENTS.md','content/stylesheets/readthedocs.css':'docs/stylesheets/readthedocs.css'}
+    for record in tree:
         if not record:continue
         metadata,name=record.split('\t',1);mode,kind,oid=metadata.split();path=root/name
         if kind!='blob' or mode not in {'100644','100755','120000'}:raise EvidenceError('unsupported website input object')
         if mode=='120000':
-            if name!='content/stylesheets/readthedocs.css' or not path.is_symlink() or path.resolve()!=root.resolve()/'docs/stylesheets/readthedocs.css':raise EvidenceError('unapproved website input alias')
+            target=aliases.get(name)
+            if target is None or target not in tracked or not path.is_symlink() or path.resolve()!=root/target or not (root/target).is_file() or (root/target).is_symlink():raise EvidenceError('unapproved website input alias')
             content=os.readlink(path).encode('utf-8');actual=hashlib.sha1(b'blob '+str(len(content)).encode()+b'\0'+content).hexdigest();digest=hashlib.sha256(content).hexdigest()
         else:
             if path.is_symlink() or not path.is_file() or any(parent.is_symlink() for parent in path.parents if parent!=root and root in parent.parents):raise EvidenceError('aliased or missing website input')

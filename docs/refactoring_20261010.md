@@ -758,7 +758,9 @@ Execution: [completed plan](exec-plans/completed/066_web35-bounded-quality-hygie
 
 ### WEB-36 — Final independent end-to-end and performance acceptance
 
-- [ ] **Evidence:** `test_successful_assembly_is_deterministic_and_preserves_sources`
+Execution: [completed plan](exec-plans/completed/067_web36-final-acceptance.md).
+
+- [x] **Evidence:** `test_successful_assembly_is_deterministic_and_preserves_sources`
   compares source snapshots and inventory bytes, not every final artifact byte.
   Archive exports, snapshots, full builds, and quality stages repeat work.
   Hash comparisons in a source-update proposal do not alone prove repeatability.
@@ -776,18 +778,23 @@ Execution: [completed plan](exec-plans/completed/066_web35-bounded-quality-hygie
 
 ## Cross-cutting acceptance checklist
 
-- [ ] Existing 130-case baseline remains represented; new regressions cover
+Completed on 2026-10-10: all 36 ordered tasks have task-specific verification
+and separate local commits. See [final acceptance](refactoring-acceptance.md)
+for complete artifact comparisons, measured costs, clean-checkout checks and
+the separately outstanding hosted/private-source release checks.
+
+- [x] Existing 130-case baseline remains represented; new regressions cover
       each reproduced gap before its fix.
-- [ ] Exact source locks, clean/immutable inputs, deny-by-default publication,
+- [x] Exact source locks, clean/immutable inputs, deny-by-default publication,
       source attribution, known limitations, and source immutability remain.
-- [ ] PR jobs remain secret-free; source-read, proposal-write, and deployment
+- [x] PR jobs remain secret-free; source-read, proposal-write, and deployment
       trust zones stay separate; required check names and permissions do not
       change without explicit approval.
-- [ ] Deterministic builds, exact document checksums, notebook dual execution,
+- [x] Deterministic builds, exact document checksums, notebook dual execution,
       final-artifact ownership, and privacy scans remain independently checked.
-- [ ] Unit tests do not use private content or share production expected-value
+- [x] Unit tests do not use private content or share production expected-value
       logic; browser/remote/manual checks are reported separately.
-- [ ] No scientific calculations, model conclusions, publication approvals,
+- [x] No scientific calculations, model conclusions, publication approvals,
       production locks, live settings, or deployment actions are changed by
       a supposedly mechanical refactor.
 
