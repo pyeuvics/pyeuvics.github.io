@@ -109,7 +109,8 @@ def test_url_rendering_encodes_delimiters_without_creating_attributes() -> None:
 def test_entry_and_campaign_pages_keep_metadata_literal(tmp_path: Path) -> None:
     import shutil
     from tests.support.paths import ROOT
-    from tools.site_assembly.pipeline import _stage_source_entry_pages
+    from tools.site_assembly.entry_pages import stage_source_entry_pages
+    from tools.site_assembly.publication import publication_sources
     from tools.site_assembly.notebooks import stage_campaign_overviews
     entry,_,contract=views()
     payload='<script>alert(1)</script> | [bad](javascript:evil)'
@@ -119,7 +120,7 @@ def test_entry_and_campaign_pages_keep_metadata_literal(tmp_path: Path) -> None:
     campaign=replace(package_entry,path='campaigns/reference_6p7nm/README.md',validation_status='synthetic')
     pyeuvics=SourceContract(replace(contract.lock,name='pyeuvics',repository='https://github.com/pyeuvics/pyEUVICS'),tmp_path,(package_entry,campaign))
     content=tmp_path/'content';shutil.copytree(ROOT/'content',content)
-    _stage_source_entry_pages((euvics,pyeuvics),content,content/'imported',TIME)
+    stage_source_entry_pages(publication_sources((euvics,pyeuvics),tuple((source.lock.name,item.path,"imported/"+source.lock.name+"/"+item.path) for source in (euvics,pyeuvics) for item in source.files)),content,content/'imported',TIME)
     stage_campaign_overviews(pyeuvics,content,TIME)
     for relative in ['project/overview.md','software/installation.md','campaigns/6-7-nm.md']:
         parsed=Inspection();parsed.feed(load_renderer().render((content/relative).read_text(encoding='utf-8')))

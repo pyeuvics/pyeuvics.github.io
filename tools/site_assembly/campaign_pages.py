@@ -2,10 +2,11 @@
 from __future__ import annotations
 from pathlib import Path
 from .models import SourceContract
+from .publication import PublicationSource
 from .notebook_policy import NotebookError
 from .presentation import Code, Link, MetadataRow, render_link, render_table, render_limitations
 
-def stage_campaign_overviews(contract: SourceContract, staged_content: Path, timestamp: str) -> None:
+def stage_campaign_overviews(contract: SourceContract | PublicationSource, staged_content: Path, timestamp: str) -> None:
     """Replace campaign placeholders only when exact campaign files are approved."""
 
     campaigns = {

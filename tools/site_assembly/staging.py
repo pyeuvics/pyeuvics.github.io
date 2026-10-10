@@ -9,6 +9,7 @@ import unicodedata
 
 from .document_policy import DocumentError, validate_document_entry as _validate_document_entry
 from .models import SourceContract
+from .publication import PublicationSource, publication_sources
 from .primitives import FileOperationError, sha256_file
 from .website_inputs import website_inputs
 
@@ -67,6 +68,7 @@ class StagingPlan:
     outputs: tuple[PlannedOutput, ...]
     namespaces: tuple[OutputNamespace, ...]
     destinations: tuple[SourceDestination, ...]
+    publication: tuple[PublicationSource, ...] = ()
 
     def source_destinations(self, source: str, content: Path) -> dict[str, Path]:
         return {item.source_path: content / item.output_path for item in self.destinations if item.source == source}
@@ -98,6 +100,7 @@ class StagingPlan:
             'outputs': [dict(asdict(item), kind=item.kind.value) for item in self.outputs],
             'namespaces': [asdict(item) for item in self.namespaces],
             'destinations': [asdict(item) for item in self.destinations],
+            'publication': [asdict(item) for item in self.publication],
         }
 
 
@@ -213,7 +216,7 @@ def create_staging_plan(website_root: Path, contracts: tuple[SourceContract, ...
                     output = f'campaigns/{page}.md'
                     generated[output] = PlannedOutput(output, 'website', 'campaign-overview', OutputKind.GENERATED, (manifest, *selected))
     source_inputs = tuple(sorted(all_source_inputs))
-    for output in ('index.md', 'project/overview.md', 'software/installation.md', 'software/science.md', 'software/api.md', 'software/tutorials.md', 'software/workflows.md', 'software/validation.md'):
+    for output in ('documents/index.md', 'campaigns/index.md', 'downloads/index.md', 'software/notebooks/index.md', 'index.md', 'project/overview.md', 'software/installation.md', 'software/science.md', 'software/api.md', 'software/tutorials.md', 'software/workflows.md', 'software/validation.md'):
         generated[output] = PlannedOutput(output, 'website', 'entry-page', OutputKind.GENERATED, source_inputs)
     registry.add(PlannedOutput('imported/staged-content-inventory.json', 'website', 'inventory', OutputKind.PROVENANCE, source_inputs))
     try:
@@ -240,4 +243,4 @@ def create_staging_plan(website_root: Path, contracts: tuple[SourceContract, ...
         raise StagingError('output has an unregistered relationship')
     if len({(item.source, item.source_path) for item in bindings}) != len(bindings):
         raise StagingError('ambiguous source-to-output binding')
-    return StagingPlan(tuple(inputs[key] for key in sorted(inputs)), tuple(registry.outputs[key] for key in sorted(registry.outputs)), tuple(registry.namespaces[key] for key in sorted(registry.namespaces)), tuple(sorted(bindings, key=lambda item: (item.source, item.source_path))))
+    return StagingPlan(tuple(inputs[key] for key in sorted(inputs)), tuple(registry.outputs[key] for key in sorted(registry.outputs)), tuple(registry.namespaces[key] for key in sorted(registry.namespaces)), tuple(sorted(bindings, key=lambda item: (item.source, item.source_path))), publication_sources(contracts, tuple((item.source,item.source_path,item.output_path) for item in bindings)))

@@ -143,6 +143,9 @@ are not relative harmonic yields. Optical efficiencies and detector
 responsivities require configuration-specific provenance. A nondispersive
 photodiode measures integrated signal rather than wavelength directly.
 
+<!-- publication:figure:start -->
+<!-- publication:figure:end -->
+
 ## Design and validation status
 
 | Item | Status | Meaning |
@@ -178,3 +181,6 @@ Primary physics references include:
 
 The Proposal and CDR PDFs remain excluded because their separate release and
 figure-permission gates are unresolved.
+
+<!-- publication:provenance:start -->
+<!-- publication:provenance:end -->
