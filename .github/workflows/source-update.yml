@@ -188,6 +188,7 @@ jobs:
           --euvics-source .sources/candidate-euvics
           --pyeuvics-source .sources/candidate-pyeuvics
           --output .staging/source-update/candidate
+          --quality-receipt .staging/source-update/baseline/quality-record.json
 
       - name: Write bounded comparison and proposal package
         if: steps.candidates.outputs.has_updates == 'true'

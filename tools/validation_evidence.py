@@ -16,7 +16,7 @@ from .site_assembly.structured import read_json
 from .review_manifest import ReviewFile,ReviewManifest,parse_review_manifest
 
 CHECKS=('source-contracts','website-tests','strict-typing','strict-mkdocs','assembly','artifact-validation','review-manifest')
-ARTIFACT_EVIDENCE=('artifact-plan.json','publication-artifact-manifest.json','staged-content-inventory.json','staging-plan.json')
+ARTIFACT_EVIDENCE=('artifact-plan.json','publication-artifact-manifest.json','quality-record.json','staged-content-inventory.json','staging-plan.json')
 BUNDLE_FILES=('ancestry.json','baseline/review-artifact-manifest.json','baseline/validation-record.json','candidate/review-artifact-manifest.json','candidate/validation-record.json','proposal/pull-request.md','proposal/pull-request.md.json','proposal/sources.lock.yml')
 REQUIREMENTS=('requirements-docs.txt','requirements-notebooks.txt')
 

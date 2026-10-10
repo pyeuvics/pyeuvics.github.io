@@ -46,9 +46,7 @@ def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
     assert "persist-credentials: false" in text
     assert "sources.lock.yml" in text
     validation = steps[-1]["run"]
-    assert "python -m pytest" in validation
-    assert "python -m mypy --strict" in validation
-    assert "python -m mkdocs build --strict" in validation
+    assert validation == "python -m tools.quality --output .staging/source-check --bind"
 
 
 def test_workflow_cache_is_bounded() -> None:
