@@ -8,7 +8,8 @@ private credential, Pages, identity-token, environment, or deployment access.
 ## Source checkout and credentials
 
 Pull-request validation checks out only the website revision, installs pinned
-dependencies, and runs pytest, strict mypy, and a strict MkDocs build. It does
+dependencies, and runs dependency policy, pytest, strict mypy, a strict MkDocs
+build, and local Chromium behavior checks. It does
 not mint a GitHub App token, check out either private source, upload a
 source-derived artifact, or reference any Actions secret. This alone does not
 protect repository secrets from a modified same-repository PR workflow. The
@@ -37,33 +38,14 @@ Pull-request checks build only synthetic document fixtures.
 
 ## Local-equivalent validation
 
-Create a Python 3.13 virtual environment and run the shared source-only checks:
-
-```bash
-python3.13 -m venv .venv-docs-313
-source .venv-docs-313/bin/activate
-python -m pip install -r requirements-validation.txt
-python -m pip check
-python -m tools.quality
-```
-
-For a trusted source-backed review, use clean locked source checkouts and a clean
-website revision:
-
-```bash
-
-python -m tools.validate_ci \
-  --euvics-source /path/to/locked/euvics \
-  --pyeuvics-source /path/to/locked/pyEUVICS \
-  --output .staging/local-ci-review
-```
-
-The command refuses existing output paths. Unless `SOURCE_DATE_EPOCH` is
-provided, it derives the build timestamp from the checked-out website commit.
-It validates both source manifests, runs pytest and strict mypy, builds the
-website scaffold strictly, assembles and scans the complete locked-source site,
-and writes `review-artifact-manifest.json` with a SHA-256 checksum and byte size
-for every uploaded file.
+Use the [development and validation runbook](development.md) for copyable
+commands. `python -m tools.quality` is the shared Python quality entry point;
+`npm run test:browser` is the separately recorded browser layer in the required
+PR job. `python -m tools.validate_ci` additionally validates locked source
+contracts, assembles and checks the complete artifact, and emits review and
+validation evidence. Local edited-tree quality results cannot be reused as
+bound CI receipts. Trusted baseline/candidate quality reuse requires exact
+website/environment/time/policy equality and never skips source-specific gates.
 
 ## Trusted review artifact
 

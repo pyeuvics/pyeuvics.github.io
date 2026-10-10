@@ -56,7 +56,9 @@ change.
 
 ## Validation and artifact comparison
 
-Both baseline and candidate locks run the complete `tools.validate_ci` path:
+Both baseline and candidate locks run `tools.validate_ci`. Website-only quality
+may reuse a bound baseline receipt only when website bytes, environment,
+dependencies, epoch and policy match exactly. Source-specific stages always run:
 
 - validate source publication contracts;
 - run the website tests and strict typing;
@@ -74,18 +76,24 @@ bounded to 100 displayed paths per category; reviewers use the uploaded
 manifests for a larger diff.
 
 Candidate commits can legitimately change only provenance text and therefore
-many HTML checksums. A successful comparison is evidence of reproducibility,
-not scientific or publication approval.
+many HTML checksums. A successful comparison describes two artifacts; by itself it does not prove
+repeatability or grant scientific/publication approval. Validation claims require
+bound website/environment/lock identities, ancestry, both validation records and
+review manifests, and the exact comparison/candidate-lock package. The writer
+verifies this evidence before copying the candidate lock. See the
+[current runbook](development.md#review-a-source-update-proposal).
 
 ## Duplicate and failure behavior
 
 Only one source-update workflow runs at a time. An open automation pull request
 or a remote proposal branch with no associated pull request prevents another
 proposal. Branches retained after a closed or merged pull request do not block
-future proposals. If pull-request creation fails after the branch is pushed, a
-failure-only cleanup step deletes that new orphan branch while leaving
-production locks unchanged. A cleanup failure is visible in the failed run and
-must be resolved before another proposal.
+future proposals. If a push or PR response is lost, the lifecycle controller reads remote state
+before deciding what happened. It preserves a matching created PR and deletes
+only a provably owned orphan at the exact commit using a lease. Changed or
+unknown remote state is retained for review. Cancellation attempts the same
+recovery; abrupt runner loss may leave an orphan that blocks the next gate.
+Production locks stay unchanged until a reviewed proposal is merged.
 Expected failure modes include:
 
 - public source/default branch unavailable;

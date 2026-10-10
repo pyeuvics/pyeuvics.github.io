@@ -23,19 +23,17 @@ execution policy, seed/configuration, validation status, local requirements,
 and limitations. Approved campaign Markdown and figures use the same exact-file
 allowlist and replace placeholders only when a complete approved set exists.
 
-```bash
-SOURCE_DATE_EPOCH=1785628800 python tools/assemble_site.py \
-  --euvics-source /path/to/clean/euvics \
-  --pyeuvics-source /path/to/clean/pyEUVICS \
-  --output .staging/review-build
-```
+See the [current runbook](../docs/development.md) for maintained installation,
+preview, assembly and validation commands. All CLI tools use module invocation
+(`python -m tools.<name>`).
 
 The command refuses unresolved/mismatched locks, dirty checkouts, an existing
 output path, and incomplete or non-reproducible document releases. Production
 locks identify the reviewed source-contract commits exactly. Pending or blocked
 notebook/campaign candidate sets remain excluded.
 
-`validate_ci.py` is the shared local/GitHub Actions entry point. It validates
+`quality.py` owns the reusable website-only Python checks; browser checks are
+separate. `validate_ci.py` is the trusted source-backed entry point. It validates
 both source contracts, runs pytest and strict mypy, performs a standalone strict
 MkDocs build, runs the complete deterministic assembly/scan, and writes a
 checksum manifest for the non-deploying review artifact. `ci_source_locks.py`
