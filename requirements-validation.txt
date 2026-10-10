@@ -1,0 +1,5 @@
+# Complete source-only test and source-backed validation Python environment.
+# Reviewed 2026-10-10; external document tools are recorded separately.
+-c constraints-validation.txt
+-r requirements-docs.txt
+-r requirements-notebooks.txt

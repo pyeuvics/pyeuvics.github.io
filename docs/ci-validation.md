@@ -21,26 +21,36 @@ main-branch manual workflows: `.github/workflows/pages.yml` and
 described in [github_app.md](github_app.md), exact source locks, non-persisted
 checkout credentials, and a fail-closed runner credential scan.
 
-## Reproducible environment
+## Reviewed environment and reproducibility limits
 
-CI uses Ubuntu 24.04, CPython 3.13, exact versions from
-`requirements-docs.txt` and `requirements-notebooks.txt`, and a pip cache keyed
-from both requirement files plus `sources.lock.yml`. CPython 3.13 matches the
-supported pyEUVICS runtime; pyEUVICS excludes Python 3.14.
+CI uses Ubuntu 24.04 and Python 3.13. `requirements-validation.txt` combines the
+direct declarations with `constraints-validation.txt`, which records reviewed
+transitive versions without upgrading numerical pins. The pip cache is an
+optimization, not evidence of a fresh installation. See
+[Dependency and toolchain policy](dependency-policy.md) for dependency roles,
+fresh-install checks, installed-file fingerprints, and the separate external
+TeX/font/toolchain layer. This is not a hermetic OS or a permanent security claim.
 
-The complete trusted workflow installs the EUVICS TeX toolchain only when the
-locked publication manifest contains an approved PDF. Pull-request validation
-does not build private-source documents.
+Trusted workflows install document tools only when the locked manifest exposes
+PDF candidates; approval and exact rebuilt PDF byte checks remain separate.
+Pull-request checks build only synthetic document fixtures.
 
 ## Local-equivalent validation
 
-Create a Python 3.13 virtual environment, install the two pinned dependency
-sets, then run the same entry point used by CI:
+Create a Python 3.13 virtual environment and run the shared source-only checks:
 
 ```bash
 python3.13 -m venv .venv-docs-313
 source .venv-docs-313/bin/activate
-python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
+python -m pip install -r requirements-validation.txt
+python -m pip check
+python -m tools.quality
+```
+
+For a trusted source-backed review, use clean locked source checkouts and a clean
+website revision:
+
+```bash
 
 python -m tools.validate_ci \
   --euvics-source /path/to/locked/euvics \

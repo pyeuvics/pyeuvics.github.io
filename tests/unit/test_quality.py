@@ -12,10 +12,10 @@ ENVIRONMENT=EnvironmentIdentity('3.13','c'*64,'fixture',(('requirements-docs.txt
 def test_source_only_needs_no_source_repositories_and_does_not_mint_reusable_dirty_evidence(tmp_path: Path):
     root=tmp_path/'website';root.mkdir();calls=[]
     record=source_only(root,tmp_path/'output','1785628800',runner=lambda *args:calls.append(args))
-    assert len(calls)==3
-    assert [call[0][2] for call in calls]==['pytest','mypy','mkdocs']
+    assert len(calls)==4
+    assert [call[0][2] for call in calls]==['tools.dependencies','pytest','mypy','mkdocs']
     assert all(call[1]==root and call[2]=='1785628800' for call in calls)
-    assert 'tools' in calls[1][0] and 'tests/support' in calls[1][0] and '--strict' in calls[1][0]
+    assert 'tools' in calls[2][0] and 'tests/support' in calls[2][0] and '--strict' in calls[2][0]
     assert json.loads(record.read_text(encoding='utf-8'))['website'] is None
     with pytest.raises(QualityError):verify_receipt(record,WEBSITE,ENVIRONMENT,'1785628800')
 
@@ -48,7 +48,7 @@ def test_new_untyped_tool_fails_the_shared_quality_stage(tmp_path: Path):
             assert 'new_tool.py' in result.stdout and 'missing a type annotation' in result.stdout
             if result.returncode:raise QualityError('typing failed')
     with pytest.raises(QualityError):run_checks(tmp_path,tmp_path/'checks','1785628800',runner)
-    assert seen==['pytest','mypy']
+    assert seen==['tools.dependencies','pytest','mypy']
 
 
 @pytest.mark.parametrize('changed',[False,True])

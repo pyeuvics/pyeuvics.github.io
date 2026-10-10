@@ -16,6 +16,7 @@ from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
+from tools.dependencies import DependencyError,checked_versions,dependency_inputs
 from .models import NotebookSpec
 from .notebook_policy import NotebookError
 from .primitives import atomic_write_text, sha256_file
@@ -74,21 +75,8 @@ def capture_environment(spec: NotebookSpec, source_root: Path, source_files: dic
         if not re.fullmatch('[0-9]+',spec.random_seed) or not 0<=int(spec.random_seed)<=4_294_967_295:
             raise NotebookError('Python hash seed must be an unsigned 32-bit integer')
         website=Path(__file__).resolve().parents[2]
-        pins: dict[str,str]={};requirements: list[tuple[str,str]]=[]
-        for filename in ('requirements-docs.txt','requirements-notebooks.txt'):
-            path=website/filename;requirements.append((filename,sha256_file(path)))
-            for line in path.read_text(encoding='utf-8').splitlines():
-                if not line.strip() or line.lstrip().startswith('#'):continue
-                requirement=Requirement(line)
-                name=canonicalize_name(requirement.name)
-                constraints=list(requirement.specifier)
-                if len(constraints)!=1 or constraints[0].operator!='==' or '*' in constraints[0].version or requirement.marker or requirement.url or requirement.extras:
-                    raise NotebookError('notebook execution requires exact dependency pins')
-                expected=constraints[0].version
-                if name in pins and pins[name]!=expected:raise NotebookError('conflicting execution dependency pins')
-                actual=version(name)
-                if actual!=expected:raise NotebookError(f'website execution environment mismatch for {name}')
-                pins[name]=actual
+        pins=checked_versions(website,('requirements-docs.txt','requirements-notebooks.txt'),lookup=version)
+        requirements=[(filename,sha256_file(website/filename)) for filename in dependency_inputs(website)]
         policies=validate_source_environments(spec,source_root,pins)
         packages=[]
         for package_name,installed in sorted(pins.items()):
@@ -99,6 +87,8 @@ def capture_environment(spec: NotebookSpec, source_root: Path, source_files: dic
         return EnvironmentIdentity(platform.python_version(),platform.python_implementation(),platform.system()+'-'+platform.machine(),sha256_file(Path(sys.executable)),tuple(packages),tuple(requirements),source_hash,policies,spec.random_seed)
     except NotebookError:
         raise
+    except DependencyError as exc:
+        raise NotebookError(f'website execution environment mismatch: {exc}') from exc
     except Exception as exc:
         raise NotebookError('cannot validate notebook execution environment') from exc
 

@@ -13,7 +13,7 @@ class WebsiteInputError(ValueError):
 
 CSS_ALIAS = 'content/stylesheets/readthedocs.css'
 CSS_SOURCE = 'docs/stylesheets/readthedocs.css'
-ROOT_INPUTS = ('mkdocs.yml', 'requirements-docs.txt', 'requirements-notebooks.txt', CSS_SOURCE)
+ROOT_INPUTS = ('mkdocs.yml', 'requirements-docs.txt', 'requirements-notebooks.txt', 'requirements-validation.txt', 'constraints-validation.txt', 'tools/dependency-policy.json', CSS_SOURCE)
 
 
 def website_inputs(root: Path) -> tuple[str, ...]:

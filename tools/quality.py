@@ -17,8 +17,8 @@ from .site_assembly.timestamps import parse_timestamp
 from .validation_evidence import WebsiteIdentity,EnvironmentIdentity,website_identity,environment_identity
 
 TYPING_TARGETS=('tools','tests/support')
-QUALITY_CHECKS=('website-tests','strict-typing','strict-mkdocs')
-POLICY='website-source-quality-v1'
+QUALITY_CHECKS=('dependency-policy','website-tests','strict-typing','strict-mkdocs')
+POLICY='website-source-quality-v2'
 Runner=Callable[[list[str],Path,str | None],None]
 
 class QualityError(ValueError):
@@ -36,6 +36,7 @@ def run_command(arguments: list[str],cwd: Path,epoch: str | None=None) -> None:
 def run_checks(root: Path,output: Path,epoch: str,runner: Runner=run_command) -> None:
     output.mkdir(parents=True,exist_ok=False)
     commands=[
+        [sys.executable,'-m','tools.dependencies'],
         [sys.executable,'-m','pytest'],
         [sys.executable,'-m','mypy','--strict',*TYPING_TARGETS,'--cache-dir',str(output/'mypy-cache')],
         [sys.executable,'-m','mkdocs','build','--strict','--site-dir',str(output/'strict-site')],
