@@ -20,6 +20,7 @@ from .content_policy import (
     css_targets as _css_targets,
     srcset_targets as _srcset_targets,
 )
+from .assets import validate_asset
 from .links import LinkRewriteError, RenderedLinks, rewrite_destinations
 from .rendering import MarkdownRenderer, RenderingError, load_renderer, final_relative_url
 from .ownership import RenderedBuild, plan_artifact, stage_receipt, verify_ownership
@@ -248,6 +249,7 @@ def _copy_contract(
             )
             destination.write_text(rewritten, encoding="utf-8")
         else:
+            validate_asset(source, relative=published.path, approved=frozenset(item.path for item in ordinary_files if item.path in destinations and destinations[item.path] == source_root / item.path and Path(item.path).suffix.lower() != ".md"))
             if source.suffix.lower() in TEXT_SUFFIXES:
                 try:
                     scan_file(source, f"source asset {published.path}", ScanProfile.SOURCE)
@@ -593,6 +595,9 @@ def _render_build(context: BuildContext, entries: tuple[InventoryEntry, ...]) ->
 
 def _verify_build(context: BuildContext, rendered: RenderedBuild) -> None:
     verify_ownership(context, rendered)
+    for item in rendered.plan.files:
+        if Path(item.path).suffix != ".html":
+            validate_asset(rendered.site / item.path, origin=item.origin, relative=item.path, approved=frozenset(entry.path for entry in rendered.plan.files))
     _scan_artifact(rendered.site)
     for contract in context.inputs.contracts:
         verify_contract_inputs(contract)

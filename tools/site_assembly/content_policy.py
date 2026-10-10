@@ -74,7 +74,7 @@ text-align text-decoration text-indent white-space vertical-align
 margin margin-top margin-right margin-bottom margin-left
 padding padding-top padding-right padding-bottom padding-left
 border border-top border-right border-bottom border-left border-color border-style border-width border-radius
-fill stroke stroke-width overflow overflow-x overflow-y'''.split())
+paint-order text-anchor rx ry fill stroke stroke-width stroke-linecap stroke-linejoin stroke-dasharray stroke-dashoffset fill-opacity stroke-opacity overflow overflow-x overflow-y'''.split())
 CSS_FUNCTIONS = {'rgb', 'rgba', 'hsl', 'hsla', 'calc', 'min', 'max', 'clamp', 'linear-gradient', 'radial-gradient'}
 
 
@@ -143,7 +143,7 @@ def srcset_targets(value: str) -> list[str]:
 
 
 HTML_TAGS = frozenset('''a abbr b bdi bdo blockquote br caption code col colgroup dd del details dfn div dl dt em figcaption figure h1 h2 h3 h4 h5 h6 hr i img ins kbd li mark ol p picture pre q rp rt ruby s samp section small source span strong sub summary sup table tbody td th thead time tr u ul var video audio wbr script'''.split())
-SVG_TAGS = frozenset('''svg g path rect circle ellipse line polyline polygon text tspan defs symbol use image title desc clippath mask lineargradient radialgradient stop pattern'''.split())
+SVG_TAGS = frozenset('''svg marker g path rect circle ellipse line polyline polygon text tspan defs symbol use image title desc clippath mask lineargradient radialgradient stop pattern'''.split())
 GLOBALS = {'id', 'class', 'title', 'lang', 'dir', 'role', 'style', 'markdown'}
 TAG_ATTRIBUTES = {
     'a': {'href', 'target', 'rel', 'download', 'hreflang', 'type'},
@@ -158,7 +158,7 @@ TAG_ATTRIBUTES = {
     'th': {'colspan', 'rowspan', 'headers', 'scope', 'align'},
     'col': {'span', 'width'}, 'colgroup': {'span', 'width'},
 }
-SVG_ATTRIBUTES = frozenset('''xmlns xmlns:xlink viewbox preserveaspectratio width height x y x1 y1 x2 y2 cx cy r rx ry d points transform fill fill-rule fill-opacity stroke stroke-width stroke-linecap stroke-linejoin stroke-dasharray stroke-opacity opacity text-anchor dominant-baseline font-size font-family font-weight href xlink:href offset stop-color stop-opacity gradientunits gradienttransform patternunits patterntransform clippathunits maskunits clip-path mask'''.split())
+SVG_ATTRIBUTES = frozenset('''xmlns xmlns:xlink xml:space version viewbox preserveaspectratio marker-start marker-mid marker-end markerwidth markerheight markerunits orient refx refy dx dy width height x y x1 y1 x2 y2 cx cy r rx ry d points transform fill fill-rule fill-opacity stroke stroke-width stroke-linecap stroke-linejoin stroke-dasharray stroke-opacity opacity text-anchor dominant-baseline font-size font-family font-weight href xlink:href offset stop-color stop-opacity gradientunits gradienttransform patternunits patterntransform clippathunits maskunits clip-path mask'''.split())
 
 
 class RenderedLinkParser(HTMLParser):
@@ -204,7 +204,7 @@ class RenderedLinkParser(HTMLParser):
                 if tag in {'img', 'image', 'source'} or name == 'poster':
                     use = URLUse.IMAGE
                 self._add(value, use)
-            elif tag in SVG_TAGS and name in {'fill', 'stroke', 'clip-path', 'mask'}:
+            elif tag in SVG_TAGS and name in {'fill', 'stroke', 'clip-path', 'mask', 'marker-start', 'marker-mid', 'marker-end'}:
                 # SVG paint/reference values use the same CSS token parser.
                 self.targets.extend(_css_values(tinycss2.parse_component_value_list(value)))
 
