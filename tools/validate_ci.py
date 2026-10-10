@@ -8,11 +8,15 @@ import json
 import os
 import subprocess
 import sys
+import shutil
+import tempfile
 from pathlib import Path
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from tools.site_assembly.promotion import promote_directory
+from tools.site_assembly.timestamps import TimestampError, parse_timestamp
 from tools.site_assembly.primitives import atomic_write_text, sha256_file
 
 from tools.site_assembly import AssemblyError, assemble_site
@@ -23,35 +27,30 @@ class ValidationError(ValueError):
     """The CI-equivalent validation could not complete safely."""
 
 
-def _run(arguments: list[str], cwd: Path) -> None:
+def _run(arguments: list[str], cwd: Path, epoch: str | None = None) -> None:
     try:
-        subprocess.run(arguments, cwd=cwd, check=True)
+        environment = dict(os.environ)
+        if epoch is not None:
+            environment["SOURCE_DATE_EPOCH"] = epoch
+        subprocess.run(arguments, cwd=cwd, check=True, env=environment)
     except (OSError, subprocess.CalledProcessError) as exc:
         raise ValidationError(f"validation command failed: {' '.join(arguments)}") from exc
 
 
 def _source_date_epoch(website_root: Path) -> str:
-    configured = os.environ.get("SOURCE_DATE_EPOCH")
-    if configured is not None:
+    value = os.environ.get("SOURCE_DATE_EPOCH")
+    if value is None:
         try:
-            if int(configured) < 0:
-                raise ValueError
-        except ValueError as exc:
-            raise ValidationError("SOURCE_DATE_EPOCH must be a non-negative integer") from exc
-        return configured
+            value = subprocess.check_output(
+                ["git", "show", "-s", "--format=%ct", "HEAD"], cwd=website_root,
+                text=True, stderr=subprocess.STDOUT,
+            ).strip()
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise ValidationError("cannot derive SOURCE_DATE_EPOCH from the website commit") from exc
     try:
-        value = subprocess.check_output(
-            ["git", "show", "-s", "--format=%ct", "HEAD"],
-            cwd=website_root,
-            text=True,
-            stderr=subprocess.STDOUT,
-        ).strip()
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise ValidationError("cannot derive SOURCE_DATE_EPOCH from the website commit") from exc
-    if not value.isdigit():
-        raise ValidationError("website commit timestamp is invalid")
-    os.environ["SOURCE_DATE_EPOCH"] = value
-    return value
+        return parse_timestamp(value).epoch
+    except TimestampError as exc:
+        raise ValidationError(str(exc)) from exc
 
 
 _sha256 = sha256_file
@@ -96,6 +95,8 @@ def validate(
 ) -> Path:
     """Run source contracts, tests, strict build, assembly, scan, and hashing."""
 
+    if output_root.exists() or output_root.is_symlink():
+        raise ValidationError("CI validation output path must not already exist")
     website_root = website_root.resolve()
     output_root = output_root.resolve()
     euvics_source = euvics_source.resolve()
@@ -106,59 +107,69 @@ def validate(
             verify_checkout(locks[name], source)
     except ContractError as exc:
         raise ValidationError(str(exc)) from exc
-    strict_site = output_root.parent / f"{output_root.name}-strict-site"
-    if output_root.exists() or strict_site.exists():
-        raise ValidationError("CI validation output paths must not already exist")
+    if output_root.exists() or output_root.is_symlink():
+        raise ValidationError("CI validation output path must not already exist")
+    epoch = _source_date_epoch(website_root)
     output_root.parent.mkdir(parents=True, exist_ok=True)
-    _source_date_epoch(website_root)
-    _run(
-        [
-            sys.executable,
-            str(euvics_source / "tools/publication_contract.py"),
-            "validate",
-            "--repository-root",
-            str(euvics_source),
-            "--manifest",
-            str(euvics_source / locks["euvics"].manifest_path),
-        ],
-        website_root,
-    )
-    _run(
-        [
-            sys.executable,
-            str(pyeuvics_source / "tools/publication_contract.py"),
-            "validate",
-            "--repository-root",
-            str(pyeuvics_source),
-            "--manifest",
-            str(pyeuvics_source / locks["pyeuvics"].manifest_path),
-        ],
-        website_root,
-    )
-    _run([sys.executable, "-m", "pytest"], website_root)
-    _run(
-        [
-            sys.executable,
-            "-m",
-            "mypy",
-            "--strict",
-            "tools/site_assembly",
-            "tools/assemble_site.py",
-            "tools/ci_source_locks.py",
-            "tools/source_update.py",
-            "tools/validate_ci.py",
-        ],
-        website_root,
-    )
-    _run(
-        [sys.executable, "-m", "mkdocs", "build", "--strict", "--site-dir", str(strict_site)],
-        website_root,
-    )
+    workspace = Path(tempfile.mkdtemp(prefix=f".{output_root.name}.validation-", dir=output_root.parent))
+    strict_site = workspace / "strict-site"
+    assembly = workspace / "assembly"
     try:
-        assemble_site(website_root, lock_path, euvics_source, pyeuvics_source, output_root)
-    except (AssemblyError, ContractError) as exc:
-        raise ValidationError(str(exc)) from exc
-    return write_review_manifest(output_root)
+        _run(
+            [
+                sys.executable,
+                str(euvics_source / "tools/publication_contract.py"),
+                "validate",
+                "--repository-root",
+                str(euvics_source),
+                "--manifest",
+                str(euvics_source / locks["euvics"].manifest_path),
+            ],
+            website_root,
+            epoch,
+        )
+        _run(
+            [
+                sys.executable,
+                str(pyeuvics_source / "tools/publication_contract.py"),
+                "validate",
+                "--repository-root",
+                str(pyeuvics_source),
+                "--manifest",
+                str(pyeuvics_source / locks["pyeuvics"].manifest_path),
+            ],
+            website_root,
+            epoch,
+        )
+        _run([sys.executable, "-m", "pytest"], website_root, epoch)
+        _run(
+            [
+                sys.executable,
+                "-m",
+                "mypy",
+                "--strict",
+                "tools/site_assembly",
+                "tools/assemble_site.py",
+                "tools/ci_source_locks.py",
+                "tools/source_update.py",
+                "tools/validate_ci.py",
+            ],
+            website_root,
+            epoch,
+        )
+        _run(
+            [sys.executable, "-m", "mkdocs", "build", "--strict", "--site-dir", str(strict_site)],
+            website_root,
+            epoch,
+        )
+        assemble_site(website_root, lock_path, euvics_source, pyeuvics_source, assembly, source_date_epoch=epoch)
+        write_review_manifest(assembly)
+        promote_directory(assembly, output_root)
+    except Exception as exc:
+        atomic_write_text(workspace / "INCOMPLETE.json", json.dumps({"status": "incomplete", "error_type": type(exc).__name__}, sort_keys=True) + "\n")
+        raise ValidationError(f"{exc}; incomplete validation workspace retained at {workspace}") from exc
+    shutil.rmtree(workspace)  # Only this invocation's owned scratch directory.
+    return output_root / "review-artifact-manifest.json"
 
 
 def main(argv: list[str] | None = None) -> int:

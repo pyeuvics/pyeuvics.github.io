@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import os
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -46,9 +47,12 @@ def _archive_checkout(contract: SourceContract, destination: Path) -> None:
         raise DocumentError(f"cannot archive locked EUVICS source: {exc}") from exc
 
 
-def _run_make(source_build: Path, target: str) -> str:
+def _run_make(source_build: Path, target: str, epoch: str | None = None) -> str:
     try:
-        return run_text(["make", target], source_build, f"EUVICS make {target}")
+        environment = dict(os.environ)
+        if epoch is not None:
+            environment["SOURCE_DATE_EPOCH"] = epoch
+        return run_text(["make", target], source_build, f"EUVICS make {target}", environment=environment)
     except FileOperationError as exc:
         raise DocumentError(str(exc)) from exc
 
@@ -118,6 +122,7 @@ def build_approved_documents(
     staged_content: Path,
     timestamp: str,
     plan: StagingPlan | None = None,
+    source_date_epoch: str | None = None,
 ) -> tuple[tuple[InventoryEntry, ...], dict[str, Path]]:
     """Rebuild, verify, stage, and describe exact approved EUVICS PDFs."""
 
@@ -139,8 +144,8 @@ def build_approved_documents(
         archived_release = source_build / entry.path
         if archived_release.exists():
             archived_release.unlink()
-    command_log = _run_make(source_build, "verify-archive")
-    command_log += _run_make(source_build, "check")
+    command_log = _run_make(source_build, "verify-archive", source_date_epoch)
+    command_log += _run_make(source_build, "check", source_date_epoch)
     (output_root / "source-build/euvics-build.log").write_text(command_log, encoding="utf-8")
     for log in (source_build / "build").rglob("*.log"):
         text = log.read_text(encoding="utf-8", errors="replace")
