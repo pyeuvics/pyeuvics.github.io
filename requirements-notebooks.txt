@@ -1,7 +1,7 @@
-# Scientific notebook environment for website rendering, reviewed 2026-08-02.
+# Scientific notebook environment for website rendering, numerical patch pins reviewed 2026-10-11.
 # Execution pins are checked against every admitted source environment policy.
 ipywidgets==8.1.8
 matplotlib==3.11.1
-numpy==2.5.1
+numpy==2.5.3
 pandas==3.0.5
-scipy==1.18.0
+scipy==1.18.1

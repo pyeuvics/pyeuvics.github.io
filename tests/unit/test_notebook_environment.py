@@ -53,3 +53,12 @@ def test_environment_fingerprint_binds_source_inputs_without_local_paths(tmp_pat
     import json
     assert str(tmp_path) not in json.dumps(first.to_dict())
     assert str(Path(sys.executable).parent) not in json.dumps(first.to_dict())
+
+
+def test_upgraded_website_versions_do_not_override_frozen_source_policy(tmp_path: Path) -> None:
+    path=tmp_path/'environment.yaml'
+    path.write_text(yaml.safe_dump({'schema_version':1,'python':'>=3.13',
+        'versions':{'numpy':'2.5.1','scipy':'1.18.0'}}),encoding='utf-8')
+    policy_spec=replace(spec(),configurations=('environment.yaml',))
+    with pytest.raises(NotebookError,match='locked source environment mismatch for numpy'):
+        environment.validate_source_environments(policy_spec,tmp_path,{'numpy':'2.5.3','scipy':'1.18.1'})

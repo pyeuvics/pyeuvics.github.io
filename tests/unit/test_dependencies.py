@@ -41,4 +41,4 @@ def test_core_yaml_and_typing_stubs_are_direct_writer_dependencies():
     docs=read_pins(ROOT/'requirements-docs.txt');notebooks=read_pins(ROOT/'requirements-notebooks.txt')
     assert docs['pyyaml']=='6.0.3' and 'pyyaml' not in notebooks
     assert {'types-pyyaml','types-markdown','mypy'}<=docs.keys()
-    assert notebooks['numpy']=='2.5.1' and notebooks['scipy']=='1.18.0'
+    assert notebooks['numpy']=='2.5.3' and notebooks['scipy']=='1.18.1'
