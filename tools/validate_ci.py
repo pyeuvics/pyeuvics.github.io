@@ -15,6 +15,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from tools.validation_evidence import EvidenceError,ARTIFACT_EVIDENCE,website_identity,environment_identity,lock_identity,write_record
 from tools.review_manifest import ReviewManifest,ReviewFile,ReviewManifestError,write_manifest
 from tools.site_assembly.promotion import promote_directory
 from tools.site_assembly.timestamps import TimestampError, parse_timestamp
@@ -72,6 +73,12 @@ def write_review_manifest(output_root: Path) -> Path:
         files.append(ReviewFile(path.relative_to(output_root).as_posix(),_sha256(path),path.stat().st_size))
     if inventory.is_symlink() or site.is_symlink():raise ValidationError('aliased review artifact root or inventory')
     files.append(ReviewFile(inventory.relative_to(output_root).as_posix(),_sha256(inventory),inventory.stat().st_size))
+    for name in (*ARTIFACT_EVIDENCE,'notebook-execution-provenance.json','source-build/document-build-evidence.json'):
+        if name=='staged-content-inventory.json':continue
+        path=output_root/name
+        if path.exists():
+            if path.is_symlink() or not path.is_file():raise ValidationError('aliased internal artifact evidence')
+            files.append(ReviewFile(name,_sha256(path),path.stat().st_size))
     manifest_path=output_root/'review-artifact-manifest.json'
     try:
         write_manifest(manifest_path,ReviewManifest(tuple(sorted(files,key=lambda item:item.path))))
@@ -103,6 +110,12 @@ def validate(
         raise ValidationError(str(exc)) from exc
     if output_root.exists() or output_root.is_symlink():
         raise ValidationError("CI validation output path must not already exist")
+    try:
+        website_before=website_identity(website_root)
+        environment_before=environment_identity(website_root)
+        lock_before=lock_identity(lock_path)
+    except (OSError,ValueError) as exc:
+        raise ValidationError(str(exc)) from exc
     epoch = _source_date_epoch(website_root)
     output_root.parent.mkdir(parents=True, exist_ok=True)
     workspace = Path(tempfile.mkdtemp(prefix=f".{output_root.name}.validation-", dir=output_root.parent))
@@ -158,6 +171,9 @@ def validate(
         )
         assemble_site(website_root, lock_path, euvics_source, pyeuvics_source, assembly, source_date_epoch=epoch)
         write_review_manifest(assembly)
+        if website_identity(website_root)!=website_before or environment_identity(website_root)!=environment_before or lock_identity(lock_path)!=lock_before:
+            raise EvidenceError('validated website, environment or lock changed during execution')
+        write_record(assembly/'validation-record.json',website_before,environment_before,lock_before,epoch)
         promote_directory(assembly, output_root)
     except Exception as exc:
         atomic_write_text(workspace / "INCOMPLETE.json", json.dumps({"status": "incomplete", "error_type": type(exc).__name__}, sort_keys=True) + "\n")
