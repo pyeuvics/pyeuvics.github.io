@@ -14,3 +14,6 @@ types-Markdown==3.10.2.20260712
 types-PyYAML==6.0.12.20260518
 # Direct CSS policy parser; also used transitively by nbconvert. Reviewed WEB-11.
 tinycss2==1.5.1
+# Direct bounded asset decoders; existing installed versions reviewed WEB-16.
+Pillow==12.3.0
+defusedxml==0.7.1

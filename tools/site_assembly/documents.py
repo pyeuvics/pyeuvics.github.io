@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from pypdf import PdfReader
+from .assets import AssetError, validate_asset
 
 from .primitives import FileOperationError, export_locked_tree, sha256_file, run_text
 
@@ -59,16 +59,9 @@ def _run_make(source_build: Path, target: str, epoch: str | None = None) -> str:
 
 def _validate_pdf(path: Path) -> None:
     try:
-        reader = PdfReader(path)
-    except Exception as exc:
-        raise DocumentError(f"invalid PDF artifact: {path}") from exc
-    if reader.is_encrypted or len(reader.pages) == 0:
-        raise DocumentError(f"PDF must be unencrypted and contain at least one page: {path}")
-    for page in reader.pages:
-        try:
-            page.extract_text()
-        except Exception as exc:
-            raise DocumentError(f"PDF text/layout structure cannot be inspected: {path}") from exc
+        validate_asset(path)
+    except AssetError as exc:
+        raise DocumentError("invalid or unsafe PDF artifact") from exc
 
 
 def _validate_document_entry(entry: PublishedFile) -> tuple[str, str, str]:
