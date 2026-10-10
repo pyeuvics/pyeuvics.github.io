@@ -15,6 +15,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from tools.review_manifest import ReviewManifest,ReviewFile,ReviewManifestError,write_manifest
 from tools.site_assembly.promotion import promote_directory
 from tools.site_assembly.timestamps import TimestampError, parse_timestamp
 from tools.site_assembly.primitives import atomic_write_text, sha256_file
@@ -63,26 +64,19 @@ def write_review_manifest(output_root: Path) -> Path:
     inventory = output_root / "staged-content-inventory.json"
     if not site.is_dir() or not inventory.is_file():
         raise ValidationError("assembled review artifact is incomplete")
-    files = [
-        {
-            "path": path.relative_to(output_root).as_posix(),
-            "sha256": _sha256(path),
-            "bytes": path.stat().st_size,
-        }
-        for path in sorted(site.rglob("*"))
-        if path.is_file()
-    ]
-    files.append(
-        {
-            "path": inventory.relative_to(output_root).as_posix(),
-            "sha256": _sha256(inventory),
-            "bytes": inventory.stat().st_size,
-        }
-    )
-    manifest_path = output_root / "review-artifact-manifest.json"
-    atomic_write_text(
-        manifest_path, json.dumps({"manifest_version": 1, "files": files}, indent=2, sort_keys=True) + "\n",
-    )
+    files=[]
+    for path in sorted(site.rglob('*')):
+        if path.is_symlink():raise ValidationError('aliased review artifact file or directory')
+        if path.is_dir():continue
+        if not path.is_file():raise ValidationError('nonregular review artifact file')
+        files.append(ReviewFile(path.relative_to(output_root).as_posix(),_sha256(path),path.stat().st_size))
+    if inventory.is_symlink() or site.is_symlink():raise ValidationError('aliased review artifact root or inventory')
+    files.append(ReviewFile(inventory.relative_to(output_root).as_posix(),_sha256(inventory),inventory.stat().st_size))
+    manifest_path=output_root/'review-artifact-manifest.json'
+    try:
+        write_manifest(manifest_path,ReviewManifest(tuple(sorted(files,key=lambda item:item.path))))
+    except ReviewManifestError as exc:
+        raise ValidationError(str(exc)) from exc
     return manifest_path
 
 
