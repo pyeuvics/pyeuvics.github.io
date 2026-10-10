@@ -1,13 +1,21 @@
 """pyEUVICS 1.0 identity, allowlist and candidate adapters."""
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
-from ..contract_values import ContractError, _text, _safe_path, _strict_object, _iso_date
-from ..models import SourceLock, PublishedFile, NotebookSpec
+
+from ..contract_policy import PYEUVICS_REPOSITORY_FIELDS, PYEUVICS_ROOT_FIELDS
+from ..contract_values import (
+    ContractError,
+    _iso_date,
+    _safe_path,
+    _strict_object,
+    _text,
+)
+from ..models import NotebookSpec, PublishedFile, SourceLock
 from ..source_checkout import _validate_file
-from ..contract_policy import PYEUVICS_ROOT_FIELDS, PYEUVICS_REPOSITORY_FIELDS
-from .package import parse_package
 from .candidates import parse_candidates
+from .package import parse_package
 
 
 def parse_pyeuvics(manifest: dict[str, Any], lock: SourceLock, root: Path) -> tuple[list[PublishedFile], list[NotebookSpec]]:

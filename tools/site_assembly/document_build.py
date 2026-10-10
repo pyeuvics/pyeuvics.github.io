@@ -1,19 +1,25 @@
 """Disposable source-owned document build and bounded verification evidence."""
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import asdict, dataclass
 import json
 import os
-from pathlib import Path
 import re
+from collections.abc import Callable
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 from .assets import AssetError, validate_asset
 from .contracts import ContractError, verify_contract_inputs
 from .document_policy import DocumentError, DocumentRequirements
-from .document_toolchain import ToolVersion,capture_toolchain
+from .document_toolchain import ToolVersion, capture_toolchain
 from .models import PublishedFile, SourceContract
-from .primitives import FileOperationError, atomic_write_text, export_locked_tree, sha256_file, run_text
+from .primitives import (
+    FileOperationError,
+    atomic_write_text,
+    export_locked_tree,
+    run_text,
+    sha256_file,
+)
 
 LOG_FAILURE = re.compile(
     r"Citation .* undefined|Reference .* undefined|There were undefined references|"

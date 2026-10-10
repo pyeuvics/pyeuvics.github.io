@@ -30,7 +30,8 @@
       "mypy",
       "types-Markdown",
       "types-PyYAML",
-      "reportlab"
+      "reportlab",
+      "ruff"
     ]
   },
   "schema_version": 1

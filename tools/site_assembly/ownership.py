@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 import base64
+import json
+import stat
 from dataclasses import asdict, dataclass
 from importlib.metadata import distribution
-import json
 from pathlib import Path, PurePosixPath
-import stat
 from typing import Literal
 
 from mkdocs.config import load_config

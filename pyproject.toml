@@ -1,0 +1,20 @@
+# Bounded maintenance checks; no all-rules formatter or scientific policy.
+[tool.ruff]
+required-version = "==0.17.0"
+target-version = "py313"
+cache-dir = ".staging/ruff-cache"
+
+[tool.ruff.lint]
+select = ["I", "E9", "F63", "F7", "F82", "EXE001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tools", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["tools", "tests/support"]
+cache_dir = ".staging/mypy-cache"

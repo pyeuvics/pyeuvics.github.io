@@ -4,22 +4,29 @@ from __future__ import annotations
 import base64
 import io
 import json
-from pathlib import Path, PurePosixPath
 import posixpath
 import subprocess
 import sys
+import zlib
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 from urllib.parse import unquote, urlsplit
-import zlib
 
-from defusedxml import ElementTree as SafeXML  # type: ignore[import-untyped]
-from PIL import Image
 import tinycss2  # type: ignore[import-untyped]
 import yaml
+from defusedxml import ElementTree as SafeXML  # type: ignore[import-untyped]
+from PIL import Image
 
 from tools.privacy import ScanProfile, scan_bytes, scan_text
-from .content_policy import RenderedLinkParser, SVG_TAGS, URLUse, css_targets, validate_url
-from .structured import UniqueSafeLoader, _pairs, _nonfinite
+
+from .content_policy import (
+    SVG_TAGS,
+    RenderedLinkParser,
+    URLUse,
+    css_targets,
+    validate_url,
+)
+from .structured import UniqueSafeLoader, _nonfinite, _pairs
 
 MAX_FILE = 32 * 1024 * 1024
 MAX_TEXT = 8 * 1024 * 1024

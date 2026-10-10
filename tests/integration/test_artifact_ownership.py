@@ -16,7 +16,7 @@ def website_fixture(root: Path) -> Path:
     root.mkdir()
     for folder in ['content','overrides']:
         shutil.copytree(ROOT/folder,root/folder,symlinks=True)
-    for relative in ['mkdocs.yml','requirements-docs.txt','requirements-notebooks.txt','requirements-validation.txt','constraints-validation.txt','tools/dependency-policy.json','docs/stylesheets/readthedocs.css']:
+    for relative in ['mkdocs.yml','requirements-docs.txt','requirements-notebooks.txt','requirements-validation.txt','constraints-validation.txt','tools/dependency-policy.json','pyproject.toml','docs/stylesheets/readthedocs.css']:
         path=root/relative;path.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/relative,path)
     init_repo(root)
     subprocess.run(['git','add','.'],cwd=root,check=True)

@@ -1,22 +1,24 @@
 """Validation consistency evidence, not scientific approval or validator authentication."""
 from __future__ import annotations
-from dataclasses import asdict,dataclass
+
 import hashlib
-from importlib.metadata import distributions
 import json
 import os
-from pathlib import Path
 import platform
 import re
 import sys
+from dataclasses import asdict, dataclass
+from importlib.metadata import distributions
+from pathlib import Path
 from typing import Any
-from .dependencies import dependency_inputs
-from .site_assembly.contracts import load_locks
-from .site_assembly.primitives import atomic_write_text,sha256_file,run_text
-from .site_assembly.structured import read_json
-from .review_manifest import ReviewFile,ReviewManifest,parse_review_manifest
 
-CHECKS=('source-contracts','dependency-policy','website-tests','strict-typing','strict-mkdocs','assembly','artifact-validation','review-manifest')
+from .dependencies import dependency_inputs
+from .review_manifest import ReviewFile, ReviewManifest, parse_review_manifest
+from .site_assembly.contracts import load_locks
+from .site_assembly.primitives import atomic_write_text, run_text, sha256_file
+from .site_assembly.structured import read_json
+
+CHECKS=('source-contracts','dependency-policy','bounded-lint','website-tests','strict-typing','strict-mkdocs','assembly','artifact-validation','review-manifest')
 ARTIFACT_EVIDENCE=('artifact-plan.json','publication-artifact-manifest.json','quality-record.json','staged-content-inventory.json','staging-plan.json')
 BUNDLE_FILES=('ancestry.json','baseline/review-artifact-manifest.json','baseline/validation-record.json','candidate/review-artifact-manifest.json','candidate/validation-record.json','proposal/pull-request.md','proposal/pull-request.md.json','proposal/sources.lock.yml')
 REQUIREMENTS=('requirements-docs.txt','requirements-notebooks.txt')

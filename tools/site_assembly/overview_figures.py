@@ -1,12 +1,16 @@
 """Present the structurally validated, source-owned overview artifact set."""
 from __future__ import annotations
+
 from pathlib import Path
+
 from .models import SourceContract
-from .template_slots import fill_slot, TemplateSlotError
+from .overview_data import CSV_PATH as CSV_PATH
+from .overview_data import EXPECTED_PATHS, validate_overview
+from .overview_data import JSON_PATH as JSON_PATH
+from .overview_data import SVG_PATH as SVG_PATH
+from .overview_data import OverviewFigureError as OverviewFigureError
 from .presentation import markdown_text
-from .overview_data import (OverviewFigureError as OverviewFigureError, CSV_PATH as CSV_PATH,
-                            JSON_PATH as JSON_PATH, SVG_PATH as SVG_PATH, EXPECTED_PATHS,
-                            validate_overview)
+from .template_slots import TemplateSlotError, fill_slot
 
 
 def stage_overview_figure(contract: SourceContract, staged_content: Path) -> None:

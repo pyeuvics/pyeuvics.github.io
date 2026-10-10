@@ -45,3 +45,5 @@ Dependency upgrades and advisory audits are separate reviewed work. Constraints
 neither guarantee permanent registry availability nor establish permanent security.
 Never auto-update numerical pins, source locks or approval hashes to satisfy an
 advisory or resolver. Record fresh-install evidence and the tested platforms.
+
+WEB-35 adds only Ruff 0.17.0 as a reviewed development tool. Numerical pins are unchanged.

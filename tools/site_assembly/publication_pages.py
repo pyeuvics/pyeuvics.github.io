@@ -1,11 +1,20 @@
 """Consistent section indexes and explicitly eligible download metadata."""
 from __future__ import annotations
+
 import os
 from pathlib import Path
+
 from .models import InventoryEntry
-from .publication import PublicationSource
-from .presentation import Code, Link, MetadataRow, render_link, render_table, render_limitations
+from .presentation import (
+    Code,
+    Link,
+    MetadataRow,
+    render_limitations,
+    render_link,
+    render_table,
+)
 from .primitives import sha256_file
+from .publication import PublicationSource
 
 
 def _link(title: str,target: str,page: Path,root: Path) -> str:

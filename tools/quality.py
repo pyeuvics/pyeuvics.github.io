@@ -1,24 +1,31 @@
 """Secret-free website quality checks shared by local, PR and source-backed runs."""
 from __future__ import annotations
+
 import argparse
-from collections.abc import Callable
-from dataclasses import asdict
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
+from dataclasses import asdict
+from pathlib import Path
 from uuid import uuid4
-from .site_assembly.primitives import atomic_write_text,run_text
+
+from .site_assembly.primitives import atomic_write_text, run_text
 from .site_assembly.promotion import promote_directory
 from .site_assembly.structured import read_json
 from .site_assembly.timestamps import parse_timestamp
-from .validation_evidence import WebsiteIdentity,EnvironmentIdentity,website_identity,environment_identity
+from .validation_evidence import (
+    EnvironmentIdentity,
+    WebsiteIdentity,
+    environment_identity,
+    website_identity,
+)
 
 TYPING_TARGETS=('tools','tests/support')
-QUALITY_CHECKS=('dependency-policy','website-tests','strict-typing','strict-mkdocs')
-POLICY='website-source-quality-v2'
+QUALITY_CHECKS=('dependency-policy','bounded-lint','website-tests','strict-typing','strict-mkdocs')
+POLICY='website-source-quality-v3'
 Runner=Callable[[list[str],Path,str | None],None]
 
 class QualityError(ValueError):
@@ -37,6 +44,7 @@ def run_checks(root: Path,output: Path,epoch: str,runner: Runner=run_command) ->
     output.mkdir(parents=True,exist_ok=False)
     commands=[
         [sys.executable,'-m','tools.dependencies'],
+        [sys.executable,'-m','ruff','check','--no-cache',*TYPING_TARGETS],
         [sys.executable,'-m','pytest'],
         [sys.executable,'-m','mypy','--strict',*TYPING_TARGETS,'--cache-dir',str(output/'mypy-cache')],
         [sys.executable,'-m','mkdocs','build','--strict','--site-dir',str(output/'strict-site')],

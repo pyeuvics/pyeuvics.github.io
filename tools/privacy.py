@@ -6,9 +6,9 @@ No failure message includes a matched value or subprocess output.
 from __future__ import annotations
 
 import codecs
+import re
 from enum import Enum
 from pathlib import Path
-import re
 from typing import BinaryIO
 
 

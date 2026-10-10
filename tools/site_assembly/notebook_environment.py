@@ -1,22 +1,24 @@
 """Select the intended interpreter and describe its checked execution inputs."""
 from __future__ import annotations
-from dataclasses import asdict, dataclass
+
 import hashlib
-from importlib.metadata import distribution, version
 import json
-from pathlib import Path
 import platform
 import re
 import sys
+from dataclasses import asdict, dataclass
+from importlib.metadata import distribution, version
+from pathlib import Path
 from typing import Any
 
-from jupyter_client.manager import AsyncKernelManager
 from jupyter_client.kernelspec import KernelSpecManager
+from jupyter_client.manager import AsyncKernelManager
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.utils import canonicalize_name
 
-from tools.dependencies import DependencyError,checked_versions,dependency_inputs
+from tools.dependencies import DependencyError, checked_versions, dependency_inputs
+
 from .models import NotebookSpec
 from .notebook_policy import NotebookError
 from .primitives import atomic_write_text, sha256_file

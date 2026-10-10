@@ -22,3 +22,5 @@ defusedxml==0.7.1
 # Direct owned-kernel/environment interfaces; installed versions reviewed WEB-19.
 jupyter_client==8.9.1
 packaging==26.3
+# Bounded lint tool reviewed in WEB-35; no numerical dependency change.
+ruff==0.17.0

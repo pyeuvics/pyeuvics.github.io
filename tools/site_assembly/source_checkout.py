@@ -1,10 +1,13 @@
 """Git checkout and consumed-byte identity checks, independent of manifest schemas."""
 from __future__ import annotations
+
 from pathlib import Path, PurePosixPath
+
 from .contract_policy import SUPPORTED_SUFFIXES
 from .contract_values import ContractError
 from .models import SourceContract, SourceLock
 from .primitives import FileOperationError, run_text
+
 
 def _git(root: Path, *arguments: str) -> str:
     try:

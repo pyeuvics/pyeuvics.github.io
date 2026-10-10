@@ -63,8 +63,7 @@ tmp
 /.staging/
 /.rendered/
 /site/
-/.venv-docs/
-/.venv-docs-313/
+/.venv*/
 
 # Local secrets and environment files
 .env
@@ -73,9 +72,19 @@ tmp
 *.pem
 *.key
 
-CODEX_TASK_READTHEDOCS_STYLE.md
-archive/
-euvics_project_physics_tasks_20260803
 
 # Pinned frontend test dependencies (results live under .staging/)
 /node_modules/
+
+# Reproducible local tool caches; review notes and website downloads stay visible.
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Existing local historical material; narrowed from unanchored legacy rules.
+/docs/CODEX_TASK_READTHEDOCS_STYLE.md
+/docs/archive/
+/docs/euvics_project_physics_tasks_20260803/

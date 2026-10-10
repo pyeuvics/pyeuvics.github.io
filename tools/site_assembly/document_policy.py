@@ -1,8 +1,9 @@
 """Website admission of source-owned document release metadata."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 import shutil
+from dataclasses import dataclass
+
 from .models import PublishedFile, SourceContract
 from .structured import StructuredInputError, iso_date
 

@@ -1,16 +1,17 @@
 """Deterministic publication outputs and portable destination ownership."""
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import asdict, dataclass, replace
 from enum import Enum
 from pathlib import Path, PurePosixPath
-import re
-import unicodedata
 
-from .document_policy import DocumentError, validate_document_entry as _validate_document_entry
+from .document_policy import DocumentError
+from .document_policy import validate_document_entry as _validate_document_entry
 from .models import SourceContract
-from .publication import PublicationSource, publication_sources
 from .primitives import FileOperationError, sha256_file
+from .publication import PublicationSource, publication_sources
 from .website_inputs import website_inputs
 
 

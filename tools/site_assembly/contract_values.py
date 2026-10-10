@@ -1,9 +1,12 @@
 """Domain errors and validated scalar/container boundaries for source adapters."""
 from __future__ import annotations
+
 from pathlib import Path, PurePosixPath
 from typing import Any
+
 from .contract_policy import GLOB_CHARS
 from .structured import StructuredInputError, iso_date, read_json
+
 
 class ContractError(ValueError):
     """A lock, repository, or publication contract is unsafe or inconsistent."""

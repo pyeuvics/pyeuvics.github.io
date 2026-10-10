@@ -1,6 +1,8 @@
 """Independently reviewed workflow expectations, not values read from workflows."""
 from typing import Any
+
 import yaml
+
 from .paths import ROOT
 
 CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"

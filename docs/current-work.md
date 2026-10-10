@@ -12,8 +12,8 @@ The owner authorized the ordered tasks in
 local commit per task. Its checked task entries link to completed execution
 plans. [Active plans](exec-plans/active/) show in-progress work and
 [completed plans](exec-plans/completed/) retain task-specific decisions and
-verification. WEB-35 and WEB-36 follow this governance task; update their status
-only after their checks pass. [tasks/TODO.md](../tasks/TODO.md) is a short pointer
+verification. WEB-35 established the [bounded quality policy](quality-policy.md).
+WEB-36 remains for final acceptance; update its status only after its checks pass. [tasks/TODO.md](../tasks/TODO.md) is a short pointer
 to this queue, not an independent contradictory backlog.
 
 ## Current boundaries and decisions

@@ -1,16 +1,16 @@
 """Use MkDocs' validated Markdown settings at the publication boundary."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
+from xml.etree.ElementTree import Element
 
 import markdown
 from markdown.treeprocessors import Treeprocessor
-from xml.etree.ElementTree import Element
-from mkdocs.structure.files import File
 from mkdocs.config import load_config
 from mkdocs.exceptions import ConfigurationError
+from mkdocs.structure.files import File
 
 from .structured import StructuredInputError, read_yaml
 

@@ -1,9 +1,9 @@
 """One representable UTC timestamp policy for direct and CI builds."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 import datetime as dt
 import re
+from dataclasses import dataclass
 
 
 class TimestampError(ValueError):

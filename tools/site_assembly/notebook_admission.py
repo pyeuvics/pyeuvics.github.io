@@ -1,12 +1,24 @@
 """Admit bounded, output-free source notebooks without executing them."""
 from __future__ import annotations
+
 import json
 from pathlib import Path, PurePosixPath
 from typing import Any
+
 import nbformat
+
 from .models import NotebookSpec
-from .structured import _pairs, _nonfinite, _finite_tree
-from .notebook_policy import AdmittedNotebook, NotebookError, DATA_LITERAL, NETWORK_CODE, UNSAFE_HTML, _scan, _validate_markup
+from .notebook_policy import (
+    DATA_LITERAL,
+    NETWORK_CODE,
+    UNSAFE_HTML,
+    AdmittedNotebook,
+    NotebookError,
+    _scan,
+    _validate_markup,
+)
+from .structured import _finite_tree, _nonfinite, _pairs
+
 
 def _validate_source(spec: NotebookSpec, source: Path, root: Path) -> Any:
     with source.open('rb') as stream:

@@ -1,9 +1,9 @@
 """Typed website page views; source metadata is always plain text."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from html import escape
-import re
 from urllib.parse import quote
 
 from .content_policy import URLUse, validate_url

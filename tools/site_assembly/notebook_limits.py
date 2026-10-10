@@ -1,18 +1,20 @@
 """Accumulation/observation budgets and deterministic kernel cleanup."""
 from __future__ import annotations
+
 import asyncio
 import atexit
-from dataclasses import asdict, dataclass
 import json
 import math
 import os
 import stat
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 from jupyter_client.manager import AsyncKernelManager
 from nbclient import NotebookClient
 from nbformat import NotebookNode
+
 from .models import NotebookSpec
 from .notebook_policy import NotebookError
 from .primitives import atomic_write_text

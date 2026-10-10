@@ -1,15 +1,28 @@
 """Candidate declarations, approval gates and reviewed subset admission."""
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
-from ..contract_values import ContractError, _text, _safe_path, _strict_object, _iso_date
-from ..models import SourceLock, PublishedFile, NotebookSpec
+
+from ..contract_policy import (
+    INITIAL_CAMPAIGN_PATHS,
+    INITIAL_NOTEBOOK_PATHS,
+    INITIAL_OVERVIEW_FIGURE_PATHS,
+    PYEUVICS_SET_APPROVAL_FIELDS,
+    PYEUVICS_SET_APPROVAL_REQUIRED,
+    PYEUVICS_SET_BASE_FIELDS,
+)
+from ..contract_values import (
+    ContractError,
+    _iso_date,
+    _safe_path,
+    _strict_object,
+    _text,
+)
+from ..models import NotebookSpec, PublishedFile, SourceLock
 from ..source_checkout import _validate_file
-from ..contract_policy import (PYEUVICS_SET_APPROVAL_FIELDS, PYEUVICS_SET_BASE_FIELDS,
-    PYEUVICS_SET_APPROVAL_REQUIRED, INITIAL_NOTEBOOK_PATHS, INITIAL_CAMPAIGN_PATHS,
-    INITIAL_OVERVIEW_FIGURE_PATHS)
-from .package import PackageMetadata
 from .notebook_policy import parse_notebook_policy
+from .package import PackageMetadata
 
 
 def parse_candidates(candidate_sets: object, package: PackageMetadata, lock: SourceLock,

@@ -1,12 +1,30 @@
 """Validate executed MIME/resources and render notebook presentation."""
 from __future__ import annotations
+
 from pathlib import Path, PurePosixPath
+
 from nbconvert import MarkdownExporter
+
 from .assets import AssetError, validate_raster_bytes
 from .models import NotebookSpec, SourceContract
-from .notebook_policy import ExecutedNotebook, RenderedNotebook, NotebookError, SAFE_OUTPUT_MIMES, UNSAFE_HTML, _scan, _validate_markup
 from .notebook_headings import normalize_headings
-from .presentation import Code, Link, MetadataRow, NotebookPage, render_notebook, source_url
+from .notebook_policy import (
+    SAFE_OUTPUT_MIMES,
+    UNSAFE_HTML,
+    ExecutedNotebook,
+    NotebookError,
+    RenderedNotebook,
+    _scan,
+    _validate_markup,
+)
+from .presentation import (
+    Code,
+    Link,
+    MetadataRow,
+    NotebookPage,
+    render_notebook,
+    source_url,
+)
 
 
 def render_executed(result: ExecutedNotebook) -> RenderedNotebook:

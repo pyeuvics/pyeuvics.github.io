@@ -1,7 +1,9 @@
 """Shift actual rendered headings while preserving source prose and code spans."""
 from __future__ import annotations
-from html.parser import HTMLParser
+
 import re
+from html.parser import HTMLParser
+
 from .notebook_policy import NotebookError
 from .rendering import load_renderer
 
