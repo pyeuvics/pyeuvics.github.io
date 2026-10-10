@@ -12,10 +12,10 @@ ENVIRONMENT=EnvironmentIdentity('3.13','c'*64,'fixture',(('requirements-docs.txt
 def test_source_only_needs_no_source_repositories_and_does_not_mint_reusable_dirty_evidence(tmp_path: Path):
     root=tmp_path/'website';root.mkdir();calls=[]
     record=source_only(root,tmp_path/'output','1785628800',runner=lambda *args:calls.append(args))
-    assert len(calls)==4
-    assert [call[0][2] for call in calls]==['tools.dependencies','pytest','mypy','mkdocs']
+    assert len(calls)==5
+    assert [call[0][2] for call in calls]==['tools.dependencies','ruff','pytest','mypy','mkdocs']
     assert all(call[1]==root and call[2]=='1785628800' for call in calls)
-    assert 'tools' in calls[2][0] and 'tests/support' in calls[2][0] and '--strict' in calls[2][0]
+    assert 'tools' in calls[3][0] and 'tests/support' in calls[3][0] and '--strict' in calls[3][0]
     assert json.loads(record.read_text(encoding='utf-8'))['website'] is None
     with pytest.raises(QualityError):verify_receipt(record,WEBSITE,ENVIRONMENT,'1785628800')
 
@@ -48,7 +48,7 @@ def test_new_untyped_tool_fails_the_shared_quality_stage(tmp_path: Path):
             assert 'new_tool.py' in result.stdout and 'missing a type annotation' in result.stdout
             if result.returncode:raise QualityError('typing failed')
     with pytest.raises(QualityError):run_checks(tmp_path,tmp_path/'checks','1785628800',runner)
-    assert seen==['tools.dependencies','pytest','mypy']
+    assert seen==['tools.dependencies','ruff','pytest','mypy']
 
 
 @pytest.mark.parametrize('changed',[False,True])
@@ -65,3 +65,21 @@ def test_bound_source_quality_checks_inputs_again_before_promotion(changed,tmp_p
     else:
         receipt=source_only(tmp_path,output,'1785628800',True,lambda *args:None)
         verify_receipt(receipt,WEBSITE,ENVIRONMENT,'1785628800')
+
+
+@pytest.mark.parametrize(('source','code'), [('import sys\nimport os\n','I001'), ('print(unknown_name)\n','F821')])
+def test_bounded_lint_failure_stops_quality_before_the_suite(tmp_path: Path,source: str,code: str):
+    from tests.support.paths import ROOT
+    (tmp_path/'tools').mkdir();(tmp_path/'tests/support').mkdir(parents=True)
+    (tmp_path/'pyproject.toml').write_bytes((ROOT/'pyproject.toml').read_bytes())
+    (tmp_path/'tools/broken.py').write_text(source,encoding='utf-8')
+    (tmp_path/'tests/support/helper.py').write_text('VALUE: int = 1\n',encoding='utf-8')
+    seen=[]
+    def runner(args,root,epoch):
+        seen.append(args[2])
+        if args[2]=='ruff':
+            result=subprocess.run(args,cwd=root,text=True,capture_output=True)
+            assert result.returncode!=0 and code in result.stdout
+            raise QualityError('bounded lint failed')
+    with pytest.raises(QualityError):run_checks(tmp_path,tmp_path/'checks','1785628800',runner)
+    assert seen==['tools.dependencies','ruff']

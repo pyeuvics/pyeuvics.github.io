@@ -1,9 +1,11 @@
 """Strict two-source lock decoding."""
 from pathlib import Path
+
 from .contract_policy import COMMIT_RE
-from .contract_values import ContractError, _strict_object, _safe_path
+from .contract_values import ContractError, _safe_path, _strict_object
 from .models import SourceLock
 from .structured import StructuredInputError, read_yaml
+
 
 def load_locks(path: Path) -> dict[str, SourceLock]:
     """Load exactly two resolved source locks from YAML."""

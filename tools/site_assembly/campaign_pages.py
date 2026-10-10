@@ -1,10 +1,20 @@
 """Present admitted campaign metadata without notebook execution."""
 from __future__ import annotations
+
 from pathlib import Path
+
 from .models import SourceContract
-from .publication import PublicationSource
 from .notebook_policy import NotebookError
-from .presentation import Code, Link, MetadataRow, render_link, render_table, render_limitations
+from .presentation import (
+    Code,
+    Link,
+    MetadataRow,
+    render_limitations,
+    render_link,
+    render_table,
+)
+from .publication import PublicationSource
+
 
 def stage_campaign_overviews(contract: SourceContract | PublicationSource, staged_content: Path, timestamp: str) -> None:
     """Replace campaign placeholders only when exact campaign files are approved."""

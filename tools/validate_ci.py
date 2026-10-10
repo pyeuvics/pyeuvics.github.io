@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run the complete website validation identically in CI and local reviews."""
 
 from __future__ import annotations
@@ -6,24 +5,36 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
-import shutil
 import tempfile
 from pathlib import Path
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from tools.quality import run_command as _run,run_checks,write_receipt,verify_receipt
-from tools.validation_evidence import EvidenceError,ARTIFACT_EVIDENCE,website_identity,environment_identity,lock_identity,write_record
-from tools.review_manifest import ReviewManifest,ReviewFile,ReviewManifestError,write_manifest
-from tools.site_assembly.promotion import promote_directory
-from tools.site_assembly.timestamps import TimestampError, parse_timestamp
-from tools.site_assembly.primitives import atomic_write_text, sha256_file
-
+from tools.quality import run_checks, verify_receipt, write_receipt
+from tools.quality import run_command as _run
+from tools.review_manifest import (
+    ReviewFile,
+    ReviewManifest,
+    ReviewManifestError,
+    write_manifest,
+)
 from tools.site_assembly import AssemblyError, assemble_site
 from tools.site_assembly.contracts import ContractError, load_locks, verify_checkout
+from tools.site_assembly.primitives import atomic_write_text, sha256_file
+from tools.site_assembly.promotion import promote_directory
+from tools.site_assembly.timestamps import TimestampError, parse_timestamp
+from tools.validation_evidence import (
+    ARTIFACT_EVIDENCE,
+    EvidenceError,
+    environment_identity,
+    lock_identity,
+    website_identity,
+    write_record,
+)
 
 
 class ValidationError(ValueError):

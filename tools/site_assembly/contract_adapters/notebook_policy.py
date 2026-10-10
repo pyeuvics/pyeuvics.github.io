@@ -1,8 +1,11 @@
 """Validated notebook execution-policy record, independent of publication approval."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
+
 from ..contract_values import ContractError, _safe_path
+
 
 @dataclass(frozen=True)
 class NotebookPolicy:

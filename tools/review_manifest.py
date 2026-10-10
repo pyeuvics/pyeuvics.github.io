@@ -1,13 +1,16 @@
 """Versioned typed review artifact records and pure complete comparisons."""
 from __future__ import annotations
-from dataclasses import asdict,dataclass
+
 import json
-from pathlib import Path
 import re
 import unicodedata
-from .site_assembly.structured import read_json
-from .site_assembly.staging import portable_path
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
 from .site_assembly.primitives import atomic_write_text
+from .site_assembly.staging import portable_path
+from .site_assembly.structured import read_json
+
 
 class ReviewManifestError(ValueError):
     """Review metadata is malformed, ambiguous or outside the versioned contract."""

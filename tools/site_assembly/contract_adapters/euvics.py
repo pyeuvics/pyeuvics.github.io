@@ -1,12 +1,25 @@
 """EUVICS 1.0/1.1 identity, approval and exact-byte admission."""
 from __future__ import annotations
+
 from pathlib import Path
 from typing import Any
-from ..contract_values import ContractError, _text, _safe_path, _strict_object, _iso_date
-from ..models import SourceLock, PublishedFile, NotebookSpec
-from ..source_checkout import _validate_file
-from ..contract_policy import EUVICS_ROOT_FIELDS, EUVICS_ENTRY_FIELDS, KIND_SUFFIXES, SHA256_RE
+
+from ..contract_policy import (
+    EUVICS_ENTRY_FIELDS,
+    EUVICS_ROOT_FIELDS,
+    KIND_SUFFIXES,
+    SHA256_RE,
+)
+from ..contract_values import (
+    ContractError,
+    _iso_date,
+    _safe_path,
+    _strict_object,
+    _text,
+)
+from ..models import NotebookSpec, PublishedFile, SourceLock
 from ..primitives import sha256_file
+from ..source_checkout import _validate_file
 
 
 def parse_euvics(manifest: dict[str, Any], lock: SourceLock, root: Path) -> tuple[list[PublishedFile], list[NotebookSpec]]:

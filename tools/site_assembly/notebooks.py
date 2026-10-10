@@ -1,18 +1,30 @@
 """Coordinate two independent executions and stage deterministic notebooks."""
 from __future__ import annotations
+
 import hashlib
 import json
 import shutil
 from pathlib import Path
-from .primitives import FileOperationError, atomic_write_text, export_locked_tree, sha256_file
+
+from .campaign_pages import stage_campaign_overviews as stage_campaign_overviews
 from .contracts import ContractError, verify_contract_inputs
 from .models import InventoryEntry, NotebookSpec, SourceContract
+from .notebook_admission import _validate_source as _validate_source
+from .notebook_admission import admit_notebook
+from .notebook_execution import _tree_snapshot, execute_notebook
+from .notebook_policy import NotebookError as NotebookError
+from .notebook_policy import RenderedNotebook
+from .notebook_policy import _scan as _scan
+from .notebook_rendering import _page_header as _page_header
+from .notebook_rendering import render_executed
+from .primitives import (
+    FileOperationError,
+    atomic_write_text,
+    export_locked_tree,
+    sha256_file,
+)
 from .staging import StagingPlan, notebook_page
-from .notebook_policy import NotebookError as NotebookError, RenderedNotebook, _scan as _scan
-from .notebook_admission import admit_notebook, _validate_source as _validate_source
-from .notebook_execution import execute_notebook, _tree_snapshot
-from .notebook_rendering import render_executed, _page_header as _page_header
-from .campaign_pages import stage_campaign_overviews as stage_campaign_overviews
+
 
 def _archive_checkout(contract: SourceContract, destination: Path) -> None:
     try:

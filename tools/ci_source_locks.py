@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Emit safe GitHub Actions outputs derived from the reviewed source lock."""
 
 from __future__ import annotations
@@ -10,7 +9,12 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from tools.site_assembly.contracts import ContractError, _load_json, load_locks, verify_checkout
+from tools.site_assembly.contracts import (
+    ContractError,
+    _load_json,
+    load_locks,
+    verify_checkout,
+)
 
 
 def _slug(repository: str) -> str:

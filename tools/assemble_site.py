@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Command-line entry point for deterministic EUVICS website source assembly."""
 
 from __future__ import annotations

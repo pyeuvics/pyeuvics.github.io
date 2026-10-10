@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import hashlib
 import os
-from pathlib import Path, PurePosixPath
-from collections.abc import Mapping
 import re
 import subprocess
 import tarfile
 import tempfile
+from collections.abc import Mapping
+from pathlib import Path, PurePosixPath
 
 
 class FileOperationError(ValueError):

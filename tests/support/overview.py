@@ -8,6 +8,7 @@ from pathlib import Path
 from tools.site_assembly.models import PublishedFile, SourceContract, SourceLock
 from tools.site_assembly.overview_figures import CSV_PATH, JSON_PATH, SVG_PATH
 
+
 def overview_contract(root: Path, paths: tuple[str, ...] = (SVG_PATH, CSV_PATH, JSON_PATH)) -> SourceContract:
     lock = SourceLock(
         "pyeuvics",

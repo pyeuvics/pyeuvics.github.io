@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import io
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 from pypdf import PdfReader, filters

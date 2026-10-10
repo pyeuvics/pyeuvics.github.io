@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Fail when checkout private-key material remains in a runner temp tree."""
 
 from __future__ import annotations
@@ -6,7 +5,6 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

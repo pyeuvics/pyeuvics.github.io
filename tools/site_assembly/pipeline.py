@@ -14,42 +14,59 @@ from urllib.parse import quote, unquote, urlsplit
 
 import yaml
 
+from tools.privacy import PrivacyError, ScanProfile, scan_file, scan_text
+
+from .assets import validate_asset
 from .content_policy import (
-    ContentPolicyError, parse_fragment,
+    ContentPolicyError,
+    parse_fragment,
+)
+from .content_policy import (
     RenderedLinkParser as _RenderedLinkParser,
+)
+from .content_policy import (
     css_targets as _css_targets,
+)
+from .content_policy import (
     srcset_targets as _srcset_targets,
 )
-from .assets import validate_asset
-from .links import LinkRewriteError, RenderedLinks, rewrite_destinations
-from .rendering import MarkdownRenderer, RenderingError, load_renderer, final_relative_url
-from .ownership import RenderedBuild, plan_artifact, stage_receipt, verify_ownership
 from .context import BuildContext, BuildInputs
-from .timestamps import TimestampError, parse_timestamp
-from .promotion import promote_directory
-from .primitives import atomic_write_text, sha256_file, run_text
-
-from tools.privacy import PrivacyError, ScanProfile, scan_text, scan_file
-
 from .contracts import ContractError, load_contract, load_locks, verify_contract_inputs
 from .documents import DocumentError, build_approved_documents
+from .entry_pages import stage_source_entry_pages
+from .links import LinkRewriteError, RenderedLinks, rewrite_destinations
 from .models import AssemblyResult as AssemblyResult  # noqa: PLC0414
-from .presentation import (
-    Code, Link, MetadataRow, markdown_text, render_fields, render_link,
-    render_limitations, source_url,
-)
 from .models import InventoryEntry, PublishedFile, SourceContract
 from .notebooks import (
     NotebookError,
     render_approved_notebooks,
     stage_campaign_overviews,
 )
-from .staging import StagingError, StagingPlan, create_staging_plan
-from .page_actions import page_actions, correction_url
-from .entry_pages import stage_source_entry_pages
-from .publication_pages import stage_publication_indexes
-from .template_slots import TemplateSlotError
 from .overview_figures import OverviewFigureError, stage_overview_figure
+from .ownership import RenderedBuild, plan_artifact, stage_receipt, verify_ownership
+from .page_actions import correction_url, page_actions
+from .presentation import (
+    Code,
+    Link,
+    MetadataRow,
+    markdown_text,
+    render_fields,
+    render_limitations,
+    render_link,
+    source_url,
+)
+from .primitives import atomic_write_text, run_text, sha256_file
+from .promotion import promote_directory
+from .publication_pages import stage_publication_indexes
+from .rendering import (
+    MarkdownRenderer,
+    RenderingError,
+    final_relative_url,
+    load_renderer,
+)
+from .staging import StagingError, StagingPlan, create_staging_plan
+from .template_slots import TemplateSlotError
+from .timestamps import TimestampError, parse_timestamp
 
 TEXT_SUFFIXES = {
     "",

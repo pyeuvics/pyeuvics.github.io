@@ -1,7 +1,10 @@
 """Immutable, root-free approved content shared by publication presenters."""
 from __future__ import annotations
+
 from dataclasses import dataclass
-from .models import SourceLock, PublishedFile, NotebookSpec, SourceContract
+
+from .models import NotebookSpec, PublishedFile, SourceContract, SourceLock
+
 
 @dataclass(frozen=True)
 class PublicationSource:

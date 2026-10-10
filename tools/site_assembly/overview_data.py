@@ -1,16 +1,19 @@
 """Typed structural validation of the already reviewed overview case; no physics."""
 from __future__ import annotations
+
 import csv
-from dataclasses import dataclass
 import math
-from pathlib import Path
 import re
-from typing import Any
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
 from packaging.version import Version
-from .assets import MAX_TEXT,validate_asset
+
+from .assets import MAX_TEXT, validate_asset
 from .models import SourceContract
-from .structured import read_json,finite_number
+from .structured import finite_number, read_json
 
 FIGURE_ROOT='docs/generated/overview-figures'
 SVG_PATH=f'{FIGURE_ROOT}/kinetic-energy-scan.svg'

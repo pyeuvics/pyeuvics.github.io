@@ -1,9 +1,11 @@
 """Website entry pages assembled from the staging plan publication view."""
 import os
 from pathlib import Path
+
+from .presentation import Link, markdown_text, render_limitations, render_link
 from .publication import PublicationSource
-from .presentation import Link, markdown_text, render_link, render_limitations
 from .template_slots import fill_slot
+
 
 def _relative_markdown_link(source_path: str, destination: Path, imported_root: Path) -> str:
     target = imported_root / source_path

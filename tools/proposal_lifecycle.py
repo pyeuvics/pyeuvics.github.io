@@ -1,14 +1,15 @@
 """Explicit proposal writes and pure lifecycle decisions; tests never contact GitHub."""
 from __future__ import annotations
+
 import argparse
-from dataclasses import dataclass
 import json
-from pathlib import Path
 import re
 import signal
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 
 PREFIX='automation/source-lock-update-'

@@ -1,13 +1,17 @@
 """Shared notebook admission/output policy and typed phase results."""
 from __future__ import annotations
+
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
 from tools.privacy import PrivacyError, ScanProfile, scan_text
+
 from .content_policy import ContentPolicyError, parse_fragment
-from .rendering import RenderingError, load_renderer
 from .models import NotebookSpec
+from .rendering import RenderingError, load_renderer
+
 if TYPE_CHECKING:
     from .notebook_environment import EnvironmentIdentity
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Discover, validate, describe, and safely propose exact source-lock updates."""
 
 from __future__ import annotations
@@ -15,11 +14,22 @@ import yaml
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from tools.review_manifest import (
+    ReviewManifest,
+    ReviewManifestError,
+    compare_artifacts,
+    read_review_manifest,
+)
 from tools.site_assembly.contracts import COMMIT_RE, ContractError, load_locks
-from tools.validation_evidence import EvidenceError,validate_pair,write_bundle,verify_bundle,write_ancestry
-from tools.review_manifest import ReviewManifest, ReviewManifestError, read_review_manifest, compare_artifacts
 from tools.site_assembly.presentation import Code, render_value
-from tools.site_assembly.primitives import atomic_write_text, FileOperationError
+from tools.site_assembly.primitives import FileOperationError, atomic_write_text
+from tools.validation_evidence import (
+    EvidenceError,
+    validate_pair,
+    verify_bundle,
+    write_ancestry,
+    write_bundle,
+)
 
 
 class SourceUpdateError(ValueError):

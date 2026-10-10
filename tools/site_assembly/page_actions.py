@@ -1,10 +1,12 @@
 """Derive rendered source/correction actions from the immutable output plan."""
 from __future__ import annotations
-from dataclasses import asdict,dataclass
+
+from dataclasses import asdict, dataclass
 from urllib.parse import urlencode
+
 from .models import SourceLock
 from .presentation import source_url
-from .staging import StagingPlan,OutputKind
+from .staging import OutputKind, StagingPlan
 
 WEBSITE='https://github.com/pyeuvics/pyeuvics.github.io'
 

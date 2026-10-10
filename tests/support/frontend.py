@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import argparse
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 import signal
-from pathlib import Path
 import subprocess
 import sys
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from tests.support.paths import ROOT

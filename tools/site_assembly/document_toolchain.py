@@ -1,13 +1,17 @@
 """Bounded external document tool and TeX/font package version evidence."""
 from __future__ import annotations
-from dataclasses import dataclass
+
 import hashlib
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-from tools.privacy import PrivacyError,ScanProfile,scan_text
+from dataclasses import dataclass
+from pathlib import Path
+
+from tools.privacy import PrivacyError, ScanProfile, scan_text
+
 from .primitives import sha256_file
+
 
 @dataclass(frozen=True)
 class ToolVersion:

@@ -1,6 +1,7 @@
 """Explicit replaceable slots preserve website prose and prevent duplicate inserts."""
 from pathlib import Path
 
+
 class TemplateSlotError(ValueError):
     """A website template does not declare one unambiguous slot."""
 

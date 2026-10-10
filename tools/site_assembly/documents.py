@@ -4,13 +4,26 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
-from .document_policy import (DocumentError as DocumentError, DOCUMENT_ROLES as DOCUMENT_ROLES,
-                              document_requirements, validate_document_entry as _validate_document_entry)
-from .document_build import (build_documents, _run_make as _build_run_make,
-                             _archive_checkout as _archive_checkout, _validate_pdf as _validate_pdf)
-from .primitives import sha256_file as _sha256
-from .presentation import Code, DocumentPage, Link, MetadataRow, render_document, source_url
+
+from .document_build import _archive_checkout as _archive_checkout
+from .document_build import _run_make as _build_run_make
+from .document_build import _validate_pdf as _validate_pdf
+from .document_build import build_documents
+from .document_policy import DOCUMENT_ROLES as DOCUMENT_ROLES
+from .document_policy import DocumentError as DocumentError
+from .document_policy import document_requirements
+from .document_policy import validate_document_entry as _validate_document_entry
 from .models import InventoryEntry, PublishedFile, SourceContract
+from .presentation import (
+    Code,
+    DocumentPage,
+    Link,
+    MetadataRow,
+    render_document,
+    source_url,
+)
+from .primitives import sha256_file as _sha256
+
 if TYPE_CHECKING:
     from .staging import StagingPlan
 

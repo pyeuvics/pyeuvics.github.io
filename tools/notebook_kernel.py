@@ -4,10 +4,11 @@ This is not a security sandbox: native I/O, global filesystem access and network
 access are not isolated. Only reviewed locked source code may execute here.
 """
 from __future__ import annotations
+
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any, Callable
 
 

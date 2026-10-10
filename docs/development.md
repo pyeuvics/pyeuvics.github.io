@@ -36,7 +36,7 @@ python -m tools.quality --output .staging/local-quality
 ```
 
 Choose a new output path for each run. The shared command checks dependency
-policy, the full synthetic Python test suite (including real fixture notebooks
+policy, bounded lint, the full synthetic Python test suite (including real fixture notebooks
 and PDF checks), strict typing for tools and test support, and a strict scaffold
 build. An edited-tree result is deliberately not a reusable CI attestation.
 `--bind` additionally requires a clean website checkout and records exact

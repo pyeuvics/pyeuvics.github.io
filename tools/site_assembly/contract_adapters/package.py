@@ -1,11 +1,14 @@
 """Validated immutable package identity and limitation metadata."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
 from ..contract_values import ContractError, _strict_object, _text
 from ..models import SourceLock
 from ..source_checkout import _validate_file
+
 
 @dataclass(frozen=True)
 class PackageMetadata:

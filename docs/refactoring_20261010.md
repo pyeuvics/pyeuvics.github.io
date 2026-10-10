@@ -739,7 +739,9 @@ Execution: [completed plan](exec-plans/completed/065_web34-current-governance.md
 
 ### WEB-35 — Establish bounded lint, typing, and local-file hygiene
 
-- [ ] **Evidence:** `tasks/TODO.md` lists import-order and shebang/mode cleanup;
+Execution: [completed plan](exec-plans/completed/066_web35-bounded-quality-hygiene.md).
+
+- [x] **Evidence:** `tasks/TODO.md` lists import-order and shebang/mode cleanup;
   CLI files are mode `100644` yet contain shebangs and are used via Python.
   No repository lint/type project configuration is tracked. `.gitignore`
   includes one-off historical names and omits explicit common tool-cache rules.

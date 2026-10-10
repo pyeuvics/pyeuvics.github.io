@@ -1,16 +1,18 @@
 """Reviewed direct dependency groups and a bounded installed-version constraint check."""
 from __future__ import annotations
+
 import argparse
 import ast
-from collections.abc import Callable
-from importlib.metadata import PackageNotFoundError,version
 import json
-from pathlib import Path
 import sys
+from collections.abc import Callable
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
-INPUT_FILES=('constraints-validation.txt','requirements-docs.txt','requirements-notebooks.txt','requirements-validation.txt','tools/dependency-policy.json')
+INPUT_FILES=('constraints-validation.txt','requirements-docs.txt','requirements-notebooks.txt','requirements-validation.txt','tools/dependency-policy.json','pyproject.toml')
 IMPORTS={'PIL':'pillow','defusedxml':'defusedxml','ipykernel':'ipykernel','jupyter_client':'jupyter-client','markdown':'markdown','mkdocs':'mkdocs','nbclient':'nbclient','nbconvert':'nbconvert','nbformat':'nbformat','packaging':'packaging','pypdf':'pypdf','reportlab':'reportlab','tinycss2':'tinycss2','yaml':'pyyaml','pytest':'pytest'}
 
 class DependencyError(ValueError):

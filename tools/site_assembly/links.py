@@ -9,12 +9,12 @@ or parallel Markdown grammar is maintained here.
 """
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from hashlib import sha256
 from html import escape, unescape
-import re
 
 
 class LinkRewriteError(ValueError):

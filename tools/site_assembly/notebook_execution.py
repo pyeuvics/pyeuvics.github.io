@@ -1,16 +1,25 @@
 """Real notebook execution and temporary source immutability checks."""
 from __future__ import annotations
-import os
+
 import asyncio
-from dataclasses import asdict, replace
 import json
+import os
 import shutil
 import stat
+from dataclasses import asdict, replace
 from pathlib import Path
+
 from .notebook_environment import capture_environment, owned_kernel
-from .primitives import atomic_write_text, sha256_file as _sha256
-from .notebook_limits import ExecutionLimits, BoundedNotebookClient, execute_bounded
-from .notebook_policy import AdmittedNotebook, ExecutedNotebook, INHERITED_ENVIRONMENT, NotebookError
+from .notebook_limits import BoundedNotebookClient, ExecutionLimits, execute_bounded
+from .notebook_policy import (
+    INHERITED_ENVIRONMENT,
+    AdmittedNotebook,
+    ExecutedNotebook,
+    NotebookError,
+)
+from .primitives import atomic_write_text
+from .primitives import sha256_file as _sha256
+
 
 def _tree_snapshot(root: Path) -> dict[str, str]:
     result: dict[str,str] = {}

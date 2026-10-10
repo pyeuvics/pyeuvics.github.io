@@ -9,12 +9,14 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+
 if TYPE_CHECKING:
     from tools.site_assembly.models import NotebookSpec
 
 import yaml
 from reportlab.pdfgen import canvas  # type: ignore[import-untyped]  # ReportLab has no bundled types.
+
 
 def init_repo(root: Path) -> None:
     """Initialize a synthetic repo with explicit local identity and no hooks/signing."""

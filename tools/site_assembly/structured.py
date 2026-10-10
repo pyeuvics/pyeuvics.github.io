@@ -1,12 +1,12 @@
 """Strict JSON/YAML decoding and reusable scalar checks for external inputs."""
 from __future__ import annotations
 
-from collections.abc import Hashable
 import datetime as dt
 import json
 import math
-from pathlib import Path
 import re
+from collections.abc import Hashable
+from pathlib import Path
 from typing import Any, NoReturn
 
 import yaml
