@@ -26,6 +26,7 @@ from .presentation import (
     Code, Link, MetadataRow, NotebookPage, markdown_text, render_link,
     render_notebook, render_table, render_limitations, source_url,
 )
+from .staging import StagingPlan, notebook_page
 from .models import InventoryEntry, NotebookSpec, SourceContract
 
 DATA_LITERAL = re.compile(
@@ -232,6 +233,7 @@ def render_approved_notebooks(
     output_root: Path,
     staged_content: Path,
     timestamp: str,
+    plan: StagingPlan | None = None,
 ) -> tuple[InventoryEntry, ...]:
     """Execute every approved notebook twice and stage deterministic Markdown."""
 
@@ -255,7 +257,10 @@ def render_approved_notebooks(
         if source.read_bytes() != source_before:
             raise NotebookError(f"source notebook changed during rendering: {spec.path}")
         stem = Path(spec.path).stem
-        relative_page = Path("software/notebooks") / f"{stem}.md"
+        relative_page = Path(notebook_page(spec.path))
+        if plan is not None:
+            relative_page = plan.source_destinations(contract.lock.name, staged_content)[spec.path].relative_to(staged_content)
+            plan.emitted_assets(contract.lock.name, tuple((relative_page.parent / name).as_posix() for name in first_assets))
         page = staged_content / relative_page
         page.parent.mkdir(parents=True, exist_ok=True)
         rendered = _page_header(spec, contract, timestamp) + first_body

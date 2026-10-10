@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pypdf import PdfReader
 
@@ -16,6 +17,9 @@ from .contracts import ContractError, verify_contract_inputs
 
 from .presentation import Code, DocumentPage, Link, MetadataRow, render_document, source_url
 from .models import InventoryEntry, PublishedFile, SourceContract
+
+if TYPE_CHECKING:
+    from .staging import StagingPlan
 
 DOCUMENT_ROLES = {
     "build/proposal/main.pdf": ("proposal", "documents/proposal.md", "documents/proposal.pdf"),
@@ -113,6 +117,7 @@ def build_approved_documents(
     output_root: Path,
     staged_content: Path,
     timestamp: str,
+    plan: StagingPlan | None = None,
 ) -> tuple[tuple[InventoryEntry, ...], dict[str, Path]]:
     """Rebuild, verify, stage, and describe exact approved EUVICS PDFs."""
 
@@ -156,6 +161,10 @@ def build_approved_documents(
                 f"rebuilt document checksum does not match approved locked artifact: {entry.path}"
             )
         _validate_pdf(rebuilt)
+        if plan is not None:
+            planned_pdf = plan.source_destinations(contract.lock.name, staged_content)[entry.path]
+            pdf_relative = planned_pdf.relative_to(staged_content).as_posix()
+            overview_relative = plan.output(pdf_relative).related_outputs[0]
         staged_pdf = staged_content / pdf_relative
         staged_pdf.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(rebuilt, staged_pdf)
