@@ -16,6 +16,8 @@ from tools.source_update import (
     write_comparison,
 )
 
+from tests.support.publication import init_repo, write_locks
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github/workflows/source-update.yml"
 CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
@@ -23,30 +25,7 @@ APP_TOKEN = "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409
 
 
 def write_lock(path: Path, euvics: str, pyeuvics: str) -> Path:
-    path.write_text(
-        yaml.safe_dump(
-            {
-                "schema_version": 1,
-                "sources": {
-                    "euvics": {
-                        "repository": "https://github.com/pyeuvics/euvics",
-                        "commit": euvics,
-                        "lock_status": "locked",
-                        "publication_manifest": "publication/public-content-v1.json",
-                    },
-                    "pyeuvics": {
-                        "repository": "https://github.com/pyeuvics/pyEUVICS",
-                        "commit": pyeuvics,
-                        "lock_status": "locked",
-                        "publication_manifest": "publication/public-content-v1.json",
-                    },
-                },
-            },
-            sort_keys=False,
-        ),
-        encoding="utf-8",
-    )
-    return path
+    return write_locks(path, {"euvics": euvics, "pyeuvics": pyeuvics})
 
 
 def review_manifest(path: Path, files: list[tuple[str, str, int]]) -> Path:
@@ -76,9 +55,7 @@ def test_discovery_resolves_exact_heads_and_reports_change(
 def test_discovery_can_use_authenticated_checkouts(tmp_path: Path) -> None:
     repository = tmp_path / "source"
     repository.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
-    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=repository, check=True)
-    subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=repository, check=True)
+    init_repo(repository)
     (repository / "file.txt").write_text("private\n", encoding="utf-8")
     subprocess.run(["git", "add", "file.txt"], cwd=repository, check=True)
     subprocess.run(["git", "commit", "-q", "-m", "private source"], cwd=repository, check=True)
@@ -109,9 +86,7 @@ def test_candidate_lock_changes_only_exact_commits(tmp_path: Path) -> None:
 def test_candidate_must_descend_from_current_lock(tmp_path: Path) -> None:
     repository = tmp_path / "source"
     repository.mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
-    subprocess.run(["git", "config", "user.name", "Fixture"], cwd=repository, check=True)
-    subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=repository, check=True)
+    init_repo(repository)
     (repository / "file.txt").write_text("one\n", encoding="utf-8")
     subprocess.run(["git", "add", "file.txt"], cwd=repository, check=True)
     subprocess.run(["git", "commit", "-q", "-m", "one"], cwd=repository, check=True)
