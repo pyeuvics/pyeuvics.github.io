@@ -90,7 +90,7 @@ def website_identity(root: Path) -> WebsiteIdentity:
 
 
 def requirement_identity(root: Path) -> tuple[tuple[str,str],...]:
-    return tuple((name,sha256_file(root/name)) for name in dependency_inputs(root))
+    return tuple((name,sha256_file(root/name)) for name in sorted(dependency_inputs(root)))
 
 
 def environment_identity(root: Path) -> EnvironmentIdentity:

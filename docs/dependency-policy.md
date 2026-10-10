@@ -47,3 +47,8 @@ Never auto-update numerical pins, source locks or approval hashes to satisfy an
 advisory or resolver. Record fresh-install evidence and the tested platforms.
 
 WEB-35 adds only Ruff 0.17.0 as a reviewed development tool. Numerical pins are unchanged.
+
+Validation evidence records every dependency input and its SHA-256 digest in
+canonical filename order, independently of dependency catalog order. Readers
+reject unordered or duplicate entries; all policy and configuration inputs
+remain bound to the validation record.

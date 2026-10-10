@@ -50,7 +50,7 @@ def test_changed_evidence_file_is_rejected(name,evidence):
     with pytest.raises(EvidenceError,match='changed or mixed'):verify_bundle(root,website,current,candidate)
 
 
-@pytest.mark.parametrize('damage',['missing-check','bool-version','unsupported-version','digest-number','epoch-bool','unknown-field','website-field','environment-field','ownership-missing','duplicate-package'])
+@pytest.mark.parametrize('damage',['missing-check','bool-version','unsupported-version','digest-number','epoch-bool','unknown-field','website-field','environment-field','ownership-missing','duplicate-package','unordered-requirements','duplicate-requirements'])
 def test_malformed_or_incomplete_records_fail(damage,evidence):
     root,_,_,_=evidence;path=root/'candidate/validation-record.json';raw=json.loads(path.read_text(encoding='utf-8'))
     if damage=='missing-check':raw['checks'].pop()
@@ -62,6 +62,8 @@ def test_malformed_or_incomplete_records_fail(damage,evidence):
     elif damage=='website-field':del raw['website']['inputs_sha256']
     elif damage=='environment-field':del raw['environment']['installed_files_sha256']
     elif damage=='ownership-missing':raw['evidence']=[]
+    elif damage=='unordered-requirements':raw['environment']['requirements'].reverse()
+    elif damage=='duplicate-requirements':raw['environment']['requirements']*=2
     else:raw['environment']['packages']*=2
     path.write_text(json.dumps(raw),encoding='utf-8')
     with pytest.raises(EvidenceError):read_record(path)
@@ -113,3 +115,26 @@ def test_installed_file_changes_alter_environment_fingerprint(tmp_path: Path,mon
     monkeypatch.setattr(module,'distributions',lambda:[Distribution()]);monkeypatch.setattr(module.sys,'prefix',str(environment))
     first=environment_identity(tmp_path);library.write_text('two',encoding='utf-8')
     assert first.installed_files_sha256!=environment_identity(tmp_path).installed_files_sha256
+
+
+def test_complete_dependency_profile_round_trips_in_validation_record(evidence):
+    from hashlib import sha256
+    from tools.dependencies import dependency_inputs
+    from tests.support.paths import ROOT
+
+    root,website,_,_=evidence
+    names=dependency_inputs(ROOT)
+    assert 'pyproject.toml' in names and 'tools/dependency-policy.json' in names
+    for name in names:
+        destination=website/name
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        destination.write_bytes((ROOT/name).read_bytes())
+    path=root/'candidate/validation-record.json'
+    original=read_record(path)
+    environment=replace(original.environment,requirements=requirement_identity(website))
+    write_record(path,original.website,environment,original.lock,original.epoch)
+    actual=read_record(path)
+    assert actual==replace(original,environment=environment)
+    assert actual.environment.requirements==tuple(sorted(
+        (name,sha256((ROOT/name).read_bytes()).hexdigest()) for name in names
+    ))
