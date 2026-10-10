@@ -119,8 +119,8 @@ def test_comparison_records_provenance_diff_and_review_gate(tmp_path: Path) -> N
     assert "Added files: 1" in text
     assert "Removed files: 1" in text
     assert "Changed files: 1" in text
-    assert "`site/new.html`" in text
-    assert "`site/old.html`" in text
+    assert "<code>site/new.html</code>" in text
+    assert "<code>site/old.html</code>" in text
     assert "does not merge itself" in text
     assert "Confirm each source manifest approval" in text
 

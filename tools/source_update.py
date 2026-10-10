@@ -9,7 +9,6 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -17,6 +16,9 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.site_assembly.contracts import COMMIT_RE, ContractError, load_locks
+from tools.review_manifest import ReviewManifest, ReviewManifestError, read_review_manifest, compare_artifacts
+from tools.site_assembly.presentation import Code, render_value
+from tools.site_assembly.primitives import atomic_write_text
 
 
 class SourceUpdateError(ValueError):
@@ -114,29 +116,11 @@ def verify_ancestry(
             raise SourceUpdateError(f"candidate commit is not a descendant of the locked {name} commit")
 
 
-def _read_review_manifest(path: Path) -> dict[str, dict[str, Any]]:
+def _read_review_manifest(path: Path) -> ReviewManifest:
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise SourceUpdateError(f"cannot read review artifact manifest {path}: {exc}") from exc
-    if not isinstance(raw, dict) or raw.get("manifest_version") != 1 or not isinstance(raw.get("files"), list):
-        raise SourceUpdateError(f"invalid review artifact manifest: {path}")
-    result: dict[str, dict[str, Any]] = {}
-    for item in raw["files"]:
-        if not isinstance(item, dict) or set(item) != {"path", "sha256", "bytes"}:
-            raise SourceUpdateError(f"invalid review artifact entry in {path}")
-        item_path, digest, size = item["path"], item["sha256"], item["bytes"]
-        if (
-            not isinstance(item_path, str)
-            or not item_path
-            or item_path in result
-            or re.fullmatch(r"[0-9a-f]{64}", digest or "") is None
-            or not isinstance(size, int)
-            or size < 0
-        ):
-            raise SourceUpdateError(f"unsafe review artifact entry in {path}")
-        result[item_path] = item
-    return result
+        return read_review_manifest(path)
+    except ReviewManifestError as exc:
+        raise SourceUpdateError(str(exc)) from exc
 
 
 def write_comparison(
@@ -153,14 +137,17 @@ def write_comparison(
     changed_sources = verify_lock_change(current_lock_path, candidate_lock_path)
     baseline = _read_review_manifest(baseline_manifest_path)
     proposed = _read_review_manifest(candidate_manifest_path)
-    added = sorted(proposed.keys() - baseline.keys())
-    removed = sorted(baseline.keys() - proposed.keys())
-    changed = sorted(
-        path for path in proposed.keys() & baseline.keys() if proposed[path]["sha256"] != baseline[path]["sha256"]
-    )
+    comparison=compare_artifacts(baseline,proposed)
+    added,removed,changed=comparison.added,comparison.removed,comparison.changed
+    comparison_path=output_path.with_name(output_path.name+'.json')
+    output_path.parent.mkdir(parents=True,exist_ok=True)
+    atomic_write_text(comparison_path,json.dumps(comparison.to_dict(),indent=2,sort_keys=True)+'\n')
 
-    def path_list(items: list[str]) -> str:
-        return "\n".join(f"- `{item}`" for item in items[:100]) or "- None"
+    def path_list(items: tuple[str,...]) -> str:
+        shown='\n'.join('- '+render_value(Code(item)) for item in items[:100]) or '- None'
+        if len(items)>100:
+            shown+=f'\n\nShowing 100 of {len(items)} paths; {len(items)-100} omitted here. The machine-readable comparison retains every path.'
+        return shown
 
     source_rows = "\n".join(
         f"| {name} | `{current[name].commit}` | `{candidate[name].commit}` | "
@@ -183,8 +170,8 @@ def write_comparison(
         f"- Added files: {len(added)}\n"
         f"- Removed files: {len(removed)}\n"
         f"- Changed files: {len(changed)}\n"
-        f"- Baseline files: {len(baseline)}\n"
-        f"- Candidate files: {len(proposed)}\n\n"
+        f"- Baseline files: {comparison.baseline_files}\n"
+        f"- Candidate files: {comparison.candidate_files}\n\n"
         "<details><summary>Added paths</summary>\n\n"
         f"{path_list(added)}\n\n</details>\n\n"
         "<details><summary>Removed paths</summary>\n\n"
