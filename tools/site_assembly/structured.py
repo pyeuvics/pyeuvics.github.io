@@ -84,7 +84,10 @@ def iso_date(value: object, label: str) -> str:
 def finite_number(value: object, label: str, *, positive: bool = False) -> float:
     if type(value) not in (int, float):
         raise StructuredInputError(f"{label} must be a finite number")
-    number = float(value)  # type: ignore[arg-type]
+    try:
+        number = float(value)  # type: ignore[arg-type]
+    except OverflowError as exc:
+        raise StructuredInputError(f"{label} must be a finite number") from exc
     if not math.isfinite(number) or (positive and number <= 0):
         raise StructuredInputError(f"{label} must be a finite{' positive' if positive else ''} number")
     return number

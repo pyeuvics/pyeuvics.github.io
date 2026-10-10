@@ -1,0 +1,24 @@
+{
+  "model": {
+    "api": "pyEUVICS.linear_ics",
+    "collision_angle_convention": "between electron and laser propagation vectors; 180 degrees is head-on",
+    "collision_angle_deg": 180.0,
+    "electron_energy_convention": "kinetic",
+    "electron_kinetic_energy_MeV": {
+      "maximum": 4.5,
+      "minimum": 1.5,
+      "point_count": 61,
+      "spacing": "linear"
+    },
+    "harmonic": 1,
+    "laser_strength_a0": null,
+    "laser_wavelength_nm": 800.0,
+    "linear_model": "exact",
+    "nonlinear_setting": "disabled",
+    "observation_angle_convention": "relative to electron propagation; 0 mrad is forward",
+    "observation_angle_mrad": 0.0,
+    "polarization": "not-applicable-to-linear-kinematics",
+    "recoil_included": true
+  },
+  "policy_version": 1
+}
