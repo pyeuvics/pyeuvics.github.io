@@ -155,14 +155,12 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
     assert ".sources/" not in propose_text
     assert "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c" in propose_text
     assert "tools.source_update verify" in propose_text
-    assert "gh pr create" in propose_text
-    assert "git ls-remote --heads origin" in workflow_source
-    assert 'gh pr list --state all --head "$branch"' in workflow_source
-    assert "orphan_count" in workflow_source
-    assert "association_count" in workflow_source
-    assert "pushed=true" in propose_text
-    assert "failure() && steps.proposal_branch.outputs.pushed == 'true'" in propose_text
-    assert 'git push origin --delete "$UPDATE_BRANCH"' in propose_text
+    assert "tools.proposal_lifecycle gate" in validate_text
+    assert "--allow-write" not in validate_text
+    assert "tools.proposal_lifecycle propose --allow-write" in propose_text
+    assert "git push" not in workflow_source
+    assert "gh pr create" not in workflow_source
+    assert 'automation/source-lock-update-${{ github.run_id }}' in propose_text
     assert "deploy-pages" not in WORKFLOW.read_text(encoding="utf-8")
     assert workflow_source.count("vars.EUVICS_DOCS_APP_CLIENT_ID") == 1
     assert workflow_source.count("secrets.EUVICS_DOCS_APP_PRIVATE_KEY") == 1
