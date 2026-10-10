@@ -33,3 +33,6 @@ x = x
 Source commits and publication approvals are supplied by the deterministic
 assembly inventory. Branding, affiliations, contact information, and any
 scientific or validation changes remain owner-controlled decisions.
+
+<!-- publication:availability:start -->
+<!-- publication:availability:end -->

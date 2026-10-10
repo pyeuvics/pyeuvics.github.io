@@ -8,7 +8,6 @@ from .primitives import FileOperationError, atomic_write_text, export_locked_tre
 from .contracts import ContractError, verify_contract_inputs
 from .models import InventoryEntry, NotebookSpec, SourceContract
 from .staging import StagingPlan, notebook_page
-from .presentation import Link, render_link
 from .notebook_policy import NotebookError as NotebookError, RenderedNotebook, _scan as _scan
 from .notebook_admission import admit_notebook, _validate_source as _validate_source
 from .notebook_execution import execute_notebook, _tree_snapshot
@@ -54,7 +53,6 @@ def render_approved_notebooks(
     source_build = output_root / "source-build/pyeuvics-notebooks"
     _archive_checkout(contract, source_build)
     pristine = _tree_snapshot(source_build)
-    index_links: list[str] = []
     provenance: list[dict[str, object]] = []
     for spec in contract.notebooks:
         source = contract.root / spec.path
@@ -108,15 +106,5 @@ def render_approved_notebooks(
                     spec.known_limitations,
                 )
             )
-        index_links.append("- " + render_link(Link(spec.title, f"{stem}.md")))
-    index = staged_content / "software/notebooks/index.md"
-    index.parent.mkdir(parents=True, exist_ok=True)
-    index.write_text(
-        "# Static pyEUVICS notebooks\n\n"
-        "These pages are deterministic static renderings, not an interactive Jupyter environment.\n\n"
-        + "\n".join(index_links)
-        + "\n",
-        encoding="utf-8",
-    )
     atomic_write_text(output_root/"notebook-execution-provenance.json",json.dumps({"notebook_execution_version":1,"notebooks":provenance},indent=2,sort_keys=True)+"\n")
     return tuple(inventory)

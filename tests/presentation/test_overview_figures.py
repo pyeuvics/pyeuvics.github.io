@@ -22,7 +22,7 @@ def test_stage_overview_figure_adds_accessible_provenance_block(tmp_path: Path) 
     staged = tmp_path / "staged"
     overview = staged / "project/overview.md"
     overview.parent.mkdir(parents=True)
-    overview.write_text("# Overview\n\n## Design and validation status\n", encoding="utf-8")
+    overview.write_text("# Overview\n\n<!-- publication:figure:start -->\n<!-- publication:figure:end -->\n\n## Design and validation status\n", encoding="utf-8")
     stage_overview_figure(_contract(tmp_path), staged)
     text = overview.read_text(encoding="utf-8")
     assert "## Calculated kinetic-energy trend" in text
@@ -41,7 +41,7 @@ def test_stage_overview_figure_rejects_incomplete_approved_set(tmp_path: Path) -
     staged = tmp_path / "staged"
     (staged / "project").mkdir(parents=True)
     (staged / "project/overview.md").write_text(
-        "# Overview\n\n## Design and validation status\n", encoding="utf-8"
+        "# Overview\n\n<!-- publication:figure:start -->\n<!-- publication:figure:end -->\n\n## Design and validation status\n", encoding="utf-8"
     )
     with pytest.raises(OverviewFigureError, match="incomplete"):
         stage_overview_figure(_contract(tmp_path, (SVG_PATH, CSV_PATH)), staged)

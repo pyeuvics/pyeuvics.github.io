@@ -2,6 +2,7 @@
 from __future__ import annotations
 from pathlib import Path
 from .models import SourceContract
+from .template_slots import fill_slot, TemplateSlotError
 from .presentation import markdown_text
 from .overview_data import (OverviewFigureError as OverviewFigureError, CSV_PATH as CSV_PATH,
                             JSON_PATH as JSON_PATH, SVG_PATH as SVG_PATH, EXPECTED_PATHS,
@@ -17,7 +18,6 @@ def stage_overview_figure(contract: SourceContract, staged_content: Path) -> Non
     point_count = artifacts.descriptor.grid.point_count
     generator_commit = artifacts.descriptor.generator_commit
     overview = staged_content / "project/overview.md"
-    text = overview.read_text(encoding="utf-8")
     insertion = f'''## Calculated kinetic-energy trend
 
 <figure class="pyeuvics-overview-figure" markdown="1">
@@ -44,7 +44,7 @@ def stage_overview_figure(contract: SourceContract, staged_content: Path) -> Non
     this site to pyEUVICS commit `{contract.lock.commit}`.
 
 '''
-    marker = "## Design and validation status"
-    if marker not in text:
-        raise OverviewFigureError("project overview lacks the figure insertion point")
-    overview.write_text(text.replace(marker, insertion + marker, 1), encoding="utf-8")
+    try:
+        fill_slot(overview,"figure",insertion)
+    except TemplateSlotError as exc:
+        raise OverviewFigureError(str(exc)) from exc
