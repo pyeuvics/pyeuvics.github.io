@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import os
 from pathlib import Path, PurePosixPath
+from collections.abc import Mapping
 import re
 import subprocess
 import tarfile
@@ -39,11 +40,11 @@ def atomic_write_text(path: Path, text: str) -> None:
             temporary.unlink(missing_ok=True)
 
 
-def run_text(arguments: list[str], cwd: Path, label: str, *, max_bytes: int = 8_388_608) -> str:
+def run_text(arguments: list[str], cwd: Path, label: str, *, max_bytes: int = 8_388_608, environment: Mapping[str, str] | None = None) -> str:
     """Capture bounded output; never echo command arguments or failure output."""
     with tempfile.TemporaryFile() as output:
         try:
-            result = subprocess.run(arguments, cwd=cwd, stdout=output, stderr=subprocess.STDOUT)
+            result = subprocess.run(arguments, cwd=cwd, stdout=output, stderr=subprocess.STDOUT, env=environment)
         except OSError as exc:
             raise FileOperationError(f"{label} unavailable") from exc
         if result.returncode:

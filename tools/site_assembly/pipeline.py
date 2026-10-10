@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import datetime as dt
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlsplit
 
@@ -22,6 +22,9 @@ from .content_policy import (
 )
 from .links import LinkRewriteError, RenderedLinks, rewrite_destinations
 from .rendering import MarkdownRenderer, RenderingError, load_renderer, final_relative_url
+from .context import BuildContext, BuildInputs
+from .timestamps import TimestampError, parse_timestamp
+from .promotion import promote_directory
 from .primitives import atomic_write_text, sha256_file
 
 from tools.privacy import PrivacyError, ScanProfile, scan_text, scan_file
@@ -69,15 +72,11 @@ class AssemblyError(ValueError):
 _sha256 = sha256_file
 
 
-def _build_timestamp() -> str:
-    value = os.environ.get("SOURCE_DATE_EPOCH")
-    if value is None:
-        raise AssemblyError("SOURCE_DATE_EPOCH is required for deterministic assembly")
+def _build_timestamp(value: str | None = None) -> str:
     try:
-        instant = dt.datetime.fromtimestamp(int(value), tz=dt.timezone.utc)
-    except (ValueError, OverflowError) as exc:
-        raise AssemblyError("SOURCE_DATE_EPOCH must be a valid integer timestamp") from exc
-    return instant.isoformat().replace("+00:00", "Z")
+        return parse_timestamp(value if value is not None else os.environ.get("SOURCE_DATE_EPOCH")).iso
+    except TimestampError as exc:
+        raise AssemblyError(str(exc)) from exc
 
 
 def _scan_text(text: str, label: str) -> None:
@@ -432,7 +431,7 @@ def _stage_source_entry_pages(
         )
 
 
-def _build_site(website_root: Path, output_root: Path) -> Path:
+def _build_site(website_root: Path, output_root: Path, source_date_epoch: str | None = None) -> Path:
     config = yaml.safe_load((website_root / "mkdocs.yml").read_text(encoding="utf-8"))
     shutil.copytree(website_root / "overrides", output_root / "overrides")
     config["docs_dir"] = "content"
@@ -441,11 +440,15 @@ def _build_site(website_root: Path, output_root: Path) -> Path:
     config["theme"]["custom_dir"] = "overrides"
     config_path = output_root / "mkdocs.yml"
     config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    environment = dict(os.environ)
+    if source_date_epoch is not None:
+        environment["SOURCE_DATE_EPOCH"] = source_date_epoch
     try:
         subprocess.run(
             [sys.executable, "-m", "mkdocs", "build", "--strict", "--config-file", str(config_path)],
             cwd=output_root,
             check=True,
+            env=environment,
         )
     except subprocess.CalledProcessError as exc:
         raise AssemblyError("strict MkDocs build failed") from exc
@@ -467,15 +470,12 @@ def _scan_artifact(site: Path) -> None:
                 raise AssemblyError(str(exc)) from exc
 
 
-def assemble_site(
-    website_root: Path,
-    lock_path: Path,
-    euvics_source: Path,
-    pyeuvics_source: Path,
-    output_root: Path,
-) -> AssemblyResult:
-    """Assemble approved source files into a new output tree and build strictly."""
-
+def _prepare_build(
+    website_root: Path, lock_path: Path, euvics_source: Path, pyeuvics_source: Path,
+    output_root: Path, source_date_epoch: str | None,
+) -> BuildInputs:
+    if output_root.exists() or output_root.is_symlink():
+        raise AssemblyError(f"output path already exists: {output_root}")
     website_root = website_root.resolve()
     output_root = output_root.resolve()
     source_roots = {"euvics": euvics_source.resolve(), "pyeuvics": pyeuvics_source.resolve()}
@@ -485,7 +485,10 @@ def assemble_site(
         root in output_root.parents for root in source_roots.values()
     ):
         raise AssemblyError("output path must not be a repository or lie inside a source checkout")
-    timestamp = _build_timestamp()
+    try:
+        timestamp = parse_timestamp(source_date_epoch if source_date_epoch is not None else os.environ.get("SOURCE_DATE_EPOCH"))
+    except TimestampError as exc:
+        raise AssemblyError(str(exc)) from exc
     try:
         renderer = load_renderer(website_root)
     except RenderingError as exc:
@@ -501,7 +504,16 @@ def assemble_site(
         plan = create_staging_plan(website_root, contracts)
     except StagingError as exc:
         raise AssemblyError(str(exc)) from exc
-    output_root.mkdir(parents=True)
+    return BuildInputs(website_root, output_root, timestamp, contracts, plan, renderer)
+
+
+def _materialize_build(context: BuildContext) -> tuple[InventoryEntry, ...]:
+    website_root = context.inputs.website_root
+    output_root = context.workspace
+    contracts = context.inputs.contracts
+    timestamp = context.inputs.timestamp.iso
+    plan = context.inputs.plan
+    renderer = context.inputs.renderer
     atomic_write_text(output_root / "staging-plan.json", json.dumps(plan.to_dict(), indent=2, sort_keys=True) + "\n")
     staged_content = output_root / "content"
     shutil.copytree(website_root / "content", staged_content)
@@ -513,6 +525,7 @@ def assemble_site(
             staged_content,
             timestamp,
             plan,
+            context.inputs.timestamp.epoch,
         )
     except DocumentError as exc:
         raise AssemblyError(str(exc)) from exc
@@ -559,11 +572,58 @@ def assemble_site(
     inventory_path = output_root / "staged-content-inventory.json"
     _write_inventory(inventory_path, contracts, entries, timestamp)
     shutil.copyfile(inventory_path, imported_root / "staged-content-inventory.json")
-    site = _build_site(website_root, output_root)
+    return entries
+
+
+def _render_build(context: BuildContext) -> Path:
+    return _build_site(context.inputs.website_root, context.workspace, context.inputs.timestamp.epoch)
+
+
+def _verify_build(context: BuildContext, site: Path) -> None:
     _scan_artifact(site)
+    for contract in context.inputs.contracts:
+        verify_contract_inputs(contract)
+
+
+def _finalize_build(context: BuildContext, entries: tuple[InventoryEntry, ...]) -> AssemblyResult:
+    destination = context.inputs.requested_output
+    promote_directory(context.workspace, destination)
+    return AssemblyResult(destination, destination / "content", destination / "site", entries)
+
+
+def assemble_site(
+    website_root: Path,
+    lock_path: Path,
+    euvics_source: Path,
+    pyeuvics_source: Path,
+    output_root: Path,
+    *,
+    source_date_epoch: str | None = None,
+) -> AssemblyResult:
+    """Plan, materialize, render, verify and exclusively promote one owned build."""
     try:
-        for contract in contracts:
-            verify_contract_inputs(contract)
-    except ContractError as exc:
+        prepared = _prepare_build(website_root, lock_path, euvics_source, pyeuvics_source, output_root, source_date_epoch)
+    except (OSError, ValueError) as exc:
         raise AssemblyError(str(exc)) from exc
-    return AssemblyResult(output_root, staged_content, site, entries)
+    prepared.requested_output.parent.mkdir(parents=True, exist_ok=True)
+    workspace = Path(tempfile.mkdtemp(prefix=f".{prepared.requested_output.name}.assembly-", dir=prepared.requested_output.parent))
+    context = BuildContext(prepared, workspace)
+    phase = "materialize"
+    try:
+        entries = _materialize_build(context)
+        phase = "render"
+        site = _render_build(context)
+        phase = "verify"
+        _verify_build(context, site)
+        phase = "finalize"
+        return _finalize_build(context, entries)
+    except BaseException as exc:
+        # This path is uniquely owned by this invocation. Never clean a caller's
+        # requested directory or serialize exception contents into diagnostics.
+        try:
+            atomic_write_text(workspace / "INCOMPLETE.json", json.dumps({"status": "incomplete", "phase": phase, "error_type": type(exc).__name__}, sort_keys=True) + "\n")
+        except OSError:
+            pass  # Preserve the original error and the owned workspace.
+        if not isinstance(exc, Exception):
+            raise
+        raise AssemblyError(f"{exc}; incomplete {phase} workspace retained at {workspace}") from exc
