@@ -1,13 +1,14 @@
 """Coordinate two independent executions and stage deterministic notebooks."""
 from __future__ import annotations
 import hashlib
+import json
 from pathlib import Path
-from .primitives import FileOperationError, export_locked_tree, sha256_file
+from .primitives import FileOperationError, atomic_write_text, export_locked_tree, sha256_file
 from .contracts import ContractError, verify_contract_inputs
 from .models import InventoryEntry, NotebookSpec, SourceContract
 from .staging import StagingPlan, notebook_page
 from .presentation import Link, render_link
-from .notebook_policy import NotebookError as NotebookError, _scan as _scan
+from .notebook_policy import NotebookError as NotebookError, RenderedNotebook, _scan as _scan
 from .notebook_admission import admit_notebook, _validate_source as _validate_source
 from .notebook_execution import execute_notebook
 from .notebook_rendering import render_executed, _page_header as _page_header
@@ -28,9 +29,9 @@ _sha256 = sha256_file
 
 
 
-def _render_once(spec: NotebookSpec, source_root: Path) -> tuple[str, dict[str, bytes]]:
+def _render_once(spec: NotebookSpec, source_root: Path) -> RenderedNotebook:
     result = render_executed(execute_notebook(admit_notebook(spec,source_root)))
-    return result.body,result.assets
+    return result
 
 
 def render_approved_notebooks(
@@ -52,15 +53,19 @@ def render_approved_notebooks(
     source_build = output_root / "source-build/pyeuvics-notebooks"
     _archive_checkout(contract, source_build)
     index_links: list[str] = []
+    provenance: list[dict[str, object]] = []
     for spec in contract.notebooks:
         source = contract.root / spec.path
         source_before = source.read_bytes()
-        first_body, first_assets = _render_once(spec, source_build)
-        second_body, second_assets = _render_once(spec, source_build)
-        if first_body != second_body or first_assets != second_assets:
+        first = _render_once(spec, source_build)
+        second = _render_once(spec, source_build)
+        first_body, first_assets = first.body, first.assets
+        if first.body != second.body or first.assets != second.assets or first.environment != second.environment:
             raise NotebookError(f"notebook rendering is nondeterministic: {spec.path}")
         if source.read_bytes() != source_before:
             raise NotebookError(f"source notebook changed during rendering: {spec.path}")
+        if first.environment is None:raise NotebookError('notebook environment provenance is missing')
+        provenance.append({'notebook':spec.path,'source_commit':contract.lock.commit,'source_sha256':_sha256_bytes(source_before),'matching_executions':2,'environment':first.environment.to_dict(),'environment_sha256':first.environment.fingerprint})
         stem = Path(spec.path).stem
         relative_page = Path(notebook_page(spec.path))
         if plan is not None:
@@ -68,7 +73,7 @@ def render_approved_notebooks(
             plan.emitted_assets(contract.lock.name, tuple((relative_page.parent / name).as_posix() for name in first_assets))
         page = staged_content / relative_page
         page.parent.mkdir(parents=True, exist_ok=True)
-        rendered = _page_header(spec, contract, timestamp) + first_body
+        rendered = _page_header(spec, contract, timestamp, first.environment.fingerprint) + first_body
         page.write_text(rendered, encoding="utf-8")
         inventory.append(
             InventoryEntry(
@@ -106,4 +111,5 @@ def render_approved_notebooks(
         + "\n",
         encoding="utf-8",
     )
+    atomic_write_text(output_root/"notebook-execution-provenance.json",json.dumps({"notebook_execution_version":1,"notebooks":provenance},indent=2,sort_keys=True)+"\n")
     return tuple(inventory)

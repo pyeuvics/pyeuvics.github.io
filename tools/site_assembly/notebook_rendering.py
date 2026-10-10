@@ -54,10 +54,10 @@ def render_executed(result: ExecutedNotebook) -> RenderedNotebook:
     _validate_markup(body, f"rendered notebook {spec.path}")
     if UNSAFE_HTML.search(body):
         raise NotebookError(f"unsafe active content in rendered notebook: {spec.path}")
-    return RenderedNotebook(body,outputs)
+    return RenderedNotebook(body,outputs,result.environment)
 
 
-def _page_header(spec: NotebookSpec, contract: SourceContract, timestamp: str) -> str:
+def _page_header(spec: NotebookSpec, contract: SourceContract, timestamp: str, environment_fingerprint: str | None = None) -> str:
     page = NotebookPage(
         spec.title,
         (
@@ -65,14 +65,15 @@ def _page_header(spec: NotebookSpec, contract: SourceContract, timestamp: str) -
             MetadataRow("Source commit", Code(contract.lock.commit)),
             MetadataRow("Notebook source", Link(spec.path, source_url(contract.lock, spec.path))),
             MetadataRow("Build execution policy", "Executed during this website build"),
-            MetadataRow("Random seed", spec.random_seed),
+            MetadataRow("Python hash seed", spec.random_seed),
+            MetadataRow("Scientific RNG policy", "Controlled by the reviewed notebook code; no RNG seed is injected."),
             MetadataRow("Configuration", Code(", ".join(spec.configurations)) if spec.configurations else "None"),
             MetadataRow("Scientific validation status", spec.validation_status),
             MetadataRow("Publication status", spec.publication_status),
             MetadataRow("License", spec.license),
             MetadataRow("Attribution", spec.attribution),
             MetadataRow("Website build timestamp", timestamp),
-        ),
+        ) + ((MetadataRow("Execution environment SHA-256", Code(environment_fingerprint)),) if environment_fingerprint is not None else ()),
         spec.local_requirements,
         spec.known_limitations,
     )
