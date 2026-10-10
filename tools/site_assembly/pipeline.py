@@ -19,6 +19,8 @@ import yaml
 
 from .primitives import atomic_write_text, sha256_file
 
+from tools.privacy import PrivacyError, ScanProfile, scan_text, scan_file
+
 from .contracts import ContractError, load_contract, load_locks, verify_contract_inputs
 from .documents import DocumentError, build_approved_documents
 from .models import AssemblyResult as AssemblyResult  # noqa: PLC0414
@@ -30,7 +32,6 @@ from .notebooks import (
 )
 from .overview_figures import OverviewFigureError, stage_overview_figure
 
-LOCAL_PATH_RE = re.compile(r"(?:/Users/|/home/[^/\s]+/|\b[A-Za-z]:[\\/]+[\w.-])")
 UNSAFE_ACTIVE_ELEMENT_RE = re.compile(r"<iframe\b", re.IGNORECASE)
 SAFE_MATH_SCRIPT_TYPE_RE = re.compile(r"^math/tex(?:\s*;\s*mode\s*=\s*display\s*)?$", re.IGNORECASE)
 LINK_RE = re.compile(r"(?P<prefix>!?\[[^\]]*\]\()(?P<target>[^)\s]+)(?P<suffix>[^)]*\))")
@@ -39,13 +40,6 @@ CSS_URL_RE = re.compile(
 )
 CSS_IMPORT_RE = re.compile(r"@import\s+([\"'])(.*?)\1", re.IGNORECASE | re.DOTALL)
 CSS_COMMENT_RE = re.compile(r"/\*.*?(?:\*/|$)", re.DOTALL)
-CREDENTIAL_PATTERNS = (
-    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{30,}\b"),
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
-    re.compile(r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b"),
-)
 TEXT_SUFFIXES = {
     "",
     ".md",
@@ -176,11 +170,10 @@ def _build_timestamp() -> str:
 
 
 def _scan_text(text: str, label: str) -> None:
-    if LOCAL_PATH_RE.search(text):
-        raise AssemblyError(f"local absolute path detected in {label}")
-    for pattern in CREDENTIAL_PATTERNS:
-        if pattern.search(text):
-            raise AssemblyError(f"credential-like material detected in {label}")
+    try:
+        scan_text(text, label, ScanProfile.SOURCE)
+    except PrivacyError as exc:
+        raise AssemblyError(str(exc)) from exc
 
 
 def _source_url(contract: SourceContract, path: str, *, edit: bool = False, directory: bool = False) -> str:
@@ -331,8 +324,12 @@ def _copy_contract(
         destination = destinations[published.path]
         destination.parent.mkdir(parents=True, exist_ok=True)
         if source.suffix.lower() == ".md":
+            try:
+                source_text = source.read_text(encoding="utf-8")
+            except (OSError, UnicodeError) as exc:
+                raise AssemblyError(f"cannot inspect source Markdown {published.path}") from exc
             rewritten = _rewrite_markdown(
-                source.read_text(encoding="utf-8"),
+                source_text,
                 published,
                 contract,
                 destinations,
@@ -343,7 +340,10 @@ def _copy_contract(
             destination.write_text(rewritten, encoding="utf-8")
         else:
             if source.suffix.lower() in TEXT_SUFFIXES:
-                _scan_text(source.read_text(encoding="utf-8"), f"source asset {published.path}")
+                try:
+                    scan_file(source, f"source asset {published.path}", ScanProfile.SOURCE)
+                except PrivacyError as exc:
+                    raise AssemblyError(str(exc)) from exc
             shutil.copyfile(source, destination)
         inventory.append(
             InventoryEntry(
@@ -553,10 +553,9 @@ def _scan_artifact(site: Path) -> None:
             raise AssemblyError(f"unexpected final artifact type: {path.relative_to(site)}")
         if path.suffix.lower() in TEXT_SUFFIXES:
             try:
-                text = path.read_text(encoding="utf-8")
-            except UnicodeDecodeError as exc:
-                raise AssemblyError(f"non-UTF-8 text artifact: {path.relative_to(site)}") from exc
-            _scan_text(text, f"artifact {path.relative_to(site)}")
+                scan_file(path, f"artifact {path.relative_to(site)}", ScanProfile.PUBLIC)
+            except PrivacyError as exc:
+                raise AssemblyError(str(exc)) from exc
 
 
 def assemble_site(

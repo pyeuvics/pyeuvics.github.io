@@ -8,16 +8,14 @@ import sys
 from pathlib import Path
 
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from tools.privacy import PrivacyError, ScanProfile, scan_file
+
+
 class CredentialResidueError(ValueError):
     """Private credential material remains after a source checkout."""
-
-
-PRIVATE_KEY_MARKERS = (
-    b"-----BEGIN OPENSSH PRIVATE KEY-----",
-    b"-----BEGIN RSA PRIVATE KEY-----",
-    b"-----BEGIN EC PRIVATE KEY-----",
-    b"-----BEGIN PRIVATE KEY-----",
-)
 
 
 def verify_no_private_keys(root: Path) -> None:
@@ -30,11 +28,9 @@ def verify_no_private_keys(root: Path) -> None:
         if path.is_symlink() or not path.is_file():
             continue
         try:
-            payload = path.read_bytes()
-        except OSError as exc:
-            raise CredentialResidueError(f"cannot inspect runner temporary file: {path}") from exc
-        if any(marker in payload for marker in PRIVATE_KEY_MARKERS):
-            raise CredentialResidueError(f"private key material remains in runner temp: {path}")
+            scan_file(path, str(path), ScanProfile.RUNNER)
+        except PrivacyError as exc:
+            raise CredentialResidueError(str(exc)) from exc
 
 
 def main(argv: list[str] | None = None) -> int:
