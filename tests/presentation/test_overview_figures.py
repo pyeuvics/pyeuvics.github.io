@@ -14,7 +14,7 @@ from tools.site_assembly.overview_figures import (
 
 from tests.support.overview import overview_contract as _contract, write_overview_candidate as _write_candidate
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 
 
 def test_stage_overview_figure_adds_accessible_provenance_block(tmp_path: Path) -> None:

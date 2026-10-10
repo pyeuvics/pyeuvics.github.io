@@ -18,7 +18,7 @@ from tools.source_update import (
 
 from tests.support.publication import init_repo, write_locks
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 WORKFLOW = ROOT / ".github/workflows/source-update.yml"
 CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
 APP_TOKEN = "actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1"
@@ -184,7 +184,7 @@ def test_workflow_separates_untrusted_validation_from_pr_write_credentials() -> 
 def test_mutable_source_locks_are_not_duplicated_as_test_constants() -> None:
     lock = yaml.safe_load((ROOT / "sources.lock.yml").read_text(encoding="utf-8"))
     commits = {source["commit"] for source in lock["sources"].values()}
-    for path in (ROOT / "tests").glob("test_*.py"):
+    for path in (ROOT / "tests").rglob("test_*.py"):
         text = path.read_text(encoding="utf-8")
         for commit in commits:
             assert commit not in text, (

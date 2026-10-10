@@ -4,7 +4,7 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 SVG = ROOT / "content/assets/images/ics-geometry-source-chain.svg"
 OVERVIEW = ROOT / "content/project/overview.md"
 STYLESHEET = ROOT / "content/stylesheets/readthedocs.css"

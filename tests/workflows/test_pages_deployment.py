@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 WORKFLOW = ROOT / ".github/workflows/pages.yml"
 CHECKLIST = ROOT / "docs/pages-deployment.md"
 CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"

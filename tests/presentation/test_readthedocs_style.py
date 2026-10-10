@@ -1,30 +1,14 @@
 from __future__ import annotations
 
 import re
-import subprocess
-import sys
 from pathlib import Path
 
-import pytest
 import yaml
 
-ROOT = Path(__file__).resolve().parents[1]
+from tests.support.paths import ROOT
 CONFIG = ROOT / "mkdocs.yml"
 CANONICAL_CSS = ROOT / "docs/stylesheets/readthedocs.css"
 SERVED_CSS = ROOT / "content/stylesheets/readthedocs.css"
-
-
-@pytest.fixture(scope="module")
-def built_site(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    output = tmp_path_factory.mktemp("readthedocs-site")
-    subprocess.run(
-        [sys.executable, "-m", "mkdocs", "build", "--strict", "--site-dir", str(output)],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return output
 
 
 def css_text() -> str:
