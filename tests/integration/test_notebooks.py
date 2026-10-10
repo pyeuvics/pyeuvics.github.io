@@ -30,6 +30,13 @@ def test_approved_notebook_is_executed_deterministically_and_source_is_immutable
         "'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='"
         "), format='png'))\n"
     )
+    index = pyeuvics / "docs/index.md"
+    index.write_text(
+        index.read_text(encoding="utf-8")
+        + '\n[Notebook][nb]\n\n[nb]: ../notebooks/00_environment_check.ipynb\n'
+        + '<a href="../notebooks/00_environment_check.ipynb">Notebook HTML</a>\n',
+        encoding="utf-8",
+    )
     commits["pyeuvics"] = add_approved_notebook_set(pyeuvics, code)
     before = snapshot(pyeuvics)
     lock = write_locks(tmp_path / "sources.lock.yml", commits)
@@ -37,6 +44,9 @@ def test_approved_notebook_is_executed_deterministically_and_source_is_immutable
     first = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "notebook-a")
     second = assemble_site(ROOT, lock, euvics, pyeuvics, tmp_path / "notebook-b")
     assert snapshot(pyeuvics) == before
+    imported = (first.site / "imported/pyeuvics/docs/index.html").read_text(encoding="utf-8")
+    assert imported.count('href="../../../software/notebooks/00_environment_check/"') == 2
+
     page = first.staged_content / "software/notebooks/00_environment_check.md"
     text = page.read_text(encoding="utf-8")
     assert "Static notebook rendering" in text
