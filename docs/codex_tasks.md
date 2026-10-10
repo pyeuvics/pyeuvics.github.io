@@ -6,7 +6,11 @@
 > deployment instructions; see the
 > [organization-site migration record](organization-site-migration.md).
 
-Run these tasks sequentially. Each task is intentionally bounded and includes its own verification requirements. Do not combine deployment, credentials, repository settings, or scientific publication with unrelated implementation work.
+These completed foundation prompts are retained as history. Do not execute them
+as a current task sequence or use their old private-source PR instructions.
+Use [current work](current-work.md), the [runbook](development.md), and
+[workflow boundaries](workflow-boundaries.md). Historic approvals do not authorize
+new deployment, credentials, repository settings, or scientific publication.
 
 ## Task 0 — Correct and baseline the website repository
 

@@ -138,7 +138,8 @@ The production workflow uses GitHub Pages artifacts:
 - The final artifact is checked for excluded content, secrets, and local paths.
 - Deployment uses the protected `github-pages` environment.
 
-The repository is configured with:
+The production workflow expects this Pages setting; verify live administrator
+settings separately before release:
 
 ```text
 Settings → Pages → Build and deployment → Source → GitHub Actions
@@ -156,7 +157,7 @@ Every published document should identify its status and provenance. Design targe
 
 ## Contributing with Codex
 
-Read [AGENTS.md](AGENTS.md) and the [current runbook](docs/development.md) before making changes. Keep a bounded execution record under `docs/exec-plans/`; historical foundation prompts are not a current work queue.
+Read [AGENTS.md](AGENTS.md), [current work](docs/current-work.md), and the [current runbook](docs/development.md) before making changes. Keep a bounded execution record under `docs/exec-plans/`; historical foundation prompts are not a current work queue.
 
 Codex may scaffold, transform, test, and document the site. Scientific conclusions, publication approvals, repository visibility, credentials, Pages activation, custom domains, and public release remain owner-controlled decisions.
 

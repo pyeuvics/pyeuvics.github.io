@@ -230,8 +230,8 @@ Do not add decorative imagery that obscures scientific status or consumes excess
 Once the corresponding tools exist, run at minimum:
 
 ```bash
-python -m pytest
-mkdocs build --strict
+python -m tools.quality
+npm run test:browser
 ```
 
 Also verify:
@@ -265,18 +265,33 @@ Use a sequential zero-padded prefix for completed plans, for example:
 00001_repository_foundation.md
 ```
 
-## 16. Repository corrections to make first
+## 16. Current work and historical foundation
 
-The initial repository audit identified these foundation items:
+Use [docs/current-work.md](docs/current-work.md) for active work and
+[docs/development.md](docs/development.md) for current commands. The original
+foundation corrections (root instructions/README, license filename, repository
+identity, ignore rules and organization URL) were completed and are retained in
+the historical task catalog and completed plans. Do not reimplement them.
+Historical deployment or credential instructions confer no current authority.
 
-- Add this root `AGENTS.md` and the website `README.md`.
-- Rename `LINCESNE` to `LICENSE` without changing its MIT license text unless explicitly approved.
-- Replace or archive planning text that incorrectly targets `pyEUVICS/pyEUVICS.github.io`.
-- Review `.gitignore`; ensure the `downloads/` pattern does not accidentally hide intended website-source content.
-- Confirm the organization-site URL in all current configuration and
-  documentation while preserving historical records.
+For the owner's authorized refactoring sequence, stage and commit each completed
+verified task separately, and do not push. Use the requested commit format for
+this website and when working in the euvics and pyEUVICS repositories: a concise
+imperative subject, a blank line, short implementation/verification/preservation
+sentences, then a blank line and `Files:` with actual status/path entries. Do not
+claim checks that were not run or include unrelated files. Example:
 
-Do not combine these mechanical corrections with scientific-content publication.
+```text
+Describe the concrete change
+
+Explains the resulting behavior.
+States the checks that passed.
+Records relevant preserved boundaries.
+
+Files:
+ M  path/to/modified-file
+ A  path/to/added-file
+```
 
 ## 17. Definition of done
 

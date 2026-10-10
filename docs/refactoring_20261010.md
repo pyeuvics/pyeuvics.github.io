@@ -4,10 +4,13 @@
 
 - Repository: `pyeuvics/pyeuvics.github.io`.
 - Reviewed HEAD: `b62dc0ace6898a6f1db3436fe397c51ecc204880`.
-- Status: **review only; 36 queued tasks; no refactoring implemented**.
-- Storage: this report and its execution record are intentionally untracked.
-  Do not stage, commit, publish, or import them into website content.
-- Coverage: inventory of all 105 tracked paths; detailed review of all 13
+- Original review status: **review only; 36 queued tasks**. The owner later
+  authorized ordered implementation and one local commit per verified task.
+  Current execution status is recorded below and in [current work](current-work.md).
+- Original storage decision: review-only and untracked. This backlog is now
+  tracked as part of the owner-requested execution. It is governance material,
+  never public website content. The reviewed baseline below remains historical.
+- Original review coverage: inventory of all 105 tracked paths; detailed review of all 13
   Python tooling modules, all 10 test modules, all three workflows, MkDocs
   configuration, requirements, frontend assets/templates, website pages,
   current operating guidance, and relevant prior remediation records.
@@ -126,7 +129,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-01 — Extract synthetic fixture builders
 
-- [ ] **Evidence:** `tests/test_source_assembly.py:116–501` mixes manifest,
+Execution: [completed plan](exec-plans/completed/032_web01-fixture-builders.md).
+
+- [x] **Evidence:** `tests/test_source_assembly.py:116–501` mixes manifest,
   Git repository, document, notebook, campaign, snapshot, and assembly helpers
   into a 1,136-line test module. `tests/test_source_update.py:27` builds its
   own locks and repositories; overview tests build another contract variant.
@@ -142,7 +147,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-02 — Separate unit, integration, and rendering tests
 
-- [ ] **Evidence:** many negative-input tests call full `assemble_site`;
+Execution: [completed plan](exec-plans/completed/033_web02-test-tiers.md).
+
+- [x] **Evidence:** many negative-input tests call full `assemble_site`;
   `tests/test_readthedocs_style.py:17` builds a site in a module-local fixture;
   source assembly tests combine multiple responsibilities and real kernels.
 - **Change:** group tests by contracts, links, staging, documents, notebooks,
@@ -156,7 +163,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-03 — Consolidate small filesystem/process primitives
 
-- [ ] **Evidence:** duplicate archive exporters in `documents.py:42` and
+Execution: [completed plan](exec-plans/completed/034_web03-file-primitives.md).
+
+- [x] **Evidence:** duplicate archive exporters in `documents.py:42` and
   `notebooks.py:43`; four hashing implementations in those modules,
   `pipeline.py:163`, and `validate_ci.py:56`; inconsistent subprocess error
   handling and full-memory archive/hash reads.
@@ -171,7 +180,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-04 — Bind every consumed source file to the locked Git tree
 
-- [ ] **Evidence:** E01; `contracts.py:172` verifies only the manifest is
+Execution: [completed plan](exec-plans/completed/035_web04-locked-inputs.md).
+
+- [x] **Evidence:** E01; `contracts.py:172` verifies only the manifest is
   tracked. `_validate_file` at line 198 checks live filesystem presence and
   symlinks, not Git-tree membership. Git status does not report ignored files.
 - **Change:** resolve all admitted files, notebook dependencies/configurations,
@@ -188,7 +199,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-05 — Strict structured-input parsing and scalar validation
 
-- [ ] **Evidence:** E07; `contracts.py:119–161` uses dictionary checks plus
+Execution: [completed plan](exec-plans/completed/036_web05-structured-inputs.md).
+
+- [x] **Evidence:** E07; `contracts.py:119–161` uses dictionary checks plus
   equality for schema values, and `_load_json:188` uses default JSON decoding.
   Approval dates are validated differently between source adapters;
   `documents.py:97` only checks document-date shape.
@@ -204,7 +217,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-06 — Split contract adapters into typed validation stages
 
-- [ ] **Evidence:** `contracts.py:211–603` combines two source adapters,
+Execution: [completed plan](exec-plans/completed/037_web06-contract-adapters.md).
+
+- [x] **Evidence:** `contracts.py:211–603` combines two source adapters,
   schema dispatch, exclusions, approvals, candidate states, notebook execution
   settings, static-set completeness, and dataclass construction.
 - **Change:** retain a small `load_contract` facade; separate lock decoding,
@@ -218,7 +233,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-07 — Add independent publication-contract conformance cases
 
-- [ ] **Evidence:** prior plan `029_publication-contract-consumer-alignment.md`
+Execution: [completed plan](exec-plans/completed/038_web07-neutral-contract-corpus.md).
+
+- [x] **Evidence:** prior plan `029_publication-contract-consumer-alignment.md`
   documents consumer drift; current compatibility cases in
   `tests/test_source_assembly.py:754` cover a limited hand-built matrix.
 - **Change:** add versioned, neutral valid/invalid contract vectors and
@@ -234,7 +251,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-08 — Unify context-aware privacy scanning
 
-- [ ] **Evidence:** `pipeline.py:30–62,182`, `notebooks.py:20–37,69`,
+Execution: [completed plan](exec-plans/completed/039_web08-privacy-profiles.md).
+
+- [x] **Evidence:** `pipeline.py:30–62,182`, `notebooks.py:20–37,69`,
   `verify_runner_credentials.py:15–37`, and several tests use different path
   and credential patterns; notebook checks lack the same JWT/path coverage.
 - **Change:** provide one reviewed pattern vocabulary with separate profiles
@@ -249,7 +268,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-09 — Share exact Markdown rendering configuration
 
-- [ ] **Evidence:** E08; `pipeline.py:65,232` provides extension names only;
+Execution: [completed plan](exec-plans/completed/040_web09-exact-markdown-renderer.md).
+
+- [x] **Evidence:** E08; `pipeline.py:65,232` provides extension names only;
   `mkdocs.yml:41–48` configures arithmatex options; the test at
   `tests/test_source_assembly.py:107` compares names, not options/output.
 - **Change:** derive the publication validator's renderer from an explicitly
@@ -263,7 +284,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-10 — Rewrite links with syntax-aware destination mapping
 
-- [ ] **Evidence:** E02; `pipeline.py:261` validates rendered targets but
+Execution: [completed plan](exec-plans/completed/041_web10-syntax-aware-link-mapping.md).
+
+- [x] **Evidence:** E02; `pipeline.py:261` validates rendered targets but
   `LINK_RE` rewrites only inline-link-shaped source substrings. Target-string
   membership does not distinguish an actual link from a code example.
 - **Change:** use one syntax-aware representation for link validation and
@@ -278,7 +301,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-11 — Make active-content and resource-URL policy explicit
 
-- [ ] **Evidence:** E03; `pipeline.py:81–160,195` uses HTML parsing plus
+Execution: [completed plan](exec-plans/completed/042_web11-browser-content-policy.md).
+
+- [x] **Evidence:** E03; `pipeline.py:81–160,195` uses HTML parsing plus
   CSS regexes and a context-free scheme allowlist. The current policy permits
   `data` for every URL-bearing context and does not reject `base`.
 - **Change:** distinguish navigation URLs, image data, styles, and executable
@@ -295,7 +320,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-12 — Escape metadata through typed page-rendering helpers
 
-- [ ] **Evidence:** `pipeline.py:291,411`, `documents.py:105`,
+Execution: [completed plan](exec-plans/completed/043_web12-metadata-page-views.md).
+
+- [x] **Evidence:** `pipeline.py:291,411`, `documents.py:105`,
   `notebooks.py:205,308`, and `overview_figures.py:86` interpolate titles,
   limitations, versions, and status strings into Markdown/HTML.
 - **Change:** introduce presentation view models and small renderers with
@@ -311,7 +338,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-13 — Introduce a typed staging plan and destination registry
 
-- [ ] **Evidence:** `models.py:58–87` models admitted source items and final
+Execution: [completed plan](exec-plans/completed/044_web13-staging-plan-registry.md).
+
+- [x] **Evidence:** `models.py:58–87` models admitted source items and final
   entries, but mapping is assembled separately in `pipeline.py:317`,
   `documents.py:146`, and `notebooks.py:240`; website-generated pages are
   implicit side effects.
@@ -327,7 +356,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-14 — Separate assembly phases and isolate partial outputs
 
-- [ ] **Evidence:** `pipeline.py:562` orchestrates all stages directly and
+Execution: [completed plan](exec-plans/completed/045_web14-isolated-build-phases.md).
+
+- [x] **Evidence:** `pipeline.py:562` orchestrates all stages directly and
   writes the requested output before later steps can fail; `validate_ci.py:32`
   mutates process-wide timestamp state; output existence then prevents retry.
 - **Change:** create a small build context with paths, validated timestamp,
@@ -342,7 +373,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-15 — Verify complete staged and final artifact ownership
 
-- [ ] **Evidence:** E06; `_copy_contract` checks one imported subtree,
+Execution: [completed plan](exec-plans/completed/046_web15-complete-artifact-ownership.md).
+
+- [x] **Evidence:** E06; `_copy_contract` checks one imported subtree,
   `_write_inventory` records imported/generated source entries, and
   `_scan_artifact:546` accepts any file with an allowed suffix. Website
   `content` is copied recursively, including files not tied to a tracked index.
@@ -359,7 +392,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-16 — Validate imported assets by format and trust origin
 
-- [ ] **Evidence:** E06; `_copy_contract` only text-scans non-Markdown assets;
+Execution: [completed plan](exec-plans/completed/047_web16-format-aware-assets.md).
+
+- [x] **Evidence:** E06; `_copy_contract` only text-scans non-Markdown assets;
   artifact scans do not inspect PDF contents, compressed/map payloads, or SVG
   active structure. `documents.py:77` checks PDF readability, not the complete
   public-content policy. The schematic has stronger source-specific tests.
@@ -376,7 +411,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-17 — Isolate document build/preflight and evidence handling
 
-- [ ] **Evidence:** `documents.py:146` combines export, build commands, log
+Execution: [completed plan](exec-plans/completed/048_web17-document-build-evidence.md).
+
+- [x] **Evidence:** `documents.py:146` combines export, build commands, log
   inspection, hash comparison, PDF validation, page rendering, and copying.
   `ci_source_locks.py:38` reports `approved_pdf` from a raw `kind == pdf`
   presence check before full metadata validation.
@@ -392,7 +429,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-18 — Separate notebook admission, execution, and rendering
 
-- [ ] **Evidence:** `notebooks.py:76–202` mixes parsing, source scans, data
+Execution: [completed plan](exec-plans/completed/049_web18-notebook-phases.md).
+
+- [x] **Evidence:** `notebooks.py:76–202` mixes parsing, source scans, data
   inference, environment setup, execution, mutation checks, MIME handling,
   export, and size checks. Campaign-page rendering is in the same module.
 - **Change:** define validated notebook inputs and an execution/render result;
@@ -408,7 +447,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-19 — Make notebook kernel/environment provenance explicit
 
-- [ ] **Evidence:** `notebooks.py:122` requests generic `kernel_name="python3"`
+Execution: [completed plan](exec-plans/completed/050_web19-explicit-notebook-environment.md).
+
+- [x] **Evidence:** `notebooks.py:122` requests generic `kernel_name="python3"`
   and inherits selected host variables; metadata advertises `random_seed`
   while execution only sets `PYTHONHASHSEED`. Scientific RNG use is left to
   notebook code, and no resolved kernel identity is recorded.
@@ -425,7 +466,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-20 — Bound notebook execution and document its trust model
 
-- [ ] **Evidence:** `notebooks.py:27,94` uses code/data regexes;
+Execution: [completed plan](exec-plans/completed/051_web20-bounded-trusted-notebooks.md).
+
+- [x] **Evidence:** `notebooks.py:27,94` uses code/data regexes;
   `_archive_checkout` exports the entire locked repository; a temporary HOME
   and environment filter are not filesystem/network isolation. Per-cell
   timeout and post-render limits do not bound all execution/resource behavior.
@@ -443,7 +486,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-21 — Validate overview artifacts with typed finite data
 
-- [ ] **Evidence:** E05; `overview_figures.py:27` assumes dictionary-shaped
+Execution: [completed plan](exec-plans/completed/052_web21-typed-overview-artifacts.md).
+
+- [x] **Evidence:** E05; `overview_figures.py:27` assumes dictionary-shaped
   JSON, partially validates package metadata, parses float columns without
   finiteness/positivity checks, and validates trends using comparisons that
   admit NaN. Only a few acceptance cases exist in `test_overview_figures.py`.
@@ -460,7 +505,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-22 — Generate entry pages and downloads from one publication view
 
-- [ ] **Evidence:** `pipeline.py:411` appends or overwrites multiple entry
+Execution: [completed plan](exec-plans/completed/053_web22-publication-view.md).
+
+- [x] **Evidence:** `pipeline.py:411` appends or overwrites multiple entry
   pages; documents/notebooks/campaigns generate others independently;
   `content/downloads/index.md` always states that no artifacts are available;
   overview figure insertion depends on an exact heading at line 122.
@@ -476,7 +523,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-23 — Route edit/provenance links by page ownership
 
-- [ ] **Evidence:** `overrides/partials/actions.html:2` hides editing only for
+Execution: [completed plan](exec-plans/completed/054_web23-page-ownership-actions.md).
+
+- [x] **Evidence:** `overrides/partials/actions.html:2` hides editing only for
   `imported/`, while generated notebook and document pages live elsewhere;
   `pipeline.py:190` generates immutable-commit source/edit URLs. Tests assert
   some literal URLs but not all generated page ownership cases.
@@ -493,7 +542,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-24 — Type and validate review manifests before comparison
 
-- [ ] **Evidence:** E04; `source_update.py:117` returns nested `Any` mappings,
+Execution: [completed plan](exec-plans/completed/055_web24-typed-review-manifests.md).
+
+- [x] **Evidence:** E04; `source_update.py:117` returns nested `Any` mappings,
   calls a digest regex before checking its type, accepts bool as an int, and
   checks path nonemptiness rather than canonical artifact-relative syntax.
 - **Change:** share a versioned typed review-manifest contract with
@@ -509,7 +560,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-25 — Extract source-update proposal lifecycle logic
 
-- [ ] **Evidence:** `.github/workflows/source-update.yml:34–53,259–292`
+Execution: [completed plan](exec-plans/completed/056_web25-proposal-lifecycle.md).
+
+- [x] **Evidence:** `.github/workflows/source-update.yml:34–53,259–292`
   embeds proposal discovery, branch association, commit/push/PR creation, and
   recovery in shell; tests mostly assert command substrings and ordering.
 - **Change:** extract testable decision functions and narrowly scoped CLI
@@ -524,7 +577,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-26 — Bind proposal evidence to validated inputs
 
-- [ ] **Evidence:** `source_update.py:142` writes a report asserting completed
+Execution: [completed plan](exec-plans/completed/057_web26-bound-validation-evidence.md).
+
+- [x] **Evidence:** `source_update.py:142` writes a report asserting completed
   validation from two supplied manifests; the proposal job reverifies commit-
   only lock differences but does not independently consume a structured
   validation record binding all evidence inputs.
@@ -540,7 +595,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-27 — Share secret-free local/CI quality checks
 
-- [ ] **Evidence:** `site-check.yml:39`, `validate_ci.py:124–156`, and README
+Execution: [completed plan](exec-plans/completed/058_web27-shared-source-quality.md).
+
+- [x] **Evidence:** `site-check.yml:39`, `validate_ci.py:124–156`, and README
   instructions duplicate check commands. The CI mypy list excludes
   `verify_runner_credentials.py`, although `mypy --strict tools` passes today.
   Source updates repeat website-only checks for baseline and candidate.
@@ -556,7 +613,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-28 — Deduplicate workflow setup without merging trust zones
 
-- [ ] **Evidence:** all three workflows repeat Python/cache/dependency setup;
+Execution: [completed plan](exec-plans/completed/059_web28-safe-workflow-setup.md).
+
+- [x] **Evidence:** all three workflows repeat Python/cache/dependency setup;
   Pages and source-update repeat token/checkouts, credential-residue ordering,
   and conditional TeX installation. Tests hard-code action SHAs repeatedly.
 - **Change:** extract only safe common setup into small local actions or
@@ -571,7 +630,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-29 — Clarify dependency and toolchain reproducibility
 
-- [ ] **Evidence:** requirements pin selected direct dependencies, not the
+Execution: [completed plan](exec-plans/completed/060_web29-dependency-reproducibility.md).
+
+- [x] **Evidence:** requirements pin selected direct dependencies, not the
   entire transitive environment; PyYAML is imported by core tooling but listed
   under notebook requirements. Document build byte equality relies on a
   separately installed TeX toolchain. `docs/ci-validation.md` calls this a
@@ -588,7 +649,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-30 — Simplify stylesheet ownership and layout layers
 
-- [ ] **Evidence:** E09; canonical `docs/stylesheets/readthedocs.css` is 505
+Execution: [completed plan](exec-plans/completed/061_web30-stylesheet-ownership.md).
+
+- [x] **Evidence:** E09; canonical `docs/stylesheets/readthedocs.css` is 505
   lines of design tokens, Material-specific layout overrides, responsive rules,
   figures, and print styles. `content/stylesheets/extra.css` is unregistered.
 - **Change:** document the canonical stylesheet/symlink relationship; remove
@@ -603,7 +666,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-31 — Make browser initialization and MathJax loading robust
 
-- [ ] **Evidence:** `navigation.js:1` initializes on `DOMContentLoaded` only;
+Execution: [completed plan](exec-plans/completed/062_web31-browser-lifecycle.md).
+
+- [x] **Evidence:** `navigation.js:1` initializes on `DOMContentLoaded` only;
   `mathjax.js:11` uses Material's `document$`; MkDocs loads MathJax through the
   mutable major URL `mathjax@3`. Current navigation tests look for strings.
 - **Change:** make initialization idempotent with explicit Material lifecycle
@@ -619,7 +684,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-32 — Replace frontend string assertions with behavior tests
 
-- [ ] **Evidence:** `test_readthedocs_style.py:51–99` checks CSS/JS strings;
+Execution: [completed plan](exec-plans/completed/063_web32-browser-behavior.md).
+
+- [x] **Evidence:** `test_readthedocs_style.py:51–99` checks CSS/JS strings;
   `test_project_overview.py` checks source headings/wording; no browser test
   harness is tracked. These checks do not prove actual focus, contrast, layout,
   equation rendering, search, or generated-page accessibility.
@@ -636,7 +703,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-33 — Reconcile current operating instructions with workflows
 
-- [ ] **Evidence:** README calls the site technology/plans prospective, says
+Execution: [completed plan](exec-plans/completed/064_web33-current-runbook.md).
+
+- [x] **Evidence:** README calls the site technology/plans prospective, says
   source assembly is deferred, and says the PR workflow uses complete
   validation. `docs/ci-validation.md` correctly describes secret-free PR checks
   versus protected source-backed validation. Local install examples differ.
@@ -651,7 +720,9 @@ applicable to that later request; this review grants none.
 
 ### WEB-34 — Separate current backlog from historical governance
 
-- [ ] **Evidence:** `AGENTS.md` section 16 lists already-completed foundation
+Execution: [completed plan](exec-plans/completed/065_web34-current-governance.md).
+
+- [x] **Evidence:** `AGENTS.md` section 16 lists already-completed foundation
   work; README tells contributors to follow the historical task catalog;
   `docs/codex_tasks.md` labels itself historical but contains obsolete private-
   source PR workflow guidance. `tasks/TODO.md` only lists two small cleanups.
@@ -662,8 +733,8 @@ applicable to that later request; this review grants none.
   evidence exists. Do not rewrite old evidence as if it were current.
 - **Accept:** a new contributor can locate active work, approval boundaries,
   supported architecture, and completed decisions without contradictory commands.
-  Incorporation of this untracked review into tracked governance requires a
-  later explicit request; leave these review files untracked now.
+  The original review-only storage requirement is retained above as history;
+  owner-authorized implementation now uses this already tracked backlog.
 - **Risk:** accidentally reviving earlier credential/deployment authorization.
 
 ### WEB-35 — Establish bounded lint, typing, and local-file hygiene
@@ -736,11 +807,11 @@ applicable to that later request; this review grants none.
 - Do not change GitHub App scope, secrets, organization policy, protected
   environments, branch rules, Pages configuration, or scheduled automation.
 
-## Optional future commit-message template
+## Original review-only commit suggestion (historical)
 
-**Do not use this while the review is intentionally untracked.** If the owner
-later explicitly requests tracking these review documents, a suitable message
-is:
+The following suggestion belonged to the original review-only snapshot.
+Current implementation commits follow the owner-requested format in
+[AGENTS.md](../AGENTS.md); this is not a pending tracking instruction:
 
 ```text
 Record website refactoring review and execution backlog
