@@ -35,7 +35,7 @@ def resolve(lock_path: Path) -> tuple[str, ...]:
 
 
 def inspect_euvics(lock_path: Path, source: Path) -> tuple[str, ...]:
-    """Report whether the exact locked EUVICS manifest approves any PDF."""
+    """Report whether the exact locked EUVICS manifest contains a PDF candidate; not release approval."""
 
     lock = load_locks(lock_path)["euvics"]
     verify_checkout(lock, source)
@@ -44,7 +44,7 @@ def inspect_euvics(lock_path: Path, source: Path) -> tuple[str, ...]:
     if not isinstance(allowlist, list):
         raise ContractError("locked EUVICS manifest allowlist must be an array")
     has_pdf = any(isinstance(item, dict) and item.get("kind") == "pdf" for item in allowlist)
-    return (f"approved_pdf={'true' if has_pdf else 'false'}",)
+    return (f"pdf_candidate={'true' if has_pdf else 'false'}",)
 
 
 def main(argv: list[str] | None = None) -> int:

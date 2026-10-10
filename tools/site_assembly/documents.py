@@ -1,83 +1,22 @@
-"""Build and stage manifest-approved EUVICS Proposal/CDR PDFs."""
-
+"""Render and stage source-owned, independently rebuilt document releases."""
 from __future__ import annotations
 
-import re
-import os
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-from .assets import AssetError, validate_asset
-
-from .primitives import FileOperationError, export_locked_tree, sha256_file, run_text
-
-from .structured import StructuredInputError, iso_date
-
-from .contracts import ContractError, verify_contract_inputs
-
+from .document_policy import (DocumentError as DocumentError, DOCUMENT_ROLES as DOCUMENT_ROLES,
+                              document_requirements, validate_document_entry as _validate_document_entry)
+from .document_build import (build_documents, _run_make as _build_run_make,
+                             _archive_checkout as _archive_checkout, _validate_pdf as _validate_pdf)
+from .primitives import sha256_file as _sha256
 from .presentation import Code, DocumentPage, Link, MetadataRow, render_document, source_url
 from .models import InventoryEntry, PublishedFile, SourceContract
-
 if TYPE_CHECKING:
     from .staging import StagingPlan
 
-DOCUMENT_ROLES = {
-    "build/proposal/main.pdf": ("proposal", "documents/proposal.md", "documents/proposal.pdf"),
-    "build/cdr/main.pdf": ("cdr", "documents/cdr.md", "documents/cdr.pdf"),
-}
-LOG_FAILURE = re.compile(
-    r"Citation .* undefined|Reference .* undefined|There were undefined references|"
-    r"No file .*\.bbl|File .* not found",
-    re.IGNORECASE,
-)
-
-
-class DocumentError(ValueError):
-    """An approved document could not be rebuilt and verified safely."""
-
-
-_sha256 = sha256_file
-
-
-def _archive_checkout(contract: SourceContract, destination: Path) -> None:
-    try:
-        export_locked_tree(contract.root, contract.lock.commit, destination)
-    except FileOperationError as exc:
-        raise DocumentError(f"cannot archive locked EUVICS source: {exc}") from exc
-
 
 def _run_make(source_build: Path, target: str, epoch: str | None = None) -> str:
-    try:
-        environment = dict(os.environ)
-        if epoch is not None:
-            environment["SOURCE_DATE_EPOCH"] = epoch
-        return run_text(["make", target], source_build, f"EUVICS make {target}", environment=environment)
-    except FileOperationError as exc:
-        raise DocumentError(str(exc)) from exc
-
-
-def _validate_pdf(path: Path) -> None:
-    try:
-        validate_asset(path)
-    except AssetError as exc:
-        raise DocumentError("invalid or unsafe PDF artifact") from exc
-
-
-def _validate_document_entry(entry: PublishedFile) -> tuple[str, str, str]:
-    if entry.source_name != "euvics" or entry.path not in DOCUMENT_ROLES:
-        raise DocumentError(f"unrecognized approved document path: {entry.path}")
-    if entry.kind != "pdf" or entry.publication_status != "released":
-        raise DocumentError(f"document must be an explicitly released PDF: {entry.path}")
-    try:
-        iso_date(entry.document_date, "document date")
-    except StructuredInputError as exc:
-        raise DocumentError(f"document date is missing or invalid: {entry.path}") from exc
-    if not all((entry.title.strip(), entry.version.strip(), entry.license.strip(), entry.attribution.strip())):
-        raise DocumentError(f"document publication metadata is incomplete: {entry.path}")
-    if not entry.known_limitations:
-        raise DocumentError(f"document known limitations/review status is missing: {entry.path}")
-    return DOCUMENT_ROLES[entry.path]
+    return _build_run_make(source_build,target,epoch)
 
 
 def _overview_markdown(
@@ -110,55 +49,18 @@ def _overview_markdown(
 
 
 def build_approved_documents(
-    contract: SourceContract,
-    output_root: Path,
-    staged_content: Path,
-    timestamp: str,
-    plan: StagingPlan | None = None,
-    source_date_epoch: str | None = None,
+    contract: SourceContract, output_root: Path, staged_content: Path, timestamp: str,
+    plan: StagingPlan | None = None, source_date_epoch: str | None = None,
 ) -> tuple[tuple[InventoryEntry, ...], dict[str, Path]]:
-    """Rebuild, verify, stage, and describe exact approved EUVICS PDFs."""
-
-    documents = tuple(item for item in contract.files if item.kind == "pdf")
-    if not documents:
-        return (), {}
-    try:
-        verify_contract_inputs(contract)
-    except ContractError as exc:
-        raise DocumentError(str(exc)) from exc
-    roles = [_validate_document_entry(item)[0] for item in documents]
-    if len(roles) != len(set(roles)):
-        raise DocumentError("document publication contract contains duplicate roles")
-    source_build = output_root / "source-build/euvics"
-    _archive_checkout(contract, source_build)
-    # The tracked release is the approved checksum baseline, not build output.
-    # Remove it only from this disposable archive so the build must recreate it.
-    for entry in documents:
-        archived_release = source_build / entry.path
-        if archived_release.exists():
-            archived_release.unlink()
-    command_log = _run_make(source_build, "verify-archive", source_date_epoch)
-    command_log += _run_make(source_build, "check", source_date_epoch)
-    (output_root / "source-build/euvics-build.log").write_text(command_log, encoding="utf-8")
-    for log in (source_build / "build").rglob("*.log"):
-        text = log.read_text(encoding="utf-8", errors="replace")
-        if LOG_FAILURE.search(text):
-            raise DocumentError(f"unresolved citation/reference/missing-file marker in {log}")
+    requirements = document_requirements(contract)
+    result = build_documents(contract,requirements,output_root,source_date_epoch,_run_make)
     inventory: list[InventoryEntry] = []
     destinations: dict[str, Path] = {}
-    for entry in documents:
+    for verified in result.documents:
+        entry = verified.entry
         _, overview_relative, pdf_relative = _validate_document_entry(entry)
-        approved_source = contract.root / entry.path
-        rebuilt = source_build / entry.path
-        if not rebuilt.is_file() or rebuilt.is_symlink():
-            raise DocumentError(f"approved document build output is missing: {entry.path}")
-        approved_checksum = _sha256(approved_source)
-        rebuilt_checksum = _sha256(rebuilt)
-        if rebuilt_checksum != approved_checksum:
-            raise DocumentError(
-                f"rebuilt document checksum does not match approved locked artifact: {entry.path}"
-            )
-        _validate_pdf(rebuilt)
+        rebuilt = verified.rebuilt
+        approved_checksum = rebuilt_checksum = verified.sha256
         if plan is not None:
             planned_pdf = plan.source_destinations(contract.lock.name, staged_content)[entry.path]
             pdf_relative = planned_pdf.relative_to(staged_content).as_posix()

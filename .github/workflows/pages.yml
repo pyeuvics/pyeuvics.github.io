@@ -80,14 +80,14 @@ jobs:
       - name: Verify checkout credentials were removed
         run: python -m tools.verify_runner_credentials --root "$RUNNER_TEMP"
 
-      - name: Inspect approved document requirements
+      - name: Inspect document toolchain candidates
         id: publication
         run: >-
           python -m tools.ci_source_locks inspect-euvics
           --source .sources/euvics >> "$GITHUB_OUTPUT"
 
       - name: Install EUVICS document toolchain
-        if: steps.publication.outputs.approved_pdf == 'true'
+        if: steps.publication.outputs.pdf_candidate == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends latexmk texlive-latex-base texlive-latex-extra
