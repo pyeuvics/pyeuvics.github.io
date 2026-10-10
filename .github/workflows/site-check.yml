@@ -23,18 +23,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
-        with:
-          python-version: "3.13"
-          cache: pip
-          cache-dependency-path: |
-            requirements-docs.txt
-            requirements-notebooks.txt
-            sources.lock.yml
-
-      - name: Install pinned validation environment
-        run: python -m pip install -r requirements-docs.txt -r requirements-notebooks.txt
+      - name: Set up website validation
+        uses: ./.github/actions/setup-validation
 
       - name: Validate website source without private credentials
         run: python -m tools.quality --output .staging/source-check --bind

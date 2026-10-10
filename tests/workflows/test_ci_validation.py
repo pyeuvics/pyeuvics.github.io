@@ -11,9 +11,8 @@ from tools.ci_source_locks import resolve
 from tools.validate_ci import ValidationError, _source_date_epoch, validate, write_review_manifest
 
 from tests.support.paths import ROOT
+from tests.support.workflows import CHECKOUT, SETUP_PYTHON, SETUP_VALIDATION, load_setup_action
 WORKFLOW = ROOT / ".github/workflows/site-check.yml"
-CHECKOUT = "actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"
-SETUP_PYTHON = "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1"
 
 
 def load_workflow() -> dict:
@@ -32,7 +31,7 @@ def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
     assert job["runs-on"] == "ubuntu-24.04"
     steps = job["steps"]
     actions = [step["uses"] for step in steps if "uses" in step]
-    assert actions == [CHECKOUT, SETUP_PYTHON]
+    assert actions == [CHECKOUT, SETUP_VALIDATION]
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "pull_request_target" not in text
     assert "pages: write" not in text
@@ -44,7 +43,7 @@ def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
     assert "upload-pages-artifact" not in text
     assert "deploy-pages" not in text
     assert "persist-credentials: false" in text
-    assert "sources.lock.yml" in text
+    assert "sources.lock.yml" in load_setup_action()["runs"]["steps"][0]["with"]["cache-dependency-path"]
     validation = steps[-1]["run"]
     assert validation == "python -m tools.quality --output .staging/source-check --bind"
 
@@ -52,7 +51,7 @@ def test_workflow_is_read_only_non_deploying_and_secret_free() -> None:
 def test_workflow_cache_is_bounded() -> None:
     workflow = load_workflow()
     steps = workflow["jobs"]["validate"]["steps"]
-    setup = next(step for step in steps if step.get("uses") == SETUP_PYTHON)
+    setup = next(step for step in load_setup_action()["runs"]["steps"] if step.get("uses") == SETUP_PYTHON)
     dependencies = setup["with"]["cache-dependency-path"]
     assert set(dependencies.splitlines()) == {
         "requirements-docs.txt",
@@ -64,7 +63,7 @@ def test_workflow_cache_is_bounded() -> None:
 def test_ci_dependencies_are_exactly_pinned_and_python_matches_pyeuvics() -> None:
     workflow = load_workflow()
     steps = workflow["jobs"]["validate"]["steps"]
-    setup = next(step for step in steps if step.get("uses") == SETUP_PYTHON)
+    setup = next(step for step in load_setup_action()["runs"]["steps"] if step.get("uses") == SETUP_PYTHON)
     assert setup["with"]["python-version"] == "3.13"
     for filename in ("requirements-docs.txt", "requirements-notebooks.txt"):
         requirements = [
