@@ -49,10 +49,7 @@ def test_arithmatex_math_script_is_not_rejected_as_unsafe_active_content(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """pymdownx.arithmatex renders every equation as an inert `<script
-    type="math/tex">` data island for client-side MathJax; real pyEUVICS
-    documentation is full of these and must not trip the active-content
-    boundary."""
+    """Reviewed math markup remains valid with the site's generic renderer."""
     euvics, pyeuvics, commits = create_sources(tmp_path)
     (euvics / "docs/overview.md").write_text(
         "# Math\n\nInline \\(a_0\\) and display:\n\n\\[\n\\gamma = 1+\\frac{K_e}{m_ec^2}\n\\]\n",
