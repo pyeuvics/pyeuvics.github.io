@@ -9,7 +9,8 @@ import unicodedata
 
 from .documents import DocumentError, _validate_document_entry
 from .models import SourceContract
-from .primitives import FileOperationError, run_text, sha256_file
+from .primitives import FileOperationError, sha256_file
+from .website_inputs import website_inputs
 
 
 class StagingError(ValueError):
@@ -166,7 +167,8 @@ def create_staging_plan(website_root: Path, contracts: tuple[SourceContract, ...
         raise StagingError("duplicate source identity in staging plan")
     registry = DestinationRegistry()
     inputs: dict[str, InputBytes] = {}
-    for path in ("mkdocs.yml", "requirements-docs.txt"):
+    website_paths = website_inputs(website_root)
+    for path in website_paths:
         identity = f"website:{path}"
         inputs[identity] = InputBytes(identity, "website", path, sha256_file(website_root / path))
     bindings: list[SourceDestination] = []
@@ -215,11 +217,11 @@ def create_staging_plan(website_root: Path, contracts: tuple[SourceContract, ...
         generated[output] = PlannedOutput(output, 'website', 'entry-page', OutputKind.GENERATED, source_inputs)
     registry.add(PlannedOutput('imported/staged-content-inventory.json', 'website', 'inventory', OutputKind.PROVENANCE, source_inputs))
     try:
-        tracked = run_text(['git', 'ls-files', '-z', '--', 'content'], website_root, 'website tracked content')
-        for path in sorted(filter(None, tracked.split('\0'))):
+        for path in website_paths:
+            if not path.startswith('content/'):
+                continue
             relative = PurePosixPath(path).relative_to('content').as_posix()
             identity = f'website:{path}'
-            inputs[identity] = InputBytes(identity, 'website', path, sha256_file(website_root / path))
             if relative in generated:
                 output_record = generated.pop(relative)
                 registry.add(replace(output_record, inputs=(identity, *output_record.inputs)))
