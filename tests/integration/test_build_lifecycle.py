@@ -101,7 +101,12 @@ def test_ci_review_manifest_failure_is_retryable_without_environment_mutation(tm
         (output/'site').mkdir(parents=True)
         (output/'site/index.html').write_text('fixture',encoding='utf-8')
         (output/'staged-content-inventory.json').write_text('{"files":[]}',encoding='utf-8')
+        for name in ('artifact-plan.json','publication-artifact-manifest.json','staging-plan.json'):
+            (output/name).write_text('{}',encoding='utf-8')
     monkeypatch.setattr(validate_ci,'assemble_site',fake_assembly)
+    from tools.validation_evidence import WebsiteIdentity,EnvironmentIdentity,ARTIFACT_EVIDENCE
+    monkeypatch.setattr(validate_ci,'website_identity',lambda root:WebsiteIdentity('a'*40,'b'*64))
+    monkeypatch.setattr(validate_ci,'environment_identity',lambda root:EnvironmentIdentity('3.13','c'*64,'fixture',(('requirements-docs.txt','d'*64),('requirements-notebooks.txt','e'*64)),(('fixture','1'),),'f'*64))
     original=validate_ci.write_review_manifest
     def fail(*args):raise validate_ci.ValidationError('injected manifest failure')
     monkeypatch.setattr(validate_ci,'write_review_manifest',fail)

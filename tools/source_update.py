@@ -16,9 +16,10 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.site_assembly.contracts import COMMIT_RE, ContractError, load_locks
+from tools.validation_evidence import EvidenceError,validate_pair,write_bundle,verify_bundle,write_ancestry
 from tools.review_manifest import ReviewManifest, ReviewManifestError, read_review_manifest, compare_artifacts
 from tools.site_assembly.presentation import Code, render_value
-from tools.site_assembly.primitives import atomic_write_text
+from tools.site_assembly.primitives import atomic_write_text, FileOperationError
 
 
 class SourceUpdateError(ValueError):
@@ -95,6 +96,7 @@ def verify_ancestry(
     current_path: Path,
     candidate_path: Path,
     checkouts: dict[str, Path],
+    evidence_output: Path | None = None,
 ) -> None:
     """Reject rewinds or unrelated histories for default-branch candidates."""
 
@@ -115,6 +117,8 @@ def verify_ancestry(
         if result.returncode != 0:
             raise SourceUpdateError(f"candidate commit is not a descendant of the locked {name} commit")
 
+    if evidence_output is not None:write_ancestry(evidence_output,current_path,candidate_path)
+
 
 def _read_review_manifest(path: Path) -> ReviewManifest:
     try:
@@ -129,6 +133,8 @@ def write_comparison(
     baseline_manifest_path: Path,
     candidate_manifest_path: Path,
     output_path: Path,
+    evidence_root: Path | None = None,
+    website_root: Path | None = None,
 ) -> None:
     """Write a bounded PR body comparing complete validated artifacts."""
 
@@ -137,6 +143,16 @@ def write_comparison(
     changed_sources = verify_lock_change(current_lock_path, candidate_lock_path)
     baseline = _read_review_manifest(baseline_manifest_path)
     proposed = _read_review_manifest(candidate_manifest_path)
+    if evidence_root is not None:
+        if website_root is None or output_path.resolve()!=(evidence_root/'proposal/pull-request.md').resolve():raise SourceUpdateError('bound evidence requires the canonical proposal report and website')
+        if baseline_manifest_path.resolve()!=(evidence_root/'baseline/review-artifact-manifest.json').resolve() or candidate_manifest_path.resolve()!=(evidence_root/'candidate/review-artifact-manifest.json').resolve():raise SourceUpdateError('comparison manifests differ from the evidence package')
+        validate_pair(evidence_root,website_root,current_lock_path,candidate_lock_path)
+    validation_statement=(
+        'Bound records confirm both complete artifacts passed publication-contract validation, website tests, strict typing, strict MkDocs build, assembly, artifact validation and manifest hashing. Source ancestry checks are bound to these exact locks. '
+        'This is workflow consistency evidence, not scientific approval or authentication against a compromised validator.\n\n'
+        if evidence_root is not None else
+        'Comparison only: validation and ancestry records were not supplied. This report does not attest that those checks passed.\n\n'
+    )
     comparison=compare_artifacts(baseline,proposed)
     added,removed,changed=comparison.added,comparison.removed,comparison.changed
     comparison_path=output_path.with_name(output_path.name+'.json')
@@ -163,9 +179,7 @@ def write_comparison(
         "| Source | Current commit | Candidate commit | State |\n"
         "| --- | --- | --- | --- |\n"
         f"{source_rows}\n\n"
-        "Both complete artifacts passed publication-contract validation, tests, strict typing, "
-        "strict MkDocs build, assembly, exclusion/secret/path scans, and manifest hashing. "
-        "Candidate commits were verified as descendants of the current locks.\n\n"
+        f"{validation_statement}"
         "### Artifact comparison\n\n"
         f"- Added files: {len(added)}\n"
         f"- Removed files: {len(removed)}\n"
@@ -190,6 +204,9 @@ def write_comparison(
         encoding="utf-8",
     )
 
+    if evidence_root is not None and website_root is not None:
+        write_bundle(evidence_root,website_root,current_lock_path,candidate_lock_path)
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
@@ -211,12 +228,20 @@ def main(argv: list[str] | None = None) -> int:
     ancestry_parser.add_argument("--candidate", type=Path, required=True)
     ancestry_parser.add_argument("--euvics-source", type=Path, required=True)
     ancestry_parser.add_argument("--pyeuvics-source", type=Path, required=True)
+    ancestry_parser.add_argument("--output", type=Path)
     compare_parser = subparsers.add_parser("compare")
     compare_parser.add_argument("--current", type=Path, required=True)
     compare_parser.add_argument("--candidate", type=Path, required=True)
     compare_parser.add_argument("--baseline-manifest", type=Path, required=True)
     compare_parser.add_argument("--candidate-manifest", type=Path, required=True)
     compare_parser.add_argument("--output", type=Path, required=True)
+    compare_parser.add_argument('--evidence-root',type=Path)
+    compare_parser.add_argument('--website-root',type=Path,default=Path('.'))
+    evidence_parser=subparsers.add_parser('verify-evidence')
+    evidence_parser.add_argument('--root',type=Path,required=True)
+    evidence_parser.add_argument('--website-root',type=Path,default=Path('.'))
+    evidence_parser.add_argument('--current',type=Path,required=True)
+    evidence_parser.add_argument('--candidate',type=Path,required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "discover":
@@ -235,7 +260,11 @@ def main(argv: list[str] | None = None) -> int:
                 args.current,
                 args.candidate,
                 {"euvics": args.euvics_source, "pyeuvics": args.pyeuvics_source},
+                args.output,
             )
+        elif args.command=='verify-evidence':
+            verify_lock_change(args.current,args.candidate)
+            verify_bundle(args.root,args.website_root,args.current,args.candidate)
         else:
             write_comparison(
                 args.current,
@@ -243,8 +272,10 @@ def main(argv: list[str] | None = None) -> int:
                 args.baseline_manifest,
                 args.candidate_manifest,
                 args.output,
+                args.evidence_root,
+                args.website_root,
             )
-    except (ContractError, SourceUpdateError) as exc:
+    except (ContractError, SourceUpdateError, EvidenceError, ReviewManifestError, FileOperationError, OSError) as exc:
         print(f"source update error: {exc}", file=sys.stderr)
         return 1
     return 0

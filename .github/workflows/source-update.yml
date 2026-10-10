@@ -143,7 +143,8 @@ jobs:
             --current .staging/source-update/current.lock.yml \
             --candidate .staging/source-update/candidate.lock.yml \
             --euvics-source .sources/candidate-euvics \
-            --pyeuvics-source .sources/candidate-pyeuvics
+            --pyeuvics-source .sources/candidate-pyeuvics \
+            --output .staging/source-update/ancestry.json
 
       - name: Inspect current document requirements
         if: steps.candidates.outputs.has_updates == 'true'
@@ -198,7 +199,8 @@ jobs:
             --candidate .staging/source-update/candidate.lock.yml \
             --baseline-manifest .staging/source-update/baseline/review-artifact-manifest.json \
             --candidate-manifest .staging/source-update/candidate/review-artifact-manifest.json \
-            --output .staging/source-update/proposal/pull-request.md
+            --output .staging/source-update/proposal/pull-request.md \
+            --evidence-root .staging/source-update --website-root .
 
       - name: Upload validated proposal evidence
         if: steps.candidates.outputs.has_updates == 'true'
@@ -209,6 +211,9 @@ jobs:
             .staging/source-update/proposal
             .staging/source-update/baseline/review-artifact-manifest.json
             .staging/source-update/candidate/review-artifact-manifest.json
+            .staging/source-update/baseline/validation-record.json
+            .staging/source-update/candidate/validation-record.json
+            .staging/source-update/ancestry.json
           if-no-files-found: error
           retention-days: 7
 
@@ -246,6 +251,10 @@ jobs:
       - name: Reverify only the candidate lock
         run: |
           python -m tools.source_update verify \
+            --current sources.lock.yml \
+            --candidate .staging/source-update/proposal/sources.lock.yml
+          python -m tools.source_update verify-evidence \
+            --root .staging/source-update --website-root . \
             --current sources.lock.yml \
             --candidate .staging/source-update/proposal/sources.lock.yml
           cp .staging/source-update/proposal/sources.lock.yml sources.lock.yml

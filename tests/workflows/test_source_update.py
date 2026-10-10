@@ -189,3 +189,13 @@ def test_mutable_source_locks_are_not_duplicated_as_test_constants() -> None:
                 f"{path.relative_to(ROOT)} hard-codes mutable source commit {commit}; "
                 "source-update pull requests must remain lock-only"
             )
+
+
+def test_write_job_checks_bound_evidence_before_copying_the_lock() -> None:
+    workflow=yaml.load(WORKFLOW.read_text(encoding='utf-8'),Loader=yaml.BaseLoader)
+    validate='\n'.join(step.get('run','')+'\n'+step.get('with',{}).get('path','') for step in workflow['jobs']['validate']['steps'])
+    propose=workflow['jobs']['propose']['steps']
+    verification=next(step['run'] for step in propose if step['name']=='Reverify only the candidate lock')
+    assert verification.index('tools.source_update verify-evidence')<verification.index('cp .staging/source-update/proposal/sources.lock.yml')
+    assert '--evidence-root .staging/source-update' in validate
+    for path in ['baseline/validation-record.json','candidate/validation-record.json','ancestry.json']:assert path in validate
