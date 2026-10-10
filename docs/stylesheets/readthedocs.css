@@ -1,3 +1,8 @@
+/* Authoritative stylesheet. content/stylesheets/readthedocs.css is a symlink.
+ * Order: tokens/base, layout/components, desktop, compact, narrow, motion, print.
+ * Keep responsive overrides after component defaults; print is the final layer.
+ */
+/* Tokens and base typography */
 :root {
   --euvics-sidebar-width: 300px;
   --euvics-sidebar-bg: #343131;
@@ -12,6 +17,9 @@
   --euvics-code-bg: #f3f6f8;
   --euvics-focus: #ffbf47;
   --euvics-white: #fff;
+  --euvics-sidebar-text: #ddd;
+  --euvics-heading: #2f2f2f;
+  --euvics-muted: #666;
 }
 
 html {
@@ -35,6 +43,7 @@ body {
 :focus-visible {
   outline: 3px solid var(--euvics-focus);
   outline-offset: 3px;
+  box-shadow: 0 0 0 6px #17212b;
 }
 
 .md-typeset h1,
@@ -43,7 +52,7 @@ body {
 .md-typeset h4,
 .md-typeset h5,
 .md-typeset h6 {
-  color: #2f2f2f;
+  color: var(--euvics-heading);
   font-family: "Roboto Slab", Rockwell, "Roboto Serif", Georgia, serif;
   font-weight: 700;
   letter-spacing: 0;
@@ -92,6 +101,7 @@ body {
   opacity: 1;
 }
 
+/* Shared content layout and components */
 .md-main {
   background: var(--euvics-page-bg);
 }
@@ -115,14 +125,14 @@ body {
 
 .md-path {
   border-bottom: 1px solid var(--euvics-border);
-  color: #666;
+  color: var(--euvics-muted);
   font-size: 0.78rem;
   margin-bottom: 1.5rem;
   padding-bottom: 0.65rem;
 }
 
 .md-content__button {
-  color: #666;
+  color: var(--euvics-muted);
 }
 
 .md-typeset table:not([class]) {
@@ -206,6 +216,28 @@ body {
   font-family: "Roboto Slab", Rockwell, Georgia, serif;
 }
 
+.ics-schematic,
+.pyeuvics-overview-figure {
+  margin-inline: 0;
+}
+
+.ics-schematic img,
+.pyeuvics-overview-figure img {
+  background: #fff;
+  border: 0.05rem solid var(--euvics-border);
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.ics-schematic figcaption,
+.pyeuvics-overview-figure figcaption {
+  color: var(--euvics-text);
+  font-size: 0.85rem;
+  margin-block-start: 0.6rem;
+}
+
+/* Desktop navigation and content columns */
 @media screen and (min-width: 76.25em) {
   .md-header {
     background: var(--euvics-accent);
@@ -279,7 +311,7 @@ body {
   .md-sidebar--primary {
     background: var(--euvics-sidebar-bg);
     bottom: 0;
-    color: #ddd;
+    color: var(--euvics-sidebar-text);
     height: auto;
     left: 0;
     position: fixed;
@@ -317,7 +349,7 @@ body {
   }
 
   .md-sidebar--primary .md-nav__link {
-    color: #ddd;
+    color: var(--euvics-sidebar-text);
     font-size: 0.85rem;
     margin: 0;
     padding: 0.48rem 1.2rem;
@@ -361,6 +393,7 @@ body {
   }
 }
 
+/* Compact navigation uses Material’s drawer. */
 @media screen and (max-width: 76.24em) {
   .md-header {
     background: var(--euvics-accent);
@@ -372,12 +405,12 @@ body {
 
   .md-sidebar--primary {
     background: var(--euvics-sidebar-bg);
-    color: #ddd;
+    color: var(--euvics-sidebar-text);
   }
 
   .md-sidebar--primary .md-nav {
     background: var(--euvics-sidebar-bg);
-    color: #ddd;
+    color: var(--euvics-sidebar-text);
   }
 
   .md-sidebar--primary .md-nav__title {
@@ -386,7 +419,7 @@ body {
   }
 
   .md-sidebar--primary .md-nav__link {
-    color: #ddd;
+    color: var(--euvics-sidebar-text);
   }
 
   .md-sidebar--primary .md-nav__link--active {
@@ -399,6 +432,7 @@ body {
   }
 }
 
+/* Narrow content: scroll wide tables and the readable schematic locally. */
 @media screen and (max-width: 44rem) {
   .md-content__inner {
     min-width: 0;
@@ -429,27 +463,7 @@ body {
   }
 }
 
-.ics-schematic,
-.pyeuvics-overview-figure {
-  margin-inline: 0;
-}
-
-.ics-schematic img,
-.pyeuvics-overview-figure img {
-  background: #fff;
-  border: 0.05rem solid var(--euvics-border);
-  display: block;
-  height: auto;
-  width: 100%;
-}
-
-.ics-schematic figcaption,
-.pyeuvics-overview-figure figcaption {
-  color: var(--euvics-text);
-  font-size: 0.85rem;
-  margin-block-start: 0.6rem;
-}
-
+/* User preferences and print are the final overrides. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
