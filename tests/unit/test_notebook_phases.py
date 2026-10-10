@@ -2,7 +2,7 @@
 from pathlib import Path
 import nbformat
 import pytest
-from tools.site_assembly.models import NotebookSpec
+from tests.support.publication import notebook_spec as spec
 from tools.site_assembly.notebook_policy import ExecutedNotebook,NotebookError
 from tools.site_assembly.notebook_admission import admit_notebook
 from tools.site_assembly.notebook_rendering import render_executed
@@ -10,8 +10,6 @@ from tools.site_assembly.notebook_headings import normalize_headings
 from tools.site_assembly.rendering import load_renderer
 
 
-def spec() -> NotebookSpec:
-    return NotebookSpec('fixture.ipynb','Fixture','0-fixture','released','MIT','Synthetic','execute-during-build','17',(),(),'synthetic',(),(),100000,100000)
 
 
 def test_heading_normalization_preserves_scientific_prose_code_and_destinations() -> None:

@@ -9,7 +9,9 @@ import hashlib
 import json
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
+if TYPE_CHECKING:
+    from tools.site_assembly.models import NotebookSpec
 
 import yaml
 from reportlab.pdfgen import canvas  # type: ignore[import-untyped]  # ReportLab has no bundled types.
@@ -413,3 +415,8 @@ def snapshot(root: Path) -> dict[str, str]:
         for path in root.rglob("*")
         if path.is_file() and ".git" not in path.parts
     }
+
+
+def notebook_spec() -> "NotebookSpec":
+    from tools.site_assembly.models import NotebookSpec
+    return NotebookSpec('fixture.ipynb','Fixture','0-fixture','released','MIT','Synthetic','execute-during-build','17',(),(),'synthetic',(),(),100000,100000)

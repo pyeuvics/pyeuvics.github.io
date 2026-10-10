@@ -3,11 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from tools.privacy import PrivacyError, ScanProfile, scan_text
 from .content_policy import ContentPolicyError, parse_fragment
 from .rendering import RenderingError, load_renderer
 from .models import NotebookSpec
+if TYPE_CHECKING:
+    from .notebook_environment import EnvironmentIdentity
 
 DATA_LITERAL = re.compile(
     r"[\"']([^\"']+\.(?:csv|json|ya?ml|npy|npz|h5|hdf5|parquet|dat|txt))[\"']",
@@ -52,9 +54,11 @@ class AdmittedNotebook:
 class ExecutedNotebook:
     spec: NotebookSpec
     notebook: Any
+    environment: EnvironmentIdentity | None = None
 
 
 @dataclass(frozen=True)
 class RenderedNotebook:
     body: str
     assets: dict[str, bytes]
+    environment: EnvironmentIdentity | None = None
