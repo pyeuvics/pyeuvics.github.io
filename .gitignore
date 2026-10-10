@@ -64,6 +64,8 @@ tmp
 /.rendered/
 /site/
 /.venv*/
+# Local alias of the recreated canonical environment.
+/.venv-docs-313
 
 # Local secrets and environment files
 .env

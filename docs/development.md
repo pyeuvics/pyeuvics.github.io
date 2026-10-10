@@ -13,6 +13,21 @@ python -m pip install -r requirements-validation.txt
 python -m pip check
 ```
 
+Virtual environments contain absolute checkout paths and must be recreated
+when the checkout is moved or renamed. Activating an old environment can select
+a stale interpreter even when its directory is still present. Preserve or remove
+the old environment first, then create a fresh Python 3.13 environment using the
+commands above; copying an existing environment does not repair its launchers.
+Do not reuse a Python 3.14 environment for this validation setup.
+
+Confirm the active interpreter and dependency pins before running pytest:
+
+```bash
+python -c "import sys; print(sys.executable); print(sys.version)"
+python -m tools.dependencies
+python -m pytest -v tests
+```
+
 The same declared Python environment runs source-only synthetic checks and
 source-backed assembly. Approved document builds additionally need the source's
 TeX/font/toolchain packages. See [dependency policy](dependency-policy.md) for
