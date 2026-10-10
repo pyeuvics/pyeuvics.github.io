@@ -18,12 +18,10 @@ from .primitives import FileOperationError, export_locked_tree, sha256_file
 
 from .contracts import ContractError, verify_contract_inputs
 
+from tools.privacy import PrivacyError, ScanProfile, scan_text
+
 from .models import InventoryEntry, NotebookSpec, SourceContract
 
-LOCAL_PATH = re.compile(r"(?:/Users/|/home/[^/\s]+/|[A-Za-z]:\\)")
-SECRET = re.compile(
-    r"(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)"
-)
 DATA_LITERAL = re.compile(
     r"[\"']([^\"']+\.(?:csv|json|ya?ml|npy|npz|h5|hdf5|parquet|dat|txt))[\"']",
     re.IGNORECASE,
@@ -56,10 +54,10 @@ _sha256 = sha256_file
 
 
 def _scan(value: str, label: str) -> None:
-    if LOCAL_PATH.search(value):
-        raise NotebookError(f"absolute local path in {label}")
-    if SECRET.search(value):
-        raise NotebookError(f"credential-like value in {label}")
+    try:
+        scan_text(value, label, ScanProfile.NOTEBOOK)
+    except PrivacyError as exc:
+        raise NotebookError(str(exc)) from exc
 
 
 def _validate_source(spec: NotebookSpec, source: Path, root: Path) -> Any:
