@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 import shutil
 from pathlib import Path
-from urllib.parse import quote
 
 from pypdf import PdfReader
 
@@ -15,6 +14,7 @@ from .structured import StructuredInputError, iso_date
 
 from .contracts import ContractError, verify_contract_inputs
 
+from .presentation import Code, DocumentPage, Link, MetadataRow, render_document, source_url
 from .models import InventoryEntry, PublishedFile, SourceContract
 
 DOCUMENT_ROLES = {
@@ -86,38 +86,26 @@ def _overview_markdown(
     checksum: str,
     timestamp: str,
 ) -> str:
-    limitations = "\n".join(f"- {item}" for item in entry.known_limitations)
-    source_url = (
-        f"{contract.lock.repository}/blob/{contract.lock.commit}/{quote(entry.path)}"
+    page = DocumentPage(
+        entry.title, entry.publication_status.title(),
+        Link(f"Download the approved {entry.title} PDF", filename),
+        (
+            MetadataRow("Revision or version", entry.version),
+            MetadataRow("Document date", entry.document_date or ""),
+            MetadataRow("Publication status", entry.publication_status.title()),
+            MetadataRow("Source commit", Code(contract.lock.commit)),
+            MetadataRow("SHA-256", Code(checksum)),
+            MetadataRow("License", entry.license),
+            MetadataRow("Attribution", entry.attribution),
+            MetadataRow("Website build timestamp", timestamp),
+        ),
+        entry.known_limitations,
+        (
+            MetadataRow("Approved source artifact", Link(entry.path + " at the locked commit", source_url(contract.lock, entry.path))),
+            MetadataRow("Source repository", Link(contract.lock.repository, contract.lock.repository)),
+        ),
     )
-    return f"""# {entry.title}
-
-<span class="status-badge">{entry.publication_status.title()}</span>
-
-[Download the approved {entry.title} PDF]({filename}){{ .md-button }}
-
-## Publication metadata
-
-| Field | Value |
-| --- | --- |
-| Revision or version | {entry.version} |
-| Document date | {entry.document_date} |
-| Publication status | {entry.publication_status.title()} |
-| Source commit | `{contract.lock.commit}` |
-| SHA-256 | `{checksum}` |
-| License | {entry.license} |
-| Attribution | {entry.attribution} |
-| Website build timestamp | {timestamp} |
-
-## Known limitations and review status
-
-{limitations}
-
-## Provenance
-
-- **Approved source artifact:** [{entry.path} at the locked commit]({source_url})
-- **Source repository:** [{contract.lock.repository}]({contract.lock.repository})
-"""
+    return render_document(page)
 
 
 def build_approved_documents(

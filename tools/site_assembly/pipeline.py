@@ -29,6 +29,10 @@ from tools.privacy import PrivacyError, ScanProfile, scan_text, scan_file
 from .contracts import ContractError, load_contract, load_locks, verify_contract_inputs
 from .documents import DocumentError, build_approved_documents
 from .models import AssemblyResult as AssemblyResult  # noqa: PLC0414
+from .presentation import (
+    Code, Link, MetadataRow, markdown_text, render_fields, render_link,
+    render_limitations, source_url,
+)
 from .models import InventoryEntry, PublishedFile, SourceContract
 from .notebooks import (
     NotebookError,
@@ -83,8 +87,7 @@ def _scan_text(text: str, label: str) -> None:
 
 
 def _source_url(contract: SourceContract, path: str, *, edit: bool = False, directory: bool = False) -> str:
-    action = "edit" if edit else ("tree" if directory else "blob")
-    return f"{contract.lock.repository}/{action}/{contract.lock.commit}/{quote(path)}"
+    return source_url(contract.lock, path, edit=edit, directory=directory)
 
 
 def _local_link_parts(target: str) -> tuple[str, str] | None:
@@ -186,30 +189,23 @@ def _rewrite_markdown(
         ).rstrip() + "\n"
     except LinkRewriteError as exc:
         raise AssemblyError(f"cannot rewrite links in {published.path}: {exc}") from exc
-    limitations = (
-        "\n".join(f"- {item}" for item in published.known_limitations)
-        if published.known_limitations
-        else "- None recorded by the source contract."
-    )
-    provenance = f"""
-
----
-
-## Provenance
-
-- **Source:** [{published.path} at `{contract.lock.commit}`]({_source_url(contract, published.path)})
-- **Edit in source repository:** [Propose a source change]({_source_url(contract, published.path, edit=True)})
-- **Repository:** [{contract.lock.repository}]({contract.lock.repository})
-- **Version:** {published.version}
-- **Publication status:** {published.publication_status}
-{f"- **Scientific validation status:** {published.validation_status}" if published.validation_status else ""}
-- **Source SHA-256:** `{source_sha256}`
-- **Website build timestamp:** {timestamp}
-
-### Known limitations
-
-{limitations}
-"""
+    fields = [
+        MetadataRow("Source", Link(published.path, _source_url(contract, published.path), contract.lock.commit)),
+        MetadataRow("Edit in source repository", Link("Propose a source change", _source_url(contract, published.path, edit=True))),
+        MetadataRow("Repository", Link(contract.lock.repository, contract.lock.repository)),
+        MetadataRow("Version", published.version),
+        MetadataRow("Publication status", published.publication_status),
+    ]
+    if published.validation_status:
+        fields.append(MetadataRow("Scientific validation status", published.validation_status))
+    fields.extend((
+        MetadataRow("Source SHA-256", Code(source_sha256)),
+        MetadataRow("License", published.license),
+        MetadataRow("Attribution", published.attribution),
+        MetadataRow("Website build timestamp", timestamp),
+    ))
+    provenance = "\n\n---\n\n## Provenance\n\n" + render_fields(tuple(fields))
+    provenance += "\n\n### Known limitations\n\n" + render_limitations(published.known_limitations) + "\n"
     return rewritten + provenance
 
 
@@ -367,8 +363,8 @@ def _stage_source_entry_pages(
             project_overview.parent,
         ).replace(os.sep, "/")
         euvics_source_lines.append(
-            f"- [{item.title}]({target}) — version {item.version}; "
-            f"status {item.publication_status}"
+            "- " + render_link(Link(item.title, target))
+            + f" — version {markdown_text(item.version)}; status {markdown_text(item.publication_status)}"
         )
     euvics_sources = "\n".join(euvics_source_lines) or (
         "- No project-overview sources are approved by the locked EUVICS manifest."
@@ -409,11 +405,11 @@ def _stage_source_entry_pages(
             if any(path == prefix or path.startswith(prefix) for prefix in prefixes)
         ]
         links = "\n".join(
-            f"- [{item.title}]({_relative_markdown_link(item.path, destination, imported_root)})"
+            "- " + render_link(Link(item.title, _relative_markdown_link(item.path, destination, imported_root)))
             for item in selected
         ) or "No source documents in this section are approved by the locked manifest."
         limitations_text = (
-            "\n".join(f"- {item}" for item in limitations)
+            render_limitations(tuple(limitations))
             if limitations
             else "- No global limitation is recorded by the source contract."
         )
@@ -424,8 +420,8 @@ def _stage_source_entry_pages(
             "belong in the authoritative source repository.\n\n"
             "## Build provenance\n\n"
             f"- **Source commit:** `{pyeuvics.lock.commit}`\n"
-            f"- **Package version:** {', '.join(versions) if versions else 'No approved version'}\n"
-            f"- **Publication status:** {', '.join(statuses) if statuses else 'No approved status'}\n"
+            f"- **Package version:** {', '.join(markdown_text(value) for value in versions) if versions else 'No approved version'}\n"
+            f"- **Publication status:** {', '.join(markdown_text(value) for value in statuses) if statuses else 'No approved status'}\n"
             f"- **Build timestamp:** {timestamp}\n\n"
             "## Approved documentation\n\n"
             f"{links}\n\n"

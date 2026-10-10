@@ -22,6 +22,10 @@ from .contracts import ContractError, verify_contract_inputs
 
 from tools.privacy import PrivacyError, ScanProfile, scan_text
 
+from .presentation import (
+    Code, Link, MetadataRow, NotebookPage, markdown_text, render_link,
+    render_notebook, render_table, render_limitations, source_url,
+)
 from .models import InventoryEntry, NotebookSpec, SourceContract
 
 DATA_LITERAL = re.compile(
@@ -202,38 +206,25 @@ def _render_once(spec: NotebookSpec, source_root: Path) -> tuple[str, dict[str, 
 
 
 def _page_header(spec: NotebookSpec, contract: SourceContract, timestamp: str) -> str:
-    configurations = ", ".join(f"`{item}`" for item in spec.configurations) or "None"
-    requirements = "\n".join(f"- {item}" for item in spec.local_requirements)
-    limitations = "\n".join(f"- {item}" for item in spec.known_limitations)
-    source_url = f"{contract.lock.repository}/blob/{contract.lock.commit}/{spec.path}"
-    return f"""# {spec.title}
-
-!!! info "Static notebook rendering"
-    This page is a static build artifact. It is not a running Python or Jupyter environment.
-
-| Field | Value |
-| --- | --- |
-| pyEUVICS version | {spec.package_version} |
-| Source commit | `{contract.lock.commit}` |
-| Notebook source | [{spec.path}]({source_url}) |
-| Build execution policy | Executed during this website build |
-| Random seed | {spec.random_seed} |
-| Configuration | {configurations} |
-| Scientific validation status | {spec.validation_status} |
-| Publication status | {spec.publication_status} |
-| Website build timestamp | {timestamp} |
-
-## Expected local execution requirements
-
-{requirements}
-
-## Known limitations
-
-{limitations}
-
-## Rendered notebook
-
-"""
+    page = NotebookPage(
+        spec.title,
+        (
+            MetadataRow("pyEUVICS version", spec.package_version),
+            MetadataRow("Source commit", Code(contract.lock.commit)),
+            MetadataRow("Notebook source", Link(spec.path, source_url(contract.lock, spec.path))),
+            MetadataRow("Build execution policy", "Executed during this website build"),
+            MetadataRow("Random seed", spec.random_seed),
+            MetadataRow("Configuration", Code(", ".join(spec.configurations)) if spec.configurations else "None"),
+            MetadataRow("Scientific validation status", spec.validation_status),
+            MetadataRow("Publication status", spec.publication_status),
+            MetadataRow("License", spec.license),
+            MetadataRow("Attribution", spec.attribution),
+            MetadataRow("Website build timestamp", timestamp),
+        ),
+        spec.local_requirements,
+        spec.known_limitations,
+    )
+    return render_notebook(page)
 
 
 def render_approved_notebooks(
@@ -295,7 +286,7 @@ def render_approved_notebooks(
                     spec.known_limitations,
                 )
             )
-        index_links.append(f"- [{spec.title}]({stem}.md)")
+        index_links.append("- " + render_link(Link(spec.title, f"{stem}.md")))
     index = staged_content / "software/notebooks/index.md"
     index.parent.mkdir(parents=True, exist_ok=True)
     index.write_text(
@@ -327,19 +318,20 @@ def stage_campaign_overviews(contract: SourceContract, staged_content: Path, tim
         if len(status) != 1 or len(validation) != 1 or None in validation:
             raise NotebookError(f"inconsistent approved campaign metadata: {campaign}")
         links = "\n".join(
-            f"- [{item.title}](../imported/pyeuvics/{item.path})" for item in approved
+            "- " + render_link(Link(item.title, f"../imported/pyeuvics/{item.path}")) for item in approved
         )
-        limitation_text = "\n".join(f"- {item}" for item in limitations)
+        limitation_text = render_limitations(tuple(limitations))
+        fields = render_table((
+            MetadataRow("pyEUVICS version", approved[0].version),
+            MetadataRow("Source commit", Code(contract.lock.commit)),
+            MetadataRow("Publication status", next(iter(status))),
+            MetadataRow("Scientific validation status", next(iter(validation)) or ""),
+            MetadataRow("Website build timestamp", timestamp),
+        ))
         (staged_content / overview_relative).write_text(
             f"""# {title}
 
-| Field | Value |
-| --- | --- |
-| pyEUVICS version | {approved[0].version} |
-| Source commit | `{contract.lock.commit}` |
-| Publication status | {next(iter(status))} |
-| Scientific validation status | {next(iter(validation))} |
-| Website build timestamp | {timestamp} |
+{fields}
 
 ## Approved campaign material
 
