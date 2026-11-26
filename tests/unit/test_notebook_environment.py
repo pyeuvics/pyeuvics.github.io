@@ -61,4 +61,4 @@ def test_upgraded_website_versions_do_not_override_frozen_source_policy(tmp_path
         'versions':{'numpy':'2.5.1','scipy':'1.18.0'}}),encoding='utf-8')
     policy_spec=replace(spec(),configurations=('environment.yaml',))
     with pytest.raises(NotebookError,match='locked source environment mismatch for numpy'):
-        environment.validate_source_environments(policy_spec,tmp_path,{'numpy':'2.5.3','scipy':'1.18.1'})
+        environment.validate_source_environments(policy_spec,tmp_path,{'numpy':'2.5.5','scipy':'1.18.1'})

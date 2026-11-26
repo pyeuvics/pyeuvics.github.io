@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 from pypdf import PdfWriter
-from pypdf.generic import DecodedStreamObject, NameObject, DictionaryObject
+from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject, TextStringObject
 import pytest
 
 from tests.support.publication import generic_pdf
@@ -59,7 +59,9 @@ def test_image_pixel_budget_and_metadata(tmp_path: Path, monkeypatch) -> None:
 @pytest.mark.parametrize('damage',['script','metadata','stream','attachment'])
 def test_pdf_active_and_hidden_content(tmp_path: Path, damage: str) -> None:
     writer=PdfWriter();writer.add_blank_page(72,72)
-    if damage=='script':writer.add_js('app.alert(1)')
+    if damage=='script':
+        writer._root_object[NameObject('/OpenAction')]=DictionaryObject({
+            NameObject('/S'):NameObject('/JavaScript'), NameObject('/JS'):TextStringObject('app.alert(1)')})
     elif damage=='metadata':writer.add_metadata({'/Title':'/Users/alice/hidden'})
     elif damage=='attachment':writer.add_attachment('extra.txt',b'extra')
     else:
