@@ -1,26 +1,26 @@
-# Direct site, notebook-rendering and test dependencies, reviewed 2026-10-10.
+# Direct site, notebook-rendering and test dependencies, reviewed 2026-11-26.
 # Roles are explicit in tools/dependency-policy.json; use requirements-validation.txt for quality checks.
-PyYAML==6.0.3
-Markdown==3.10.3
+PyYAML==6.0.4
+Markdown==3.11.4
 mkdocs==1.6.1
-mkdocs-material==9.7.7
-mypy==2.3.0
+mkdocs-material==9.8.2
+mypy==2.4.1
 nbclient==0.11.0
-nbconvert==7.17.1
-nbformat==5.10.4
-ipykernel==7.3.0
-pytest==9.1.1
-pypdf==6.14.2
-reportlab==5.0.0
-types-Markdown==3.10.2.20260712
-types-PyYAML==6.0.12.20260906
+nbconvert==7.17.2
+nbformat==5.11.1
+ipykernel==7.4.0
+pytest==9.2.0
+pypdf==7.1.1
+reportlab==5.1.2
+types-Markdown==3.11.3.20261122
+types-PyYAML==6.0.12.20261122
 # Direct CSS policy parser; also used transitively by nbconvert. Reviewed WEB-11.
 tinycss2==1.5.1
 # Direct bounded asset decoders; existing installed versions reviewed WEB-16.
-Pillow==12.3.0
+Pillow==13.0.0
 defusedxml==0.7.1
 # Direct owned-kernel/environment interfaces; installed versions reviewed WEB-19.
-jupyter_client==8.9.1
-packaging==26.3
+jupyter_client==8.10.0
+packaging==26.4
 # Bounded lint tool reviewed in WEB-35; no numerical dependency change.
-ruff==0.17.0
+ruff==0.17.6

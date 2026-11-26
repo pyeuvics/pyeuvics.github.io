@@ -1,6 +1,6 @@
 # Bounded maintenance checks; no all-rules formatter or scientific policy.
 [tool.ruff]
-required-version = "==0.17.0"
+required-version = "==0.17.6"
 target-version = "py313"
 cache-dir = ".staging/ruff-cache"
 

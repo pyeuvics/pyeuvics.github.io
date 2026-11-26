@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from pypdf import PdfReader, filters
+from pypdf import PdfReader, filters, overwrite_configuration
 from pypdf.generic import IndirectObject, StreamObject
 
 from tools.site_assembly.assets import MAX_FILE, MAX_TEXT, inspect_strings
@@ -19,10 +19,14 @@ class PDFPolicyError(ValueError):
 
 def inspect_pdf(path: Path) -> None:
     # This process is disposable: parser limits/hooks never change parent state.
-    for name in ('MAX_DECLARED_STREAM_LENGTH', 'MAX_ARRAY_BASED_STREAM_OUTPUT_LENGTH',
-                 'LZW_MAX_OUTPUT_LENGTH', 'RUN_LENGTH_MAX_OUTPUT_LENGTH',
-                 'ZLIB_MAX_OUTPUT_LENGTH', 'FLATE_MAX_BUFFER_SIZE'):
-        setattr(filters, name, MAX_TEXT)
+    overwrite_configuration(
+        maximum_declared_stream_length=MAX_TEXT,
+        array_based_stream_maximum_output_length=MAX_TEXT,
+        lzw_maximum_output_length=MAX_TEXT,
+        run_length_maximum_output_length=MAX_TEXT,
+        zlib_maximum_output_length=MAX_TEXT,
+        image_maximum_buffer_size=MAX_TEXT,
+    )
     original = filters.decode_stream_data
     total = 0
     allowed = {'/FlateDecode', '/Fl', '/ASCIIHexDecode', '/AHx', '/ASCII85Decode', '/A85', '/LZWDecode', '/LZW', '/RunLengthDecode', '/RL', '/DCTDecode', '/DCT'}

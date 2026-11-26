@@ -42,7 +42,8 @@ for (const prefix of ['/scaffold', '/assembled/site']) {
       await expect(image).toHaveAttribute('alt', /electron bunch/);
       const description=await image.getAttribute('aria-describedby');
       await expect(page.locator(`#${description}`)).toBeVisible();
-      expect(await image.evaluate(el => el.naturalWidth > 0)).toBe(true);
+      await image.scrollIntoViewIfNeeded();
+      await expect.poll(() => image.evaluate(el => el.complete && el.naturalWidth > 0)).toBe(true);
       const headings=await page.locator('article h1, article h2, article h3').evaluateAll(els=>els.map(el=>Number(el.tagName.slice(1))));
       expect(headings[0]).toBe(1);
       for(let i=1;i<headings.length;i++) expect(headings[i]-headings[i-1]).toBeLessThanOrEqual(1);
